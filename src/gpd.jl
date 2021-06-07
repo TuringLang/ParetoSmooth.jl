@@ -43,7 +43,7 @@ function gpdfit(x::AbstractArray, wip::Bool = true, min_grid_pts::Int = 30, sort
     
     
     # build pointwise estimates of k and θ by using each element of the sample.
-    vectorθ = @. 1 / x[n] + (1 - sqrt(m / (collect(1:m) - .5))) / prior / quartile
+    vectorθ = @. 1 / x[n] + (1 - sqrt((m+1) / collect(1:m))) / prior / quartile
     vectorK = mean(log1p.(- vectorθ .* x'), dims = 2)  # take mean of each row
     logLikelihood = @. log(- vectorθ / vectorK) - vectorK - 1  # Calculate log-likelihood at each estimate
     weights = @. 1 / sum(exp(logLikelihood - logLikelihood')) # Calculate weights from log-likelihood
