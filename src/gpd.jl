@@ -19,7 +19,7 @@ The weakly informative prior is a Gaussian centered at 0.5.
   algorithm. The actual number used is `min_grid_pts + floor(sqrt(length(x)))`.
 - `sort_x::Bool = true`: If `true`, the first step in the fitting
   algorithm is to sort the elements of `x`. If `x` is already
-  sorted in ascending order then `sort_x` can be set to `FALSE` to
+  sorted in ascending order then `sort_x` can be set to `false` to
   skip the initial sorting step.
 - A named list with components `k` and `sigma`.
 
