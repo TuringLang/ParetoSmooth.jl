@@ -38,7 +38,6 @@ function gpdfit(x::AbstractArray, wip::Bool = true, min_grid_pts::Int = 30, sort
     m = min_grid_pts + isqrt(n) # isqrt = floor sqrt
     prior = 3
     n_0 = 10  # determines how strongly to nudge kHat towards .5
-    largest = maximum(x)
     quartile = quantile(x, .25; sorted = true, alpha = 0) 
     
     
