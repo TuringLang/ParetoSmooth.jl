@@ -1,6 +1,8 @@
 module gpd
 export gpdfit, gpd_quantile
 
+using Memoization
+
 
 """
     gpdfit(x::AbstractArray, wip::Bool = true, min_grid_pts::Int = 30, wip = true, sort_x::Bool = true)
@@ -36,13 +38,13 @@ function gpdfit(x::AbstractArray, wip::Bool = true, min_grid_pts::Int = 30, sort
 
     n = length(x)
     m = min_grid_pts + isqrt(n) # isqrt = floor sqrt
-    prior = 3
+    prior = 3.0
     n_0 = 10  # determines how strongly to nudge kHat towards .5
     quartile = quantile(x, .25; sorted = true, alpha = 0) 
     
     
     # build pointwise estimates of k and θ by using each element of the sample.
-    vectorθ = @. 1 / x[n] + (1 - sqrt((m+1) / collect(1:m))) / prior / quartile
+    vectorθ = @. 1 / x[n] + memoized(m, prior) / quartile
     vectorK = mean(log1p.(- vectorθ .* x'), dims = 2)  # take mean of each row
     logLikelihood = @. log(- vectorθ / vectorK) - vectorK - 1  # Calculate log-likelihood at each estimate
     weights = @. 1 / sum(exp(logLikelihood - logLikelihood')) # Calculate weights from log-likelihood
@@ -71,4 +73,11 @@ end
 """
 function gpd_quantile(p::Real, k::Real, sigma::Real)
   return sigma * expm1(-k * log1p(-p)) / k
+end
+
+
+# Internal Function
+
+@memoize list_on_prior(m::Int, prior::AbstractFloat)  # Repeated often, so memoize 
+  return @. (1 - sqrt((m+1) / collect(1:m))) / prior
 end
