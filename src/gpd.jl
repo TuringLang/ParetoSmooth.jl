@@ -1,7 +1,8 @@
 module gpd
+using Base: AbstractFloat
 export gpdfit, gpd_quantile
 
-using Memoization
+using Memoization, Statistics, LinearAlgebra
 
 
 """
@@ -34,7 +35,8 @@ The weakly informative prior is a Gaussian centered at 0.5.
 The parameter \$k\$ is the negative of \$k\$ in [zhangNewEfficientEstimation2009](@cite).
 A slightly different quantile interpolation is used than in the paper.
 """
-function gpdfit(x::AbstractArray, wip::Bool = true, min_grid_pts::Int = 30, sort_x::Bool = true)
+function gpdfit(x::AbstractVector; wip::Bool = true, min_grid_pts::Int = 30, sort_x::Bool = true)
+  
     
     # x must be sorted, but we can skip if x is already sorted
     if sort_x
@@ -45,16 +47,16 @@ function gpdfit(x::AbstractArray, wip::Bool = true, min_grid_pts::Int = 30, sort
     m = min_grid_pts + isqrt(n) # isqrt = floor sqrt
     prior = 3.0
     n_0 = 10.0  # determines how strongly to nudge kHat towards .5
-    quartile = quantile(x, .25; sorted = true, alpha = 0) 
+    quartile = quantile(x, .25; sorted = true, alpha = 0)
     
-    
-    # build pointwise estimates of k and θ by using each element of the sample.
-    vectorθ = @. 1 / x[n] + memoized(m, prior) / quartile
-    vectorK = mean(log1p.(- vectorθ .* x'), dims = 2)  # take mean of each row
-    logLikelihood = @. log(- vectorθ / vectorK) - vectorK - 1  # Calculate log-likelihood at each estimate
-    weights = @. 1 / sum(exp(logLikelihood - logLikelihood')) # Calculate weights from log-likelihood
 
-    θHat = weights ⋅ vectorθ  # Take the dot product of weights and pointwise estimates of θ to get the full estimate
+    # build pointwise estimates of k and θ by using each element of the sample.
+    bHats = 1 / x[n] .+ list_on_prior(m, prior) ./ quartile
+    kHats = mean(log1p.(- bHats .* x'), dims = 2)  # take mean of each row
+    logLikelihood = @. log(- bHats / kHats) - kHats - 1  # Calculate log-likelihood at each estimate
+    weights = 1 ./ sum(exp.(logLikelihood .- logLikelihood'), dims = 1)' # Calculate weights from log-likelihood
+
+    θHat = weights' ⋅ bHats  # Take the dot product of weights and pointwise estimates of θ to get the full estimate
 
     kHat = mean(log1p.(- θHat .* x))
     σ = -kHat / θHat
@@ -80,9 +82,11 @@ function gpd_quantile(p::Real, k::Real, sigma::Real)
   return sigma * expm1(-k * log1p(-p)) / k
 end
 
+@memoize function list_on_prior(m::Int, prior::AbstractFloat)  
+  seq = collect(1:m)
+  return @. (1 - sqrt((m+1) / seq)) / prior
+end
 
-# Internal Function
 
-@memoize list_on_prior(m::Int, prior::AbstractFloat)  # Repeated often, so memoize 
-  return @. (1 - sqrt((m+1) / collect(1:m))) / prior
+
 end
