@@ -13,6 +13,7 @@ a weak prior for \$k\$, which will stabilize estimates for very small sample
 sizes (and low effective sample sizes in the case of MCMC samples). 
 The weakly informative prior is a Gaussian centered at 0.5. 
 
+
 # Arguments
 - `x::AbstractArray`: A numeric vector. The sample from which to estimate the parameters.
 - `wip::Bool = true`: Logical indicating whether to adjust k based on a weakly
@@ -24,6 +25,10 @@ The weakly informative prior is a Gaussian centered at 0.5.
   sorted in ascending order then `sort_x` can be set to `false` to
   skip the initial sorting step.
 - A named list with components `k` and `sigma`.
+
+
+# Returns
+- `k, σ`: The estimated parameters of the generalized Pareto distribution.
 
 # Note
 The parameter \$k\$ is the negative of \$k\$ in [zhangNewEfficientEstimation2009](@cite).
@@ -39,7 +44,7 @@ function gpdfit(x::AbstractArray, wip::Bool = true, min_grid_pts::Int = 30, sort
     n = length(x)
     m = min_grid_pts + isqrt(n) # isqrt = floor sqrt
     prior = 3.0
-    n_0 = 10  # determines how strongly to nudge kHat towards .5
+    n_0 = 10.0  # determines how strongly to nudge kHat towards .5
     quartile = quantile(x, .25; sorted = true, alpha = 0) 
     
     
