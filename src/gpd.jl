@@ -1,7 +1,7 @@
 module gpd
 export gpdfit, gpd_quantile
 
-using Memoization, Statistics, LinearAlgebra, Tullio, LoopVectorization, KernelAbstractions
+using LoopVectorization, Tullio, LinearAlgebra
 
 
 """
@@ -39,7 +39,7 @@ function gpdfit(sample::AbstractVector, wip::Bool = true, min_grid_pts::Int = 30
 
   # sample must be sorted, but we can skip if sample is already sorted
   if sort_sample
-      sample = sort(sample)
+      sample = sort(sample, alg=QuickSort)
   end
 
   
@@ -47,18 +47,18 @@ function gpdfit(sample::AbstractVector, wip::Bool = true, min_grid_pts::Int = 30
   m = min_grid_pts + isqrt(n) # isqrt = floor sqrt
   n_0 = 10.0  # determines how strongly to nudge ξ towards .5
   quartile = sample[(n+2) ÷ 4] 
-  seq = collect(1:m) 
 
 
   # build pointwise estimates of k and θ by using each element of the sample.
-  @turbo θHats = @. 1 / sample[n] + (1 - sqrt(m / (seq - .5))) / prior / quartile
-  @tullio grad=false ξHats[x] := log1p(- θHats[x] * sample[y]) |> (_ / n)
-  @turbo logLikelihood = @. n * (log(- θHats / ξHats) - ξHats - 1)  # Calculate log-likelihood at each estimate
+  @turbo θHats = @. 1 / sample[n] + (1 - sqrt(m / ($(Base.OneTo(m)) - .5))) / prior / quartile
+  @tullio grad=false ξHats[x] := log1p(- θHats[x] * sample[y])
+  @turbo logLikelihood = @. n * log(-n * θHats / ξHats) - ξHats - n  # Calculate log-likelihood at each estimate
   @tullio grad=false weights[y] := exp(logLikelihood[x] - logLikelihood[y]) |> inv # Calculate weights from log-likelihood
 
   θHat = weights ⋅ θHats  # Take the dot product of weights and pointwise estimates of θ to get the full estimate
 
-  ξ = mean(log1p.(- θHat .* sample))
+  ξ = calc_ξ(sample, θHat)
+
   σ = -ξ / θHat
   # Drag towards .5 to reduce variance for small n
   if wip
@@ -70,16 +70,34 @@ function gpdfit(sample::AbstractVector, wip::Bool = true, min_grid_pts::Int = 30
 end
 
 """
-  gpd_quantile(p::Real, k::Real, sigma::Real)
+    gpd_quantile(p::Real, k::Real, sigma::Real)
+
+Compute the `p` quantile of the Generalized Pareto Distribution (GPD).
 
 # Arguments  
 - p A float between 0 and 1.
 - k Scalar shape parameter.
 - sigma Scalar scale parameter.
-@return Vector of quantiles.
+
+# Returns
+A quantile of the Generalized Pareto Distribution.
 """
 function gpd_quantile(p::Real, k::Real, sigma::Real)
   return @fastmath sigma * expm1(-k * log1p(-p)) / k
+end
+
+
+"""
+    calc_ξ(sample, θHat)
+
+Calculate ξ, the parameter for the GPD.
+"""
+function calc_ξ(sample, θHat)
+  ξ = zero(promote_type(typeof(θHat), eltype(sample)))
+  @turbo for i in eachindex(sample)
+      ξ += log1p(- θHat * sample[i])
+  end
+  return ξ / length(sample)
 end
 
 
