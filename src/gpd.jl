@@ -31,8 +31,7 @@ MCMC samples). The weakly informative prior is a Gaussian centered at 0.5.
 
 # Note
 The parameter \$ξ\$ is the negative of \$k\$ in [zhangNewEfficientEstimation2009](@cite).
-A slightly different quantile interpolation is used than in the paper. This function will
-modify the provided sample by sorting it to speed up future applications of gpdfit.
+A slightly different quantile interpolation is used than in the paper.
 """
 function gpdfit(sample::AbstractVector, wip::Bool = true, min_grid_pts::Int = 30, sort_sample::Bool = true)
   
@@ -40,7 +39,7 @@ function gpdfit(sample::AbstractVector, wip::Bool = true, min_grid_pts::Int = 30
 
   # sample must be sorted, but we can skip if sample is already sorted
   if sort_sample
-      sort!(sample)
+      sample = sort(sample)
   end
 
   
