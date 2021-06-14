@@ -1,5 +1,5 @@
 module GPD
-export gpdfit, gpd_quantile, psis_smooth_tail
+export gpdfit, gpd_quantile
 
 using LoopVectorization, Tullio, LinearAlgebra
 

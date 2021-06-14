@@ -2,7 +2,7 @@ module PSIS
 
 using LoopVectorization, Tullio, GPD
 
-export psis
+export do_psis_i
 
 const MIN_LEN = 5  # Minimum size of a sample for PSIS to work
 
