@@ -5,7 +5,7 @@ using LoopVectorization, Tullio, LinearAlgebra
 
 
 """
-    gpdfit(sample::AbstractVector; wip::Bool=true, minGridPts::Int=30, sortSample::Bool=true)
+    gpdfit(sample::AbstractVector, wip::Bool=true, minGridPts::Int=30, sortSample::Bool=false)
 Return a named list of estimates for the parameters ξ (shape) and σ (scale) of the generalized Pareto distribution (GPD), assuming the location parameter is 0. 
 
 # Arguments
@@ -22,8 +22,9 @@ function gpdfit(
     minGridPts::Int = 30,
     sortSample::Bool = false
 )
-
+    
     n = length(sample)
+    @assert n != 0  "ERROR: Vector is empty."
 
     # sample must be sorted, but we can skip if sample is already sorted
     if sortSample
@@ -72,7 +73,7 @@ Compute the `p` quantile of the Generalized Pareto Distribution (GPD).
 # Returns
 A quantile of the Generalized Pareto Distribution.
 """
-@inline function gpd_quantile(p::Real, k::Real, sigma::Real)
+function gpd_quantile(p::Real, k::Real, sigma::Real)
     return @fastmath sigma * expm1(-k * log1p(-p)) / k
 end
 

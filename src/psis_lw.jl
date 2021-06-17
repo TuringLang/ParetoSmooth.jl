@@ -1,65 +1,96 @@
 module PSIS
 
-using LoopVectorization, Tullio, GPD
+using LoopVectorization, Base.Threads
 
 export do_psis_i
+
+include("gpd.jl")
 
 const MIN_LEN = 5  # Minimum size of a sample for PSIS to work
 
 
 """
-    do_psis_i(logRatios::AbstractVector, tailLength::Real)
-Do PSIS on a single vector, returning a vector of log weights and the GPD shape parameter ξ.
+    do_psis_i!(logRatios::AbstractVector, tailLength::Real)
+Do PSIS on a single vector, smoothing a vector of log weights *in place* before returning the GPD shape parameter `ξ`.
 
 The log weights (or log ratios if no smoothing) larger than the largest raw ratio are set to the largest raw ratio.
 """
-function do_psis_i(logRatios::AbstractVector{T>:Real}, tailLength::Real)
+function do_psis_i!(logRatios::AbstractVector, tailLength::Int = def_tail_length(logRatios))
     len = length(logRatios)
+    maxRatio = maximum(logRatios)
     # Shift log ratios for safer exponentation
-    logRatios = logRatios .- max(logRatios)
-    ξ::Real = Inf
+    @turbo @. logRatios = logRatios - maxRatio
+    @views sortedRatios = logRatios[sortperm(logRatios)]
 
     if tailLength ≥ MIN_LEN
         # TODO: Faster sorting by presorting all vectors together
-        ordering = sortperm(logRatios)
-        smallestTailValue = len - tailLength  # Smallest value in the tail
-        index = smallestTailValue:len
-        tail = logRatios[ordering[index]]
-        if max(tail) ≈ min(tail)  # If max/min < 1+sqrt(ϵ), numerical stability can't be guaranteed.
+        tailStartsAt = len - tailLength + 1  # index of smallest tail value
+        @views tail = sortedRatios[tailStartsAt:len]
+
+        if maximum(tail) ≈ minimum(tail)
             @warn("Unable to fit generalized Pareto distribution: all tail values are the same. " * 
             "Falling back on truncated importance sampling.")
+            ξ = Inf
         else
-            cutoff = logRatios[ordering[smallestTailValue - 1]] # largest value smaller than tail values
-            tail, ξ = psis_smooth_tail(tail, cutoff)
-            @turbo logRatios[ordering[index]] .= tail
+            cutoff = sortedRatios[tailStartsAt - 1]  # largest value smaller than tail values
+            ξ = psis_smooth_tail!(tail, cutoff)
         end
     else
         @warn("Unable to fit generalized Pareto distribution: Tail length was too short. " * 
         "Falling back on regular importance sampling.")
+        ξ = Inf
     end
     # truncate at max of raw wts (i.e., 0 since max has been subtracted)
-    @turbo logRatios = @. max(logRatios, 0)
+    @turbo @. logRatios = min(logRatios, 0)
     # shift log weights back so that the smallest log weights remain unchanged
-    @turbo logRatios .= logRatios .+ max(logRatios)
-
-    return logRatios, ξ
+    @turbo @. logRatios = logRatios + maxRatio
+    
+    return ξ
 end
 
 
 """
-    psis_smooth_tail(tail::AbstractVector)
-Takes in an *already sorted* vector of observations from the tail, then returns a named tuple with values `tail` and `ξ`.
+    do_psis_i(logRatios::AbstractVector, tailLength::Real)
+Do PSIS on a single vector, returning a named tuple with smoothed log weights and the GPD shape parameter ξ.
+
+The log weights (or log ratios if no smoothing) larger than the largest raw ratio are set to the largest raw ratio.
 """
-function psis_smooth_tail(tail::AbstractVector, cutoff::Real)
+function do_psis_i(logRatios::AbstractVector, tailLength::Int = def_tail_length(logRatios))
+    x = zeros(eltype(logRatios), length(logRatios))
+    @turbo x .= logRatios
+    ξ = do_psis_i!(x, tailLength)
+    return (logRatios = x, k = ξ)
+end
+
+
+"""
+    tail_length(logRatios::AbstractVector)
+Define the tail length as in Vehtari et al. (2019).
+"""
+function def_tail_length(logRatios::AbstractVector)
+    if length(logRatios) > 225
+        return 3 * isqrt(length(logRatios))
+    else
+        return length(logRatios) ÷ 5
+    end
+end
+
+
+
+"""
+    psis_smooth_tail(tail::AbstractVector)
+Takes an *already sorted* vector of observations from the tail and smooths it in place with PSIS before returning shape parameter `ξ`.
+"""
+function psis_smooth_tail!(tail::AbstractVector, cutoff::Real)
     len = length(tail)
     expCutoff = exp(cutoff)
 
     # save time not sorting since x already sorted
-    ξ, σ = @turbo @. $gpdfit(exp(tail) - expCutoff)
+    ξ, σ = @turbo GPD.gpdfit(exp.(tail) .- expCutoff)
     if ξ != Inf
-        tail = @turbo @. log(gpd_quantile($(1:len) / (len+1), ξ, σ) + expCutoff)
+        @turbo @. tail = log(GPD.gpd_quantile($(1:len) / (len+1), ξ, σ) + expCutoff)
     end
-    return tail, ξ
+    return ξ
 end
 
 end
