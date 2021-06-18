@@ -5,13 +5,13 @@ using LoopVectorization, Tullio, LinearAlgebra
 
 
 """
-    gpdfit(sample::AbstractVector, wip::Bool=true, minGridPts::Int=30, sortSample::Bool=false)
+    gpdfit(sample::AbstractVector, wip::Bool=true, minGridPts::Integer=30, sortSample::Bool=false)
 Return a named list of estimates for the parameters ξ (shape) and σ (scale) of the generalized Pareto distribution (GPD), assuming the location parameter is 0. 
 
 # Arguments
 - `sample::AbstractVector`: A numeric vector. The sample from which to estimate the parameters.
 - `wip::Bool = true`: Logical indicating whether to adjust ξ based on a weakly informative Gaussian prior centered on 0.5. Defaults to `true`.
-- `minGridPts::Int = 30`: The minimum number of grid points used in the fitting algorithm. The actual number used is `minGridPts + ⌊sqrt(length(sample))⌋`.
+- `minGridPts::Integer = 30`: The minimum number of grid points used in the fitting algorithm. The actual number used is `minGridPts + ⌊sqrt(length(sample))⌋`.
 
 # Note
 Estimation method taken from Zhang, J. and Stephens, M.A. (2009). The parameter ξ is the negative of \$k\$.
@@ -19,7 +19,7 @@ Estimation method taken from Zhang, J. and Stephens, M.A. (2009). The parameter 
 function gpdfit(
     sample::AbstractVector;
     wip::Bool = true,
-    minGridPts::Int = 30,
+    minGridPts::Integer = 30,
     sortSample::Bool = false
 )
     
