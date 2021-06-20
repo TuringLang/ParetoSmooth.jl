@@ -5,13 +5,13 @@ using LoopVectorization, Tullio, LinearAlgebra
 
 
 """
-    gpdfit(sample::AbstractVector, wip::Bool=true, minGridPts::Integer=30, sortSample::Bool=false)
+    gpdfit(sample::AbstractVector, wip::Bool=true, min_grid_pts::Integer=30, sort_sample::Bool=false)
 Return a named list of estimates for the parameters ξ (shape) and σ (scale) of the generalized Pareto distribution (GPD), assuming the location parameter is 0. 
 
 # Arguments
 - `sample::AbstractVector`: A numeric vector. The sample from which to estimate the parameters.
 - `wip::Bool = true`: Logical indicating whether to adjust ξ based on a weakly informative Gaussian prior centered on 0.5. Defaults to `true`.
-- `minGridPts::Integer = 30`: The minimum number of grid points used in the fitting algorithm. The actual number used is `minGridPts + ⌊sqrt(length(sample))⌋`.
+- `min_grid_pts::Integer = 30`: The minimum number of grid points used in the fitting algorithm. The actual number used is `min_grid_pts + ⌊sqrt(length(sample))⌋`.
 
 # Note
 Estimation method taken from Zhang, J. and Stephens, M.A. (2009). The parameter ξ is the negative of \$k\$.
@@ -19,34 +19,34 @@ Estimation method taken from Zhang, J. and Stephens, M.A. (2009). The parameter 
 function gpdfit(
     sample::AbstractVector;
     wip::Bool = true,
-    minGridPts::Integer = 30,
-    sortSample::Bool = false
+    min_grid_pts::Integer = 30,
+    sort_sample::Bool = false
 )
     
     n = length(sample)
     @assert n != 0  "ERROR: Vector is empty."
 
     # sample must be sorted, but we can skip if sample is already sorted
-    if sortSample
+    if sort_sample
         sample = sort(sample; alg = QuickSort)
     end
 
 
-    prior = 3.0
-    m = minGridPts + isqrt(n) # isqrt = floor sqrt
-    n_0 = 10.0  # determines how strongly to nudge ξ towards .5
+    prior = 3
+    m = min_grid_pts + isqrt(n) # isqrt = floor sqrt
+    n_0 = 10  # determines how strongly to nudge ξ towards .5
     quartile = sample[(n+2)÷4]
 
 
     # build pointwise estimates of ξ and θ by using each element of the sample.
     @turbo θHats =
         @. 1 / sample[n] + (1 - sqrt(m / ($(1:m) - 0.5))) / prior / quartile
-    @tullio grad = false threads = false ξHats[x] := log1p(-θHats[x] * sample[y])
+    @tullio grad=false threads=false ξHats[x] := log1p(-θHats[x] * sample[y])
     @turbo logLikelihood = @. n * log(-n * θHats / ξHats) - ξHats - n  # Calculate log-likelihood at each estimate
-    @tullio grad = false threads = false weights[y] :=
-        exp(logLikelihood[x] - logLikelihood[y]) |> inv # Calculate weights from log-likelihood
-
-    θHat = weights ⋅ θHats  # Take the dot product of weights and pointwise estimates of θ to get the full estimate
+    # Calculate weights from log-likelihood:
+    @tullio grad=false threads=false weights[y] := exp(logLikelihood[x] - logLikelihood[y]) |> inv 
+    # Take weighted mean:
+    @tullio grad=false θHat := weights[x] * θHats[x]
 
     ξ = calc_ξ(sample, θHat)
 
