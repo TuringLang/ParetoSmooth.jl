@@ -1,6 +1,3 @@
-module StructLOO
-
-export 
 """
 A struct containing the results of Pareto-smoothed improtance sampling. `psis` objects have the following fields:
  - `log_weights`: A vector of smoothed and truncated but *unnormalized* log weights. To get normalized weights use the `weights()` function.
@@ -13,14 +10,3 @@ A struct containing the results of Pareto-smoothed improtance sampling. `psis` o
  - `dims`: Named tuple of length 2 containing `s` (posterior sample size) and `n` (number of observations).
  - `method`: Method used for importance sampling.
 """
-struct PSIS{T<:AbstractFloat}
-    log_weights::AbstractVector{T}
-    diagnostics::NamedTuple{(:pareto_k, :n_eff), AbstractVector{T}}
-    norm_const_log::AbstractVector{T}
-    tail_len::AbstractVector{T}
-    r_eff::AbstractVector{T}
-    dims::NamedTuple{(:s, :n), Tuple{Int}}
-    method::String
-end
-
-end
