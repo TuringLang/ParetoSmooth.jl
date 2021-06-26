@@ -1,36 +1,43 @@
 module ESS
 
-using InferenceDiagnostics, LoopVectorization
+using Base: AbstractFloat
+using MCMCChains
+using LoopVectorization
+using Tullio
 
-export relative_eff
+export relative_eff, psis_n_eff
 
 """
     relative_eff(sample::AbstractArray, cores = Threads.nthreads())
 Compute the MCMC effective sample size divided by the actual sample size.
 """
-function relative_eff(sample::AbstractArray{T <: Real, 3}, cores::Integer = Threads.nthreads(), ...)
+function relative_eff(sample::AbstractArray{T,3}) where {T<:AbstractFloat}
     dimensions = size(sample)
-    chainCount = dimensions[2]
-    sampleSize = dimensions[2] * dimensions[1]
-    rEff = zeroes(chainCount)
-    @tturbo for i in 1:chainCount
-      rEff[i] = ess_rhat(sample)[1] ./ sampleSize
-    end
+    posteriorSampleSize = dimensions[1] * dimensions[2]
+    ess, = MCMCChains.ess_rhat(permutedims(sample, [2, 1, 3]))  # Only need ESS, not rhat
+    rEff = ess / posteriorSampleSize
     return rEff
 end
 
-function relative_eff(sample::AbstractArray{T <: Real, 2}, cores::Integer = Threads.nthreads(), ...)
-    dimensions = size(sample)
-    return relative_eff(reshape(sample, dimensions[1], 1, dimensions[2]), cores, ...)
+
+function psis_n_eff(weights::AbstractVector{T}, r_eff::AbstractVector{T}) where {T<:AbstractFloat}
+    @tullio sumSquares := weights[x]^2
+    return r_eff / sumSquares
 end
 
+function psis_n_eff(weights::AbstractMatrix{T}, r_eff::AbstractVector{T}) where {T<:AbstractFloat}
+    @tullio sumSquares[x] := weights[x, y]^2 
+    return @tturbo r_eff ./ sumSquares
+end
 
-function psis_n_eff(weights::AbstractVector{T <: Real}, r_eff::Real = 1)
-    if r_eff == 1
-      @warn "PSIS n_eff not adjusted based on MCMC n_eff. PSIS MCSE estimates will be overoptimistic."
-    end
-    
-    return @tullio grad=false effectiveSample := weights[x] |> r_eff / _
+function psis_n_eff(weights::AbstractArray{T, 3}, r_eff::AbstractVector{T}) where {T<:AbstractFloat}
+    @tullio sumSquares[x] := weights[x, y, z]^2 
+    return @tturbo r_eff ./ sumSquares
+end
+
+function psis_n_eff(weights::AbstractVecOrMat{T}) where {T<:AbstractFloat}
+    @warn "PSIS ESS not adjusted based on MCMC ESS. MCSE and ESS estimates will be overoptimistic if samples are autocorrelated."
+    return psis_n_eff(weights, ones(size(weights)))
 end
 
 end

@@ -1,7 +1,10 @@
 module GPD
-export gpdfit, gpd_quantile
 
-using LoopVectorization, Tullio, LinearAlgebra
+using LinearAlgebra
+using LoopVectorization
+using Statistics
+using Tullio
+
 
 
 """
@@ -20,15 +23,13 @@ function gpdfit(
     sample::AbstractVector;
     wip::Bool = true,
     min_grid_pts::Integer = 30,
-    sort_sample::Bool = false
+    sort_sample::Bool = false,
 )
-    
-    n = length(sample)
-    @assert n != 0  "ERROR: Vector is empty."
 
+    n = length(sample)
     # sample must be sorted, but we can skip if sample is already sorted
     if sort_sample
-        sample = sort(sample; alg = QuickSort)
+        sample = sort(sample; alg=QuickSort)
     end
 
 
@@ -39,14 +40,15 @@ function gpdfit(
 
 
     # build pointwise estimates of ξ and θ by using each element of the sample.
-    @turbo θHats =
-        @. 1 / sample[n] + (1 - sqrt(m / ($(1:m) - 0.5))) / prior / quartile
-    @tullio grad=false threads=false ξHats[x] := log1p(-θHats[x] * sample[y])
-    @turbo logLikelihood = @. n * log(-n * θHats / ξHats) - ξHats - n  # Calculate log-likelihood at each estimate
+    @turbo θHats = @. 1 / sample[n] + (1 - sqrt((m+1) / $(1:m))) / prior / quartile
+    @tullio threads=false ξHats[x] := log1p(-θHats[x] * sample[y]) |> _ / n
+    logLikelihood = similar(ξHats)
+    @turbo @. logLikelihood = n * (log(-θHats / ξHats) - ξHats - 1)  # Calculate log-likelihood at each estimate
     # Calculate weights from log-likelihood:
-    @tullio grad=false threads=false weights[y] := exp(logLikelihood[x] - logLikelihood[y]) |> inv 
+    weights = ξHats  # Reuse preallocated array
+    @tullio threads=false weights[y] = exp(logLikelihood[x] - logLikelihood[y]) |> inv
     # Take weighted mean:
-    @tullio grad=false θHat := weights[x] * θHats[x]
+    @tullio threads=false θHat := weights[x] * θHats[x]
 
     ξ = calc_ξ(sample, θHat)
 
