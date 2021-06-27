@@ -8,3 +8,21 @@
 [![Coverage](https://coveralls.io/repos/github/"ParadaCarleton"/JuLOOa.jl/badge.svg?branch=master)](https://coveralls.io/github/"ParadaCarleton"/JuLOOa.jl?branch=master)
 [![Code Style: Blue](https://img.shields.io/badge/code%20style-blue-4495d1.svg)](https://github.com/invenia/BlueStyle)
 [![ColPrac: Contributor's Guide on Collaborative Practices for Community Packages](https://img.shields.io/badge/ColPrac-Contributor's%20Guide-blueviolet)](https://github.com/SciML/ColPrac)
+
+
+**An implementation of Pareto Smoothed Importance Sampling in Julia.**
+
+## Installation
+
+Install with Pkg, just like any other registered Julia package:
+
+```jl
+pkg> add PkgTemplates  # Press ']' to enter the Pkg REPL mode.
+```
+
+## Usage
+
+### Interactive Generation
+
+Use the `psis` command to perform Pareto Smoothed Importance Sampling, and return a PSIS object for further analysis.
+
