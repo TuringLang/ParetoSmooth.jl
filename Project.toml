@@ -1,7 +1,7 @@
 name = "JuLOOa"
 uuid = "d560117c-e80f-4758-b510-1cb1d9ee831f"
 authors = ["Carlos Parada <paradac@carleton.edu>"]
-version = "0.0.0"
+version = "0.0.1"
 
 [deps]
 VectorizationBase = "3d5dd08c-fd9d-11e8-17fa-ed2836048c2f"
