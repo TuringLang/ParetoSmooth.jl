@@ -4,7 +4,7 @@ authors = ["Carlos Parada <paradac@carleton.edu>"]
 version = "0.0.0"
 
 [deps]
-PkgTemplates = "14b8a8f1-9102-5b29-a752-f990bacb7fe1"
+VectorizationBase = "3d5dd08c-fd9d-11e8-17fa-ed2836048c2f"
 
 [compat]
 julia = "1.6"
