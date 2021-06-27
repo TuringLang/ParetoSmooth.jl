@@ -1,7 +1,10 @@
 name = "JuLOOa"
 uuid = "d560117c-e80f-4758-b510-1cb1d9ee831f"
 authors = ["Carlos Parada <paradac@carleton.edu>"]
-version = "0.1.0"
+version = "0.0.0"
+
+[deps]
+PkgTemplates = "14b8a8f1-9102-5b29-a752-f990bacb7fe1"
 
 [compat]
 julia = "1.6"
