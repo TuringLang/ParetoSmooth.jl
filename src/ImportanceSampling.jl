@@ -1,12 +1,21 @@
 module ImportanceSampling
 
-using Base: AbstractFloat
+using Base: AbstractFloat, Integer
 using LoopVectorization
 using Tullio
 
+import ..ESS
+import ..GPD
 
+const LIKELY_ERROR_CAUSES = """
+1. Bugs in the program that generated the sample, or otherwise incorrect input variables. 
+2. Your chains failed to converge. Check your diagnostics. 
+3. You do not have enough posterior samples (Less than ~100 samples) -- try sampling more values.
+"""
+const MIN_TAIL_LEN = 5  # Minimum size of a tail for PSIS to work
 const SAMPLE_SOURCES = ["mcmc", "vi", "other"]
 
+export Psis, psis
 
 """
     psis(log_ratios::AbstractArray{T:>AbstractFloat}; 
@@ -15,13 +24,13 @@ const SAMPLE_SOURCES = ["mcmc", "vi", "other"]
 Implements Pareto-smoothed importance sampling.
 
 # Arguments
-- `log_ratios::AbstractArray`: An array of importance ratios on the log scale (for PSIS-LOO 
+- `log_ratios::AbstractArray`: An array of importance ratios on the log scale (for PSIS-LOO
 these are *negative* log-likelihood values). Indices must be ordered as `[data, draw, chain]`: 
-`log_ratios[1, 2, 3]` should be the log-likelihood of the first data point, evaluated at the 
-second iteration of the third chain. Chain indices can be left off if there is only a single 
-chain.
-- `source::String="mcmc"`: A string or symbol describing the source of the sample being used. 
-If `"mcmc"`, adjusts ESS for autocorrelation. Otherwise, samples are assumed to be independent. 
+`log_ratios[1, 2, 3]` should be the log-likelihood of the first data point, evaluated at the
+second iteration of the third chain. Chain indices can be left off if there is only a single
+chain. 
+- `source::String="mcmc"`: A string or symbol describing the source of the sample being used.
+If `"mcmc"`, adjusts ESS for autocorrelation. Otherwise, samples are assumed to be independent.
 Currently permitted values are $SAMPLE_SOURCES.
 - `r_call::Bool=false`: should be used only if called from R's LOO package.
 """
@@ -46,7 +55,7 @@ function psis(
     if source == "mcmc"
         @info "Adjusting for autocorrelation. If the posterior samples are not autocorrelated, " *
         "specify the source of the posterior sample using the keyword argument `source`. " *
-        "MCMC samples are always autocorrelated."
+        "MCMC samples are always autocorrelated, while VI samples are not."
         relEff = ESS.relative_eff(reshape(weights, dimensions))
     end
 
@@ -109,12 +118,12 @@ Do PSIS on a single vector, smoothing its tail values.
 
 # Arguments
 
-  - `is_ratios::AbstractVector{AbstractFloat}`: A vector of (not necessarily 
+  - `is_ratios::AbstractVector{AbstractFloat}`: A vector of (not necessarily
   normalized) importance sampling ratios.
 
 # Returns
 
-  - `T<:AbstractFloat`: ξ, the shape parameter for the GPD; larger numbers indicate 
+  - `T<:AbstractFloat`: ξ, the shape parameter for the GPD; larger numbers indicate
   thicker tails.
 
 # Extended help
@@ -133,7 +142,7 @@ function do_psis_i!(
     # Define and check tail
     tailStartsAt = len - tail_length + 1  # index of smallest tail value
     @views tail = is_ratios[tailStartsAt:len]
-    LooUtility.check_tail(tail)
+    check_tail(tail)
 
     # Get value just before the tail starts:
     cutoff = is_ratios[tailStartsAt-1]
@@ -149,29 +158,29 @@ end
 
 
 """
-    def_tail_length(log_ratios::AbstractVector, r_eff::AbstractFloat)::Integer
+    def_tail_length(log_ratios::AbstractVector, r_eff::AbstractFloat) -> tail_len::Integer
 
-Define the tail length as in Vehtari et al. (2019).
+Define the tail length as in Vehtari et al. (2019). {Cite Vehtari paper here}
 """
-function def_tail_length(length::Integer, r_eff::AbstractFloat)
-    ess = Int(length ÷ r_eff)
+function def_tail_length(length::I, r_eff::AbstractFloat) where I<:Integer
+    ess::I = length ÷ r_eff
     return min(ess ÷ 5, 3 * isqrt(ess)) + 1
 end
 
 
 
 """
-    psis_smooth_tail!(tail::AbstractVector)::
+    psis_smooth_tail!(tail::AbstractVector{T}, cutoff::T) where {T<:AbstractFloat} -> ξ::T
 
 Takes an *already sorted* vector of observations from the tail and smooths it *in place*  
 with PSIS before returning shape parameter `ξ`.
 """
-function psis_smooth_tail!(tail::AbstractVector{T}, cutoff::Real) where {T<:AbstractFloat}
+function psis_smooth_tail!(tail::AbstractVector{T}, cutoff::T) where {T<:AbstractFloat}
     len = length(tail)
     @turbo @. tail = tail - cutoff
 
     # save time not sorting since x already sorted
-    ξ, σ = @turbo GPD.gpdfit(tail)
+    ξ, σ = GPD.gpdfit(tail)
     if ξ != Inf
         @turbo @. tail = GPD.gpd_quantile($(1:len) / (len + 1), ξ, σ) + cutoff
     end
@@ -179,23 +188,27 @@ function psis_smooth_tail!(tail::AbstractVector{T}, cutoff::Real) where {T<:Abst
 end
 
 
+
+##########################
+#####  PSIS STRUCTS  #####
+##########################
+
+
 """
     Psis{V<:AbstractVector{F},I<:Integer} where {F<:AbstractFloat}
 
-A struct containing the results of Pareto-smoothed improtance sampling. `Psis` objects have the following fields:
+A struct containing the results of Pareto-smoothed improtance sampling.
 
-  - `log_weights`: A vector of smoothed and truncated but *unnormalized* log weights. To get normalized weights use the `weights()` function.
-
-  - `diagnostics`: A named tuple containing two vectors with names `pareto_k` and `n_eff`.
-    
-      + `pareto_k`: Estimates of the shape parameter ``k`` of the generalized Pareto distribution.
-      + `n_eff`: Estimated effective sample size for each LOO evaluation.
-  - `tail_len`: Vector of tail lengths used for fitting the generalized Pareto distribution.
-  - `r_eff`: If specified, the user's `r_eff` argument.
-  - `dims`: Named tuple of length 2 containing `s` (posterior sample size) and `n` (number of observations).
-  - `method`: String describing the method used for importance sampling.
+# Fields
+- `weights`: A vector of smoothed, truncated, and *normalized* importance sampling weights.
+- `pareto_k`: Estimates of the shape parameter ``k`` of the generalized Pareto distribution.
+- `ess`: Estimated effective sample size for each LOO evaluation.
+- `tail_len`: Vector of tail lengths used for smoothing the generalized Pareto distribution.
+- `dims`: Named tuple of length 2 containing `s` (posterior sample size) and `n` (number of
+observations).
+- `method`: String describing the method used for importance sampling.
 """
-struct Psis{
+Base.@kwdef struct Psis{
     F<:AbstractFloat,
     AF<:AbstractArray{F},
     VF<:AbstractVector{F},
@@ -206,10 +219,63 @@ struct Psis{
     pareto_k::VF
     ess::VF
     tail_len::VI
-    r_eff::VF
+    rel_eff::VF
     posterior_sample_size::I
     data_size::I
     method::String
+end
+
+
+
+##########################
+#### HELPER FUNCTIONS ####
+##########################
+
+function check_input_validity_psis(
+    log_ratios::AbstractArray{T,3},
+    r_eff::AbstractVector{T},
+) where {T<:AbstractFloat}
+    if any(isnan, log_ratios)
+        throw(DomainError("Invalid input for `log_ratios` (contains NaN values)."))
+    elseif any(isinf, log_ratios)
+        throw(DomainError("Invalid input for `log_ratios` (contains infinite values)."))
+    elseif isempty(log_ratios)
+        throw(ArgumentError("Invalid input for `log_ratios` (array is empty)."))
+    elseif any(isnan, r_eff)
+        throw(ArgumentError("Invalid input for `r_eff` (contains NaN values)."))
+    elseif any(isinf, r_eff)
+        throw(DomainError("Invalid input for `r_eff` (contains infinite values)."))
+    elseif isempty(log_ratios)
+        throw(ArgumentError("Invalid input for `r_eff` (array is empty)."))
+    elseif length(r_eff) ≠ size(log_ratios, 2)
+        throw(
+            ArgumentError(
+                "Invalid input -- size of `r_eff` does not equal the number of chains.",
+            ),
+        )
+    end
+    return nothing
+end
+
+
+"""
+Check the tail to make sure a GPD fit is possible.
+"""
+function check_tail(tail::AbstractVector{T}) where {T<:AbstractFloat}
+    if maximum(tail) ≈ minimum(tail)
+        throw(
+            ArgumentError(
+                "Unable to fit generalized Pareto distribution: all tail values are the same. \n$LIKELY_ERROR_CAUSES",
+            ),
+        )
+    elseif length(tail) < MIN_TAIL_LEN
+        throw(
+            ArgumentError(
+                "Unable to fit generalized Pareto distribution: tail length was too short.\n$LIKELY_ERROR_CAUSES",
+            ),
+        )
+    end
+    return nothing
 end
 
 end

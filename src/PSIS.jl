@@ -1,10 +1,14 @@
 module PSIS
 
-
-include("GPD.jl")
 include("ESS.jl")
-include("LooUtility.jl")
+include("GPD.jl")
 include("ImportanceSampling.jl")
+
+import .GPD
+using .ESS
+using .ImportanceSampling
+
+
 
 export Psis, psis
 export relative_eff, psis_n_eff

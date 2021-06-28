@@ -12,7 +12,7 @@ Compute the MCMC effective sample size divided by the actual sample size.
 """
 function relative_eff(sample::AbstractArray{T,3}) where {T<:AbstractFloat}
     dimensions = size(sample)
-    posteriorSampleSize = dimensions[1] * dimensions[2]
+    posteriorSampleSize = dimensions[2] * dimensions[3]
     ess, = MCMCChains.ess_rhat(permutedims(sample, [2, 1, 3]))  # Only need ESS, not rhat
     rEff = ess / posteriorSampleSize
     return rEff
