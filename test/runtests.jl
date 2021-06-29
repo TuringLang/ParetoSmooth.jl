@@ -1,4 +1,4 @@
-using PSIS
+using ParetoSmooth
 using Test
 using Statistics
 
@@ -15,6 +15,6 @@ rPsis = RData.load("test/Psis_Object.RData")["psisObject"]
 juliaPsis = psis(logLikelihoodArray)
 relEffSpecified = psis(logLikelihoodArray, rel_eff)
 
-@testset "PSIS.jl" begin
+@testset "ParetoSmooth.jl" begin
     @test sqrt(mean((relEffSpecified.weights - rWeights).^2)) ≤ .0001  # RMSE ≤ .0001 (~10%)
 end

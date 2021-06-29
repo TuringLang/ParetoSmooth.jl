@@ -1,4 +1,4 @@
-name = "PSIS"
+name = "ParetoSmooth"
 uuid = "d56e2792-3f3a-4929-9aed-05650beabda3"
 authors = ["Carlos Parada <paradac@carleton.edu>"]
 version = "0.1.0"
