@@ -12,4 +12,3 @@
 
 **An implementation of Pareto Smoothed Importance Sampling in Julia.**
 
-Not yet tested; do not use.
