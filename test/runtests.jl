@@ -10,10 +10,11 @@ end
 let ogWeights = RData.load("test/weightMatrix.RData")["weightMatrix"]
     global rWeights = exp.(permutedims(reshape(ogWeights, 500, 2, 32), [3, 1, 2]))
 end
+rel_eff = RData.load("test/Rel_Eff.RData")["rel_eff"]
 rPsis = RData.load("test/Psis_Object.RData")["psisObject"]
 juliaPsis = psis(logLikelihoodArray)
-juliaWeights = juliaPsis.weights
+relEffSpecified = psis(logLikelihoodArray, rel_eff)
 
 @testset "PSIS.jl" begin
-    sqrt(mean((rWeights - juliaWeights).^2))  ≤ .001  # RMSE ≤ .001
+    @test sqrt(mean((relEffSpecified.weights - rWeights).^2)) ≤ .0001  # RMSE ≤ .0001 (~10%)
 end
