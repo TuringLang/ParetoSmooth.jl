@@ -25,9 +25,8 @@ end
     function psis_n_eff(
         weights::AbstractVector{T},
         r_eff::AbstractVector{T}
-    ) -> 
+    ) -> AbstractVector{T}
 """
-
 function psis_n_eff(
     weights::AbstractVector{T},
     r_eff::AbstractVector{T},
