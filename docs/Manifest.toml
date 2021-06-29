@@ -54,7 +54,7 @@ uuid = "ca575930-c2e3-43a9-ace4-1e988b2c1908"
 
 [[ParetoSmooth]]
 path = ".."
-uuid = "d56e2792-3f3a-4929-9aed-05650beabda3"
+uuid = "a68b5a21-f429-434e-8bfa-46b447300aac"
 version = "0.1.0"
 
 [[Parsers]]

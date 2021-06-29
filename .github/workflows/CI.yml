@@ -57,9 +57,9 @@ jobs:
       - run: |
           julia --project=docs -e '
             using Documenter: DocMeta, doctest
-            using PSIS
-            DocMeta.setdocmeta!(PSIS, :DocTestSetup, :(using PSIS); recursive=true)
-            doctest(PSIS)'
+            using ParetoSmooth
+            DocMeta.setdocmeta!(ParetoSmooth, :DocTestSetup, :(using ParetoSmooth); recursive=true)
+            doctest(ParetoSmooth)'
       - run: julia --project=docs docs/make.jl
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
