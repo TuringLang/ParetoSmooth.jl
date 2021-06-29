@@ -52,7 +52,7 @@ uuid = "a63ad114-7e13-5084-954f-fe012c677804"
 [[NetworkOptions]]
 uuid = "ca575930-c2e3-43a9-ace4-1e988b2c1908"
 
-[[PSIS]]
+[[ParetoSmooth]]
 path = ".."
 uuid = "d56e2792-3f3a-4929-9aed-05650beabda3"
 version = "0.1.0"

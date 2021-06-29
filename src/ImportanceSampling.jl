@@ -35,9 +35,11 @@ If `"mcmc"`, adjusts ESS for autocorrelation. Otherwise, samples are assumed to 
 Currently permitted values are $SAMPLE_SOURCES.
 """
 function psis(
-    log_ratios::T, rel_eff::Union{Nothing, AbstractArray{F}}=nothing;
+    log_ratios::T, rel_eff::AbstractArray{F}=similar(log_ratios,0);
     source::Union{AbstractString,Symbol}="mcmc"
 ) where {F<:AbstractFloat,T<:AbstractArray{F,3}}
+
+
 
     source = lowercase(String(source))
     dimensions = size(log_ratios)
@@ -53,7 +55,8 @@ function psis(
     # then multiply by posterior sample size to avoid loss of precision for large samples
     @tturbo @. weights = posteriorSampleSize * exp(log_ratios - $maximum(log_ratios; dims=2))
 
-    if rel_eff ≡ nothing
+
+    if isempty(rel_eff)
         if source == "mcmc"
             @info "Adjusting for autocorrelation. If the posterior samples are not " *
             "autocorrelated, specify the source of the posterior sample using the keyword " *
@@ -72,6 +75,10 @@ function psis(
             )
         end
     end
+
+
+    check_input_validity_psis(log_ratios, rel_eff)
+
 
     tailLength = similar(log_ratios, Int, numDataPoints)
     ξ = similar(log_ratios, F, numDataPoints)
@@ -176,7 +183,7 @@ function psis_smooth_tail!(tail::AbstractVector{T}, cutoff::T) where {T<:Abstrac
     len = length(tail)
     @turbo @. tail = tail - cutoff
 
-    # save time not sorting since x already sorted
+    # save time not sorting since tail is already sorted
     ξ, σ = GPD.gpdfit(tail)
     if ξ ≠ Inf
         @turbo @. tail = GPD.gpd_quantile($(1:len) / (len + 1), ξ, σ) + cutoff

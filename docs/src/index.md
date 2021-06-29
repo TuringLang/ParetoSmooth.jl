@@ -1,14 +1,14 @@
 ```@meta
-CurrentModule = PSIS
+CurrentModule = ParetoSmooth
 ```
 
-# PSIS
+# ParetoSmooth
 
-Documentation for [PSIS](https://github.com/ParadaCarleton/PSIS.jl).
+Documentation for [ParetoSmooth](https://github.com/ParadaCarleton/ParetoSmooth.jl).
 
 ```@index
 ```
 
 ```@autodocs
-Modules = [PSIS]
+Modules = [ParetoSmooth]
 ```

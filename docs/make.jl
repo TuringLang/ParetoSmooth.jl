@@ -1,16 +1,16 @@
-using PSIS
+using ParetoSmooth
 using Documenter
 
-DocMeta.setdocmeta!(PSIS, :DocTestSetup, :(using PSIS); recursive=true)
+DocMeta.setdocmeta!(ParetoSmooth, :DocTestSetup, :(using ParetoSmooth); recursive=true)
 
 makedocs(;
-    modules=[PSIS],
+    modules=[ParetoSmooth],
     authors="Carlos Parada <paradac@carleton.edu>",
-    repo="https://github.com/ParadaCarleton/PSIS.jl/blob/{commit}{path}#{line}",
-    sitename="PSIS.jl",
+    repo="https://github.com/ParadaCarleton/ParetoSmooth.jl/blob/{commit}{path}#{line}",
+    sitename="ParetoSmooth.jl",
     format=Documenter.HTML(;
         prettyurls=get(ENV, "CI", "false") == "true",
-        canonical="https://ParadaCarleton.github.io/PSIS.jl",
+        canonical="https://ParadaCarleton.github.io/ParetoSmooth.jl",
         assets=String[],
     ),
     pages=[
@@ -19,5 +19,5 @@ makedocs(;
 )
 
 deploydocs(;
-    repo="github.com/ParadaCarleton/PSIS.jl",
+    repo="github.com/ParadaCarleton/ParetoSmooth.jl",
 )

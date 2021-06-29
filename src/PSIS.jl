@@ -1,4 +1,4 @@
-module PSIS
+module ParetoSmooth
 
 include("ESS.jl")
 include("GPD.jl")
