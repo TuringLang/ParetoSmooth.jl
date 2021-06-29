@@ -1,6 +1,6 @@
 module ImportanceSampling
 
-using Base: AbstractFloat, Integer, _throw_argerror
+using Base: AbstractFloat, Integer
 using LoopVectorization
 using Tullio
 
