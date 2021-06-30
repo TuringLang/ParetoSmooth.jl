@@ -29,8 +29,8 @@ generalized Pareto distribution (GPD), assuming the location parameter is 0.
 
 # Note
 
-Estimation method taken from Zhang, J. and Stephens, M.A. (2009). The parameter 
-ξ is the negative of \$k\$.
+Estimation method taken from Zhang, J. and Stephens, M.A. (2009). The parameter ξ is the 
+negative of \$k\$.
 """
 function gpdfit(
     sample::AbstractVector{T};

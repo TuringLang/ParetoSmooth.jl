@@ -20,26 +20,31 @@ export Psis, psis
     psis(
         log_ratios::AbstractArray{T:>AbstractFloat}, 
         rel_eff; 
-        source::String="mcmc", lw::Bool=false
+        source::String="mcmc", 
+        lw::Bool=false
         ) -> Psis
-Implements Pareto-smoothed importance sampling.
+
+Implements Pareto-smoothed importance sampling (PSIS).
 
 # Arguments
+## Positional Arguments
 - `log_ratios::AbstractArray{T}`: An array of importance ratios on the log scale (for 
 PSIS-LOO these are *negative* log-likelihood values). Indices must be ordered as 
 `[data, draw, chain]`: `log_ratios[1, 2, 3]` should be the log-likelihood of the first data 
 point, evaluated at the second iteration of the third chain. Chain indices can be left off 
-if there is only a single chain. 
-- `rel_eff::AbstractArray{T}`: An (optional) vector of relative effective sample sizes used
+if there is only a single chain, or if keyword argument `chain_index` is provided.
+- `rel_eff::AbstractArray{T}`: An (optional) vector of relative effective sample sizes used 
 in ESS calculations. If left empty, calculated automatically using the default ESS method 
-from InferenceDiagnostics.jl. See `relative_eff` to calculate these values.
+from InferenceDiagnostics.jl. See `relative_eff` to calculate these values. 
+
+## Keyword Arguments
+
+- `chain_index::Vector{Integer}`: An (optional) vector of integers indicating which chain 
+each sample belongs to.
 - `source::String="mcmc"`: A string or symbol describing the source of the sample being 
 used. If `"mcmc"`, adjusts ESS for autocorrelation. Otherwise, samples are assumed to be 
-independent.
-- `lw::Bool=false`: Return the logarithm of the weights instead of the weights themselves.
-
-
-Currently permitted values are $SAMPLE_SOURCES.
+independent. Currently permitted values are $SAMPLE_SOURCES.
+- `lw::Bool=false`: Return the logarithm of the weights instead of the weights themselves. 
 """
 function psis(
     log_ratios::T, rel_eff::AbstractArray{F}=similar(log_ratios,0);
@@ -91,16 +96,11 @@ function psis(
 end
 
 
-function psis(log_ratios::AbstractMatrix{T}; kwargs...) where {T<:AbstractFloat}
-    @info "Chain information was not provided; " * 
-    "all samples are assumed to be drawn from a single chain."
-    return psis(reshape(log_ratios, size(log_ratios), 1); kwargs...)
-end
-
-
-function psis(log_ratios::AbstractMatrix{T}, rel_eff::AbstractVector{T}; 
-    chain_index::AbstractVector{Integer}, kwargs...
-    ) where {T<:AbstractFloat}
+function psis(log_ratios::AbstractMatrix{T}, 
+    rel_eff::AbstractVector{T}=similar(log_ratios, 0); 
+    chain_index::AbstractVector{I}=assume_one_chain(log_ratios), 
+    kwargs...
+    ) where {T<:AbstractFloat, I<:Integer}
 
     indices = unique(chain_index)
     biggestIndex = maximum(indices)
@@ -111,17 +111,18 @@ function psis(log_ratios::AbstractMatrix{T}, rel_eff::AbstractVector{T};
         throw(ArgumentError("Indices must be numbered from 1 through the total number of chains."))
     else
         # Check how many elements are in each chain, assign to "counts"
-        counts = count.(chain_index .== indices')  
-        if length(Set(counts)) ≠ 1
+        counts = count.(eachslice(chain_index .== indices'; dims=2))
+        # check if all inputs are the same length
+        if !all(==(counts[1]), counts)
             throw(ArgumentError("All chains must be of equal length."))
         end
     end
-    newRatios = similar(log_ratios, [dims[1], dims[2] / biggestIndex, biggestIndex])
+    newRatios = similar(log_ratios, dims[1], dims[2] ÷ biggestIndex, biggestIndex)
     for i in 1:biggestIndex    
-        newRatios[:, :, i] .= log_ratios[chain_index .== i]
+        newRatios[:, :, i] .= log_ratios[:, chain_index .== i]
     end
 
-    return psis(reshape(newRatios, size(log_ratios), 1); kwargs...)
+    return psis(newRatios, rel_eff; kwargs...)
 end
 
 
@@ -177,7 +178,7 @@ end
 
 Define the tail length as in Vehtari et al. (2019).
 """
-function def_tail_length(length::I, rel_eff) where I<:Integer
+function def_tail_length(length::I, rel_eff) where {I<:Integer}
     return I(ceil(min(length / 5, 3 * sqrt(length / rel_eff))))
 end
 
@@ -263,7 +264,10 @@ function generate_rel_eff(weights, dimensions, rel_eff, source)
                 "Valid sources are $SAMPLE_SOURCES."
                 )
             )
+            return ones(size(weights)[1])
         end
+    else 
+        return rel_eff
     end
 end
 
@@ -313,6 +317,13 @@ function check_tail(tail::AbstractVector{T}) where {T<:AbstractFloat}
         )
     end
     return nothing
+end
+
+
+function assume_one_chain(log_ratios)
+    @info "Chain information was not provided; " * 
+    "all samples are assumed to be drawn from a single chain."
+    return ones(length(log_ratios))
 end
 
 end

@@ -16,7 +16,7 @@ relEffSpecified = psis(logLikelihoodArray, rel_eff)
 juliaPsis = psis(logLikelihoodArray)
 logLikelihoodMatrix = reshape(logLikelihoodArray, 32, 1000)
 chainIndex = vcat(fill(1, 500), fill(2, 500))
-matrixPsis = psis(logLikelihoodMatrix, chainIndex)
+matrixPsis = psis(logLikelihoodMatrix; chain_index=chainIndex)
 logPsis = psis(logLikelihoodArray; lw=true)
 
 @testset "ParetoSmooth.jl" begin
@@ -24,6 +24,6 @@ logPsis = psis(logLikelihoodArray; lw=true)
     @test mean((relEffSpecified.weights ./ rWeights .- 1).^2) ≤ .02
     # Difference less than 1% when using InferenceDiagnostics' ESS
     @test mean((juliaPsis.weights ./ rWeights .- 1).^2) ≤ .01  
-    @test juliaPsis == matrixPsis
-    @test mean((logPsis.weights .- log.(rWeights) .- 1).^2) ≤ .0001 
+    @test juliaPsis.weights == matrixPsis.weights
+    @test mean((logPsis.weights .- log.(rWeights)).^2) ≤ .0001 
 end
