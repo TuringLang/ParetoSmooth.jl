@@ -1,6 +1,5 @@
 module ImportanceSampling
 
-using Base: AbstractFloat, Integer
 using LoopVectorization
 using Tullio
 
@@ -18,28 +17,35 @@ const SAMPLE_SOURCES = ["mcmc", "vi", "other"]
 export Psis, psis
 
 """
-    psis(log_ratios::AbstractArray{T:>AbstractFloat}; source::String="mcmc") -> Psis
+    psis(
+        log_ratios::AbstractArray{T:>AbstractFloat}, 
+        rel_eff; 
+        source::String="mcmc", lw::Bool=false
+        ) -> Psis
 Implements Pareto-smoothed importance sampling.
 
 # Arguments
-- `log_ratios::AbstractArray{T}`: An array of importance ratios on the log scale (for PSIS-LOO
-these are *negative* log-likelihood values). Indices must be ordered as `[data, draw, chain]`:
-`log_ratios[1, 2, 3]` should be the log-likelihood of the first data point, evaluated at the
-second iteration of the third chain. Chain indices can be left off if there is only a single
-chain. 
+- `log_ratios::AbstractArray{T}`: An array of importance ratios on the log scale (for 
+PSIS-LOO these are *negative* log-likelihood values). Indices must be ordered as 
+`[data, draw, chain]`: `log_ratios[1, 2, 3]` should be the log-likelihood of the first data 
+point, evaluated at the second iteration of the third chain. Chain indices can be left off 
+if there is only a single chain. 
 - `rel_eff::AbstractArray{T}`: An (optional) vector of relative effective sample sizes used
-in ESS calculations. If left empty, calculated automatically using InferenceDiagnostics.jl's
-default method. See `relative_eff` to calculate these values.
-- `source::String="mcmc"`: A string or symbol describing the source of the sample being used.
-If `"mcmc"`, adjusts ESS for autocorrelation. Otherwise, samples are assumed to be independent.
+in ESS calculations. If left empty, calculated automatically using the default ESS method 
+from InferenceDiagnostics.jl. See `relative_eff` to calculate these values.
+- `source::String="mcmc"`: A string or symbol describing the source of the sample being 
+used. If `"mcmc"`, adjusts ESS for autocorrelation. Otherwise, samples are assumed to be 
+independent.
+- `lw::Bool=false`: Return the logarithm of the weights instead of the weights themselves.
+
+
 Currently permitted values are $SAMPLE_SOURCES.
 """
 function psis(
     log_ratios::T, rel_eff::AbstractArray{F}=similar(log_ratios,0);
-    source::Union{AbstractString,Symbol}="mcmc"
+    source::Union{AbstractString,Symbol}="mcmc",
+    lw::Bool=false
 ) where {F<:AbstractFloat,T<:AbstractArray{F,3}}
-
-
 
     source = lowercase(String(source))
     dimensions = size(log_ratios)
@@ -53,32 +59,11 @@ function psis(
     weights::AbstractArray{F} = similar(log_ratios)
     # Shift ratios by maximum to prevent overflow
     # then multiply by posterior sample size to avoid loss of precision for large samples
-    @tturbo @. weights = posteriorSampleSize * exp(log_ratios - $maximum(log_ratios; dims=2))
+    @tturbo @. weights = exp(log_ratios + $log(posteriorSampleSize) - $maximum(log_ratios; dims=2))
 
-
-    if isempty(rel_eff)
-        if source == "mcmc"
-            @info "Adjusting for autocorrelation. If the posterior samples are not " *
-            "autocorrelated, specify the source of the posterior sample using the keyword " *
-            "argument `source`. MCMC samples are always autocorrelated; VI samples are not."
-            rel_eff = @tturbo ESS.relative_eff(inv.(reshape(weights, dimensions)))
-        elseif source ∈ SAMPLE_SOURCES
-            @info "Samples have not been adjusted for autocorrelation. If the posterior " * 
-            "samples are autocorrelated, as in MCMC methods, ESS estimates will be " *
-            "upward-biased, and standard error estimates will be downward-biased. " *
-            "MCMC samples are always autocorrelated; VI samples are not."
-            rel_eff = ones(size(log_ratios)[1])
-        else 
-            throw(ArgumentError("$source is not a valid source. " *
-                "Valid sources are $SAMPLE_SOURCES."
-                )
-            )
-        end
-    end
-
-
+    rel_eff = generate_rel_eff(weights, dimensions, rel_eff, source)
     check_input_validity_psis(reshape(log_ratios, dimensions), rel_eff)
-
+    
 
     tailLength = similar(log_ratios, Int, numDataPoints)
     ξ = similar(log_ratios, F, numDataPoints)
@@ -90,13 +75,15 @@ function psis(
     ess = ESS.psis_n_eff(weights, rel_eff)
 
     weights = reshape(weights, dimensions)
+    if lw
+        @tturbo @. weights = log(weights)
+    end
 
     return Psis(
         weights,
         ξ,
         ess,
         tailLength,
-        rel_eff,
         posteriorSampleSize,
         numDataPoints,
     )
@@ -110,9 +97,31 @@ function psis(log_ratios::AbstractMatrix{T}; kwargs...) where {T<:AbstractFloat}
     return psis(reshape(log_ratios, size(log_ratios), 1); kwargs...)
 end
 
-function psis(log_ratios::AbstractMatrix{T}, chain_index; kwargs...) where {T<:AbstractFloat}
-    new_ratios = log_ratios 
-    return psis(reshape(log_ratios, size(log_ratios), 1); kwargs...)
+
+function psis(log_ratios::AbstractMatrix{T}, rel_eff::AbstractVector{T}; 
+    chain_index::AbstractVector{Integer}, kwargs...
+    ) where {T<:AbstractFloat}
+
+    indices = unique(chain_index)
+    biggestIndex = maximum(indices)
+    dims = size(log_ratios)
+    if dims[2] ≠ length(chain_index)
+        throw(ArgumentError("Some entries do not have a chain index."))
+    elseif !issetequal(indices, 1:biggestIndex)
+        throw(ArgumentError("Indices must be numbered from 1 through the total number of chains."))
+    else
+        # Check how many elements are in each chain, assign to "counts"
+        counts = count.(chain_index .== indices')  
+        if length(Set(counts)) ≠ 1
+            throw(ArgumentError("All chains must be of equal length."))
+        end
+    end
+    newRatios = similar(log_ratios, [dims[1], dims[2] / biggestIndex, biggestIndex])
+    for i in 1:biggestIndex    
+        newRatios[:, :, i] .= log_ratios[chain_index .== i]
+    end
+
+    return psis(reshape(newRatios, size(log_ratios), 1); kwargs...)
 end
 
 
@@ -133,8 +142,7 @@ Do PSIS on a single vector, smoothing its tail values.
 
 # Extended help
 
-Additional information can be found in the LOO package from R {Add link here}
-{Add citation for Vehtari paper}
+Additional information can be found in the LOO package from R.
 """
 function do_psis_i!(
     is_ratios::AbstractVector{T},
@@ -167,7 +175,7 @@ end
 """
     def_tail_length(log_ratios::AbstractVector, rel_eff::AbstractFloat) -> tail_len::Integer
 
-Define the tail length as in Vehtari et al. (2019). {Cite Vehtari paper here}
+Define the tail length as in Vehtari et al. (2019).
 """
 function def_tail_length(length::I, rel_eff) where I<:Integer
     return I(ceil(min(length / 5, 3 * sqrt(length / rel_eff))))
@@ -224,7 +232,6 @@ struct Psis{
     pareto_k::VF
     ess::VF
     tail_len::VI
-    rel_eff::VF
     posterior_sample_size::I
     data_size::I
 end
@@ -235,6 +242,34 @@ end
 #### HELPER FUNCTIONS ####
 ##########################
 
+"""
+Generate the relative effective sample size if not provided by the user.
+"""
+function generate_rel_eff(weights, dimensions, rel_eff, source)
+    if isempty(rel_eff)
+        if source == "mcmc"
+            @info "Adjusting for autocorrelation. If the posterior samples are not " *
+            "autocorrelated, specify the source of the posterior sample using the keyword " *
+            "argument `source`. MCMC samples are always autocorrelated; VI samples are not."
+            return @tturbo ESS.relative_eff(reshape(weights, dimensions))
+        elseif source ∈ SAMPLE_SOURCES
+            @info "Samples have not been adjusted for autocorrelation. If the posterior " *
+            "samples are autocorrelated, as in MCMC methods, ESS estimates will be " *
+            "upward-biased, and standard error estimates will be downward-biased. " *
+            "MCMC samples are always autocorrelated; VI samples are not."
+            return ones(size(weights)[1])
+        else 
+            throw(ArgumentError("$source is not a valid source. " *
+                "Valid sources are $SAMPLE_SOURCES."
+                )
+            )
+        end
+    end
+end
+
+"""
+Make sure all inputs to `psis` are valid.
+"""
 function check_input_validity_psis(
     log_ratios::AbstractArray{T,3},
     rel_eff::AbstractVector{T},
@@ -265,13 +300,15 @@ function check_tail(tail::AbstractVector{T}) where {T<:AbstractFloat}
     if maximum(tail) ≈ minimum(tail)
         throw(
             ArgumentError(
-                "Unable to fit generalized Pareto distribution: all tail values are the same. \n$LIKELY_ERROR_CAUSES",
+                "Unable to fit generalized Pareto distribution: all tail values are the same.
+                $LIKELY_ERROR_CAUSES",
             ),
         )
     elseif length(tail) < MIN_TAIL_LEN
         throw(
             ArgumentError(
-                "Unable to fit generalized Pareto distribution: tail length was too short.\n$LIKELY_ERROR_CAUSES",
+                "Unable to fit generalized Pareto distribution: tail length was too short.
+                $LIKELY_ERROR_CAUSES",
             ),
         )
     end

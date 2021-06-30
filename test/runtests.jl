@@ -14,9 +14,16 @@ rel_eff = RData.load("test/Rel_Eff.RData")["rel_eff"]
 rPsis = RData.load("test/Psis_Object.RData")["psisObject"]
 relEffSpecified = psis(logLikelihoodArray, rel_eff)
 juliaPsis = psis(logLikelihoodArray)
+logLikelihoodMatrix = reshape(logLikelihoodArray, 32, 1000)
+chainIndex = vcat(fill(1, 500), fill(2, 500))
+matrixPsis = psis(logLikelihoodMatrix, chainIndex)
+logPsis = psis(logLikelihoodArray; lw=true)
 
 @testset "ParetoSmooth.jl" begin
-    # Difference from R version is less than .02%
-    @test mean(relEffSpecified.weights ./ rWeights .- 1) ≤ .0002
-    @test mean(juliaPsis.weights ./ rWeights .- 1) ≤ .0001  
+    # Difference from R version is less than 2%
+    @test mean((relEffSpecified.weights ./ rWeights .- 1).^2) ≤ .02
+    # Difference less than 1% when using InferenceDiagnostics' ESS
+    @test mean((juliaPsis.weights ./ rWeights .- 1).^2) ≤ .01  
+    @test juliaPsis == matrixPsis
+    @test mean((logPsis.weights .- log.(rWeights) .- 1).^2) ≤ .0001 
 end

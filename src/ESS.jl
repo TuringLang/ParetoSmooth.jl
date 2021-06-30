@@ -1,6 +1,5 @@
 module ESS
 
-using Base: AbstractFloat
 using MCMCChains
 using LoopVectorization
 using Tullio

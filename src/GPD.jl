@@ -1,6 +1,5 @@
 module GPD
 
-using Base: AbstractFloat
 using LinearAlgebra
 using LoopVectorization
 using Statistics
