@@ -12,9 +12,11 @@ let ogWeights = RData.load("test/weightMatrix.RData")["weightMatrix"]
 end
 rel_eff = RData.load("test/Rel_Eff.RData")["rel_eff"]
 rPsis = RData.load("test/Psis_Object.RData")["psisObject"]
-juliaPsis = psis(logLikelihoodArray)
 relEffSpecified = psis(logLikelihoodArray, rel_eff)
+juliaPsis = psis(logLikelihoodArray)
 
 @testset "ParetoSmooth.jl" begin
-    @test sqrt(mean((relEffSpecified.weights - rWeights).^2)) ≤ .0001  # RMSE ≤ .0001 (~10%)
+    # Difference from R version is less than .02%
+    @test mean(relEffSpecified.weights ./ rWeights .- 1) ≤ .0002
+    @test mean(juliaPsis.weights ./ rWeights .- 1) ≤ .0001  
 end

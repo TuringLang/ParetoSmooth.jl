@@ -77,7 +77,7 @@ function psis(
     end
 
 
-    check_input_validity_psis(log_ratios, rel_eff)
+    check_input_validity_psis(reshape(log_ratios, dimensions), rel_eff)
 
 
     tailLength = similar(log_ratios, Int, numDataPoints)
@@ -141,23 +141,25 @@ function do_psis_i!(
     tail_length::Integer,
 ) where {T<:AbstractFloat}
     len = length(is_ratios)
-    ordering = sortperm(is_ratios; alg = QuickSort)
-    permute!(is_ratios, ordering)
+
+    # sort is_ratios and also get results of sortperm() at the same time
+    ordering = sortperm(is_ratios; alg=QuickSort)
+    sortedRatios = is_ratios[ordering]
 
     # Define and check tail
     tailStartsAt = len - tail_length + 1  # index of smallest tail value
-    @views tail = is_ratios[tailStartsAt:len]
+    @views tail = sortedRatios[tailStartsAt:len]
     check_tail(tail)
 
     # Get value just before the tail starts:
-    cutoff = is_ratios[tailStartsAt-1]
+    cutoff = sortedRatios[tailStartsAt-1]
     ξ = psis_smooth_tail!(tail, cutoff)
 
     # truncate at max of raw wts; because is_ratios ∝ len / maximum, max(raw weights) = len
-    clamp!(is_ratios, 0, len)
+    clamp!(sortedRatios, 0, len)
     # unsort the ratios to their original position:
-    permute!(is_ratios, collect(1:len)[ordering])
-
+    is_ratios[ordering] .= sortedRatios
+    
     return ξ::T
 end
 
@@ -168,7 +170,7 @@ end
 Define the tail length as in Vehtari et al. (2019). {Cite Vehtari paper here}
 """
 function def_tail_length(length::I, rel_eff) where I<:Integer
-    return I(ceil(min(length / 5, 3 * sqrt(length) / rel_eff)))
+    return I(ceil(min(length / 5, 3 * sqrt(length / rel_eff))))
 end
 
 
