@@ -53,44 +53,49 @@ function psis(
 ) where {F<:AbstractFloat,T<:AbstractArray{F,3}}
 
     source = lowercase(String(source))
-    dimensions = size(log_ratios)
+    dims = size(log_ratios)
 
-    numDataPoints = dimensions[1]
-    posteriorSampleSize = dimensions[2] * dimensions[3]
+    data_size = dims[1]
+    post_sample_size = dims[2] * dims[3]
 
 
     # Reshape to matrix (easier to deal with)
-    log_ratios = reshape(log_ratios, numDataPoints, posteriorSampleSize)
+    log_ratios = reshape(log_ratios, data_size, post_sample_size)
     weights::AbstractArray{F} = similar(log_ratios)
     # Shift ratios by maximum to prevent overflow
-    # then multiply by posterior sample size to avoid loss of precision for large samples
-    @tturbo @. weights = exp(log_ratios + $log(posteriorSampleSize) - $maximum(log_ratios; dims=2))
+    # then shift by log of posterior sample size to avoid loss of precision for small values
+    @tturbo @. weights = exp(log_ratios + $log(post_sample_size) - $maximum(log_ratios; dims=2))
 
-    rel_eff = generate_rel_eff(weights, dimensions, rel_eff, source)
-    check_input_validity_psis(reshape(log_ratios, dimensions), rel_eff)
+    rel_eff = generate_rel_eff(weights, dims, rel_eff, source)
+    check_input_validity_psis(reshape(log_ratios, dims), rel_eff)
     
 
-    tailLength = similar(log_ratios, Int, numDataPoints)
-    ξ = similar(log_ratios, F, numDataPoints)
-    @tturbo @. tailLength = def_tail_length(posteriorSampleSize, rel_eff)
-    @tturbo @. ξ = do_psis_i!($eachslice(weights; dims=1), tailLength)
+    tail_length = similar(log_ratios, Int, data_size)
+    ξ = similar(log_ratios, F, data_size)
+    @. tail_length = def_tail_length(post_sample_size, rel_eff)
+    @. ξ = do_psis_i!($eachslice(weights; dims=1), tail_length)
 
-    @tullio normConst[i] := weights[i, j]
-    @tturbo weights .= weights ./ normConst
+    @tullio norm_const[i] := weights[i, j]
+    @tturbo weights .= weights ./ norm_const
     ess = ESS.psis_n_eff(weights, rel_eff)
 
-    weights = reshape(weights, dimensions)
+    weights = reshape(weights, dims)
+    
     if lw
         @tturbo @. weights = log(weights)
+    end
+
+    if dims[3] == 1
+        weights = dropdims(weights; dims=3)  # Reshape as array
     end
 
     return Psis(
         weights,
         ξ,
         ess,
-        tailLength,
-        posteriorSampleSize,
-        numDataPoints,
+        tail_length,
+        post_sample_size,
+        data_size,
     )
 
 end
@@ -103,11 +108,11 @@ function psis(log_ratios::AbstractMatrix{T},
     ) where {T<:AbstractFloat, I<:Integer}
 
     indices = unique(chain_index)
-    biggestIndex = maximum(indices)
+    biggest_idx = maximum(indices)
     dims = size(log_ratios)
     if dims[2] ≠ length(chain_index)
         throw(ArgumentError("Some entries do not have a chain index."))
-    elseif !issetequal(indices, 1:biggestIndex)
+    elseif !issetequal(indices, 1:biggest_idx)
         throw(ArgumentError("Indices must be numbered from 1 through the total number of chains."))
     else
         # Check how many elements are in each chain, assign to "counts"
@@ -117,8 +122,8 @@ function psis(log_ratios::AbstractMatrix{T},
             throw(ArgumentError("All chains must be of equal length."))
         end
     end
-    newRatios = similar(log_ratios, dims[1], dims[2] ÷ biggestIndex, biggestIndex)
-    for i in 1:biggestIndex    
+    newRatios = similar(log_ratios, dims[1], dims[2] ÷ biggest_idx, biggest_idx)
+    for i in 1:biggest_idx    
         newRatios[:, :, i] .= log_ratios[:, chain_index .== i]
     end
 
@@ -153,21 +158,21 @@ function do_psis_i!(
 
     # sort is_ratios and also get results of sortperm() at the same time
     ordering = sortperm(is_ratios; alg=QuickSort)
-    sortedRatios = is_ratios[ordering]
+    sorted_ratios = is_ratios[ordering]
 
     # Define and check tail
-    tailStartsAt = len - tail_length + 1  # index of smallest tail value
-    @views tail = sortedRatios[tailStartsAt:len]
+    tail_start = len - tail_length + 1  # index of smallest tail value
+    @views tail = sorted_ratios[tail_start:len]
     check_tail(tail)
 
     # Get value just before the tail starts:
-    cutoff = sortedRatios[tailStartsAt-1]
+    cutoff = sorted_ratios[tail_start-1]
     ξ = psis_smooth_tail!(tail, cutoff)
 
     # truncate at max of raw wts; because is_ratios ∝ len / maximum, max(raw weights) = len
-    clamp!(sortedRatios, 0, len)
+    clamp!(sorted_ratios, 0, len)
     # unsort the ratios to their original position:
-    is_ratios[ordering] .= sortedRatios
+    is_ratios .= @views sorted_ratios[invperm(ordering)]
     
     return ξ::T
 end
@@ -246,13 +251,13 @@ end
 """
 Generate the relative effective sample size if not provided by the user.
 """
-function generate_rel_eff(weights, dimensions, rel_eff, source)
+function generate_rel_eff(weights, dims, rel_eff, source)
     if isempty(rel_eff)
         if source == "mcmc"
             @info "Adjusting for autocorrelation. If the posterior samples are not " *
             "autocorrelated, specify the source of the posterior sample using the keyword " *
             "argument `source`. MCMC samples are always autocorrelated; VI samples are not."
-            return @tturbo ESS.relative_eff(reshape(weights, dimensions))
+            return ESS.relative_eff(reshape(weights, dims))
         elseif source ∈ SAMPLE_SOURCES
             @info "Samples have not been adjusted for autocorrelation. If the posterior " *
             "samples are autocorrelated, as in MCMC methods, ESS estimates will be " *

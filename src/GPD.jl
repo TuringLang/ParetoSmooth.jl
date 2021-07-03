@@ -53,23 +53,23 @@ function gpdfit(
 
 
     # build pointwise estimates of ξ and θ at each grid point
-    θHats = similar(sample, m)
-    ξHats = similar(sample, m)
-    @turbo @. θHats = 1 / sample[len] + (1 - sqrt((m+1) / $(1:m))) / prior / quartile
-    @tullio threads=false ξHats[x] := log1p(-θHats[x] * sample[y]) |> _ / len
-    logLikelihood = similar(ξHats)
+    θ_hats = similar(sample, m)
+    ξ_hats = similar(sample, m)
+    @turbo @. θ_hats = 1 / sample[len] + (1 - sqrt((m+1) / $(1:m))) / prior / quartile
+    @tullio threads=false ξ_hats[x] := log1p(-θ_hats[x] * sample[y]) |> _ / len
+    log_like = similar(ξ_hats)
     # Calculate profile log-likelihood at each estimate:
-    @turbo @. logLikelihood = len * (log(-θHats / ξHats) - ξHats - 1) 
+    @turbo @. log_like = len * (log(-θ_hats / ξ_hats) - ξ_hats - 1) 
     # Calculate weights from log-likelihood:
-    weights = ξHats  # Reuse preallocated array (which is no longer in use)
-    @tullio threads=false weights[y] = exp(logLikelihood[x] - logLikelihood[y]) |> inv
-    θHat::T = zero(T)
+    weights = ξ_hats  # Reuse preallocated array (which is no longer in use)
+    @tullio threads=false weights[y] = exp(log_like[x] - log_like[y]) |> inv
+    θ_hat::T = zero(T)
     # Take weighted mean:
-    @tullio threads=false θHat = weights[x] * θHats[x]
+    @tullio threads=false θ_hat = weights[x] * θ_hats[x]
 
-    ξ::T = calc_ξ(sample, θHat)
+    ξ::T = calc_ξ(sample, θ_hat)
 
-    σ::T = -ξ / θHat
+    σ::T = -ξ / θ_hat
     # Drag towards .5 to reduce variance for small len
     if wip
         ξ = (ξ * len + 0.5 * n_0) / (len + n_0)
@@ -95,20 +95,19 @@ Compute the `p` quantile of the Generalized Pareto Distribution (GPD).
 A quantile of the Generalized Pareto Distribution.
 """
 function gpd_quantile(p, k::T, sigma::T) where {T<:AbstractFloat}
-    quant = sigma * expm1(-k * log1p(-p)) / k
-    return quant
+    return sigma * expm1(-k * log1p(-p)) / k
 end
 
 
 """
-    calc_ξ(sample, θHat)
+    calc_ξ(sample, θ_hat)
 
 Calculate ξ, the parameter for the GPD.
 """
-function calc_ξ(sample::AbstractVector{T}, θHat::T) where {T<:AbstractFloat}
+function calc_ξ(sample::AbstractVector{T}, θ_hat::T) where {T<:AbstractFloat}
     ξ = zero(T)
     @turbo for i in eachindex(sample)
-        ξ += log1p(-θHat * sample[i]) / length(sample)
+        ξ += log1p(-θ_hat * sample[i]) / length(sample)
     end
     return ξ::T
 end

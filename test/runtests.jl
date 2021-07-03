@@ -21,9 +21,9 @@ logPsis = psis(logLikelihoodArray; lw=true)
 
 @testset "ParetoSmooth.jl" begin
     # Difference from R version is less than .1%
-    @test mean((relEffSpecified.weights ./ rWeights .- 1).^2) ≤ .001
+    @test sqrt(mean((relEffSpecified.weights ./ rWeights .- 1).^2)) ≤ .001
     # Difference less than .2% when using InferenceDiagnostics' ESS
-    @test mean((juliaPsis.weights ./ rWeights .- 1).^2) ≤ .002 
+    @test sqrt(mean((juliaPsis.weights ./ rWeights .- 1).^2)) ≤ .002 
     @test juliaPsis.weights == matrixPsis.weights
-    @test mean((logPsis.weights .- log.(rWeights)).^2) ≤ .0001 
+    @test sqrt(mean((logPsis.weights .- log.(rWeights)).^2)) ≤ .001
 end
