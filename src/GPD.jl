@@ -55,7 +55,7 @@ function gpdfit(
     # build pointwise estimates of ξ and θ at each grid point
     θ_hats = similar(sample, m)
     ξ_hats = similar(sample, m)
-    @turbo @. θ_hats = 1 / sample[len] + (1 - sqrt((m+1) / $(1:m))) / prior / quartile
+    @turbo @. θ_hats = 1 / sample[len] + (1 - sqrt(m / ($(1:m)-.5))) / prior / quartile
     @tullio threads=false ξ_hats[x] := log1p(-θ_hats[x] * sample[y]) |> _ / len
     log_like = similar(ξ_hats)
     # Calculate profile log-likelihood at each estimate:

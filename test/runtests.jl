@@ -24,6 +24,7 @@ logPsis = psis(logLikelihoodArray; lw=true)
     @test sqrt(mean((with_rel_eff.weights ./ rWeights .- 1).^2)) ≤ .001
     # RMSE less than .2% when using InferenceDiagnostics' ESS
     @test sqrt(mean((juliaPsis.weights ./ rWeights .- 1).^2)) ≤ .002
-    @test count(juliaPsis.weights .≉ matrixPsis.weights) ≤ 1
+    @test count(with_rel_eff.weights .≈ rWeights) ≤ 10
+    @test count(juliaPsis.weights .≉ matrixPsis.weights) ≤ 10
     @test sqrt(mean((logPsis.weights .- log.(rWeights)).^2)) ≤ .001
 end

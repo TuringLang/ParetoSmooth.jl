@@ -64,7 +64,7 @@ function psis(
     weights::AbstractArray{F} = similar(log_ratios)
     # Shift ratios by maximum to prevent overflow
     # then shift by log of posterior sample size to avoid loss of precision for small values
-    @tturbo @. weights = exp(log_ratios + $log(post_sample_size) - $maximum(log_ratios; dims=2))
+    @tturbo @. weights = exp(log_ratios - $maximum(log_ratios; dims=2))
 
     rel_eff = generate_rel_eff(weights, dims, rel_eff, source)
     check_input_validity_psis(reshape(log_ratios, dims), rel_eff)
@@ -83,10 +83,6 @@ function psis(
     
     if lw
         @tturbo @. weights = log(weights)
-    end
-
-    if dims[3] == 1
-        weights = dropdims(weights; dims=3)  # Reshape as array
     end
 
     return Psis(
@@ -138,13 +134,12 @@ Do PSIS on a single vector, smoothing its tail values.
 
 # Arguments
 
-  - `is_ratios::AbstractVector{AbstractFloat}`: A vector of (not necessarily
-  normalized) importance sampling ratios.
+- `is_ratios::AbstractVector{AbstractFloat}`: A vector of importance sampling ratios, 
+scaled to have a maximum of 1.
 
 # Returns
 
-  - `T<:AbstractFloat`: ξ, the shape parameter for the GPD; larger numbers indicate
-  thicker tails.
+- `T<:AbstractFloat`: ξ, the shape parameter for the GPD; big numbers indicate thick tails.
 
 # Extended help
 
@@ -169,8 +164,8 @@ function do_psis_i!(
     cutoff = sorted_ratios[tail_start-1]
     ξ = psis_smooth_tail!(tail, cutoff)
 
-    # truncate at max of raw wts; because is_ratios ∝ len / maximum, max(raw weights) = len
-    clamp!(sorted_ratios, 0, len)
+    # truncate at max of raw wts (which is 1)
+    clamp!(sorted_ratios, 0, 1)
     # unsort the ratios to their original position:
     is_ratios .= @views sorted_ratios[invperm(ordering)]
     
@@ -202,7 +197,7 @@ function psis_smooth_tail!(tail::AbstractVector{T}, cutoff::T) where {T<:Abstrac
     # save time not sorting since tail is already sorted
     ξ, σ = GPD.gpdfit(tail)
     if ξ ≠ Inf
-        @turbo @. tail = GPD.gpd_quantile($(1:len) / (len + 1), ξ, σ) + cutoff
+        @turbo @. tail = GPD.gpd_quantile(($(1:len) - .5) / len, ξ, σ) + cutoff
     end
     return ξ
 end
@@ -229,7 +224,7 @@ observations).
 """
 struct Psis{
     F<:AbstractFloat,
-    AF<:AbstractArray{F},
+    AF<:AbstractArray{F,3},
     VF<:AbstractVector{F},
     I<:Integer,
     VI<:AbstractVector{I},
