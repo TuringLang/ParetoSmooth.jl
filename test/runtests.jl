@@ -16,7 +16,6 @@ rPsis = RData.load("test/Psis_Object.RData")["psisObject"]
 @testset "ParetoSmooth.jl" begin
 
     # All of these should run
-    
     with_rel_eff = psis(logLikelihoodArray, rel_eff)
     juliaPsis = psis(logLikelihoodArray)
     logLikelihoodMatrix = reshape(logLikelihoodArray, 32, 1000)
