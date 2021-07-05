@@ -1,5 +1,6 @@
 module ESS
 
+using FFTW
 using MCMCChains
 using LoopVectorization
 using Tullio
@@ -16,7 +17,7 @@ function relative_eff(sample::AbstractArray{T,3}) where {T<:AbstractFloat}
     post_sample_size = dims[2] * dims[3]
     # Only need ESS, not rhat
     ess_sample = inv.(permutedims(sample, [2, 1, 3]))
-    ess, = MCMCChains.ess_rhat(ess_sample)  
+    ess, = MCMCChains.ess_rhat(ess_sample; method=FFTESSMethod())  
     rel_eff = ess / post_sample_size
     return rel_eff
 end
