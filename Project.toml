@@ -1,7 +1,7 @@
 name = "ParetoSmooth"
 uuid = "a68b5a21-f429-434e-8bfa-46b447300aac"
 authors = ["Carlos Parada <paradac@carleton.edu>"]
-version = "0.1.1"
+version = "0.1.2"
 
 [deps]
 FFTW = "7a1cc6ca-52ef-59f5-83cd-3a7055c09341"
