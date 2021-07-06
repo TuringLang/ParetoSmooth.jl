@@ -1,5 +1,3 @@
-module ESS
-
 using FFTW
 using MCMCChains
 using LoopVectorization
@@ -29,16 +27,14 @@ end
     ) -> AbstractVector{T}
 """
 function psis_n_eff(
-    weights::AbstractVector{T},
-    r_eff::AbstractVector{T},
+    weights::AbstractVector{T}, r_eff::AbstractVector{T}
 ) where {T<:AbstractFloat}
     @tullio sum_of_squares := weights[x]^2
     return r_eff ./ sum_of_squares
 end
 
 function psis_n_eff(
-    weights::AbstractMatrix{T},
-    r_eff::AbstractVector{T},
+    weights::AbstractMatrix{T}, r_eff::AbstractVector{T}
 ) where {T<:AbstractFloat}
     @tullio sum_of_squares[x] := weights[x, y]^2
     return @tturbo r_eff ./ sum_of_squares
@@ -46,8 +42,7 @@ end
 
 function psis_n_eff(weights::AbstractArray{T}) where {T<:AbstractFloat}
     @warn "PSIS ESS not adjusted based on MCMC ESS. MCSE and ESS estimates " *
-    "will be overoptimistic if samples are autocorrelated."
+          "will be overoptimistic if samples are autocorrelated."
     return psis_n_eff(weights, ones(size(weights)))
 end
 
-end

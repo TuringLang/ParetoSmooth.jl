@@ -1,10 +1,6 @@
-module ImportanceSampling
-
 using LoopVectorization
 using Tullio
 
-import ..ESS
-import ..GPD
 
 const LIKELY_ERROR_CAUSES = """
 1. Bugs in the program that generated the sample, or otherwise incorrect input variables. 
@@ -76,7 +72,7 @@ function psis(
 
     @tullio norm_const[i] := weights[i, j]
     @tturbo @. weights /= norm_const
-    ess = ESS.psis_n_eff(weights, rel_eff)
+    ess = psis_n_eff(weights, rel_eff)
 
     weights = reshape(weights, dims)
     
@@ -195,10 +191,10 @@ function psis_smooth_tail!(tail::AbstractVector{T}, cutoff::T) where {T<:Abstrac
     @. tail = tail - cutoff
 
     # save time not sorting since tail is already sorted
-    ξ, σ = GPD.gpdfit(tail)
+    ξ, σ = gpdfit(tail)
     if ξ ≠ Inf
     #@turbo
-        @. tail = GPD.gpd_quantile(($(1:len) - .5) / len, ξ, σ) + cutoff
+        @. tail = gpd_quantile(($(1:len) - .5) / len, ξ, σ) + cutoff
     end
     return ξ
 end
@@ -253,7 +249,7 @@ function generate_rel_eff(weights, dims, rel_eff, source)
             @info "Adjusting for autocorrelation. If the posterior samples are not " *
             "autocorrelated, specify the source of the posterior sample using the keyword " *
             "argument `source`. MCMC samples are always autocorrelated; VI samples are not."
-            return ESS.relative_eff(reshape(weights, dims))
+            return relative_eff(reshape(weights, dims))
         elseif source ∈ SAMPLE_SOURCES
             @info "Samples have not been adjusted for autocorrelation. If the posterior " *
             "samples are autocorrelated, as in MCMC methods, ESS estimates will be " *
@@ -325,6 +321,4 @@ function assume_one_chain(log_ratios)
     @info "Chain information was not provided; " * 
     "all samples are assumed to be drawn from a single chain."
     return ones(length(log_ratios))
-end
-
 end

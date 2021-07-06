@@ -7,7 +7,7 @@ import RData
 let og_array = RData.load("Example_Log_Likelihood_Array.RData")["x"]
     global log_lik_arr = copy(permutedims(og_array, [3, 1, 2]))
 end
-let og_weights = RData.load("weightMatrix.RData")["weightMatrix"]
+let og_weights = RData.load("Weight_Matrix.RData")["weightMatrix"]
     global r_weights = exp.(permutedims(reshape(og_weights, 500, 2, 32), [3, 1, 2]))
 end
 rel_eff = RData.load("Rel_Eff.RData")["rel_eff"]
