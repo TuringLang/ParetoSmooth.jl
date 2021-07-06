@@ -47,15 +47,16 @@ function gpdfit(
 
 
     prior = 3
-    m = min_grid_pts + isqrt(len) # isqrt = floor sqrt
+    grid_size = min_grid_pts + isqrt(len) # isqrt = floor sqrt
     n_0 = 10  # determines how strongly to nudge ξ towards .5
     quartile::T = sample[(len+2)÷4]
 
 
     # build pointwise estimates of ξ and θ at each grid point
-    θ_hats = similar(sample, m)
-    ξ_hats = similar(sample, m)
-    @turbo @. θ_hats = 1 / sample[len] + (1 - sqrt(m / ($(1:m)-.5))) / prior / quartile
+    θ_hats = similar(sample, grid_size)
+    ξ_hats = similar(sample, grid_size)
+    @turbo @. θ_hats = 
+        inv(sample[len]) + (1 - sqrt(grid_size / ($(1:grid_size) - .5))) / prior / quartile
     @tullio threads=false ξ_hats[x] := log1p(-θ_hats[x] * sample[y]) |> _ / len
     log_like = similar(ξ_hats)
     # Calculate profile log-likelihood at each estimate:
@@ -63,13 +64,12 @@ function gpdfit(
     # Calculate weights from log-likelihood:
     weights = ξ_hats  # Reuse preallocated array (which is no longer in use)
     @tullio threads=false weights[y] = exp(log_like[x] - log_like[y]) |> inv
-    θ_hat::T = zero(T)
     # Take weighted mean:
     @tullio threads=false θ_hat = weights[x] * θ_hats[x]
 
     ξ::T = calc_ξ(sample, θ_hat)
-
     σ::T = -ξ / θ_hat
+
     # Drag towards .5 to reduce variance for small len
     if wip
         ξ = (ξ * len + 0.5 * n_0) / (len + n_0)

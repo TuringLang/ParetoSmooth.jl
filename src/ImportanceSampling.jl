@@ -63,7 +63,6 @@ function psis(
     log_ratios = reshape(log_ratios, data_size, post_sample_size)
     weights::AbstractArray{F} = similar(log_ratios)
     # Shift ratios by maximum to prevent overflow
-    # then shift by log of posterior sample size to avoid loss of precision for small values
     @tturbo @. weights = exp(log_ratios - $maximum(log_ratios; dims=2))
 
     rel_eff = generate_rel_eff(weights, dims, rel_eff, source)
@@ -72,11 +71,11 @@ function psis(
 
     tail_length = similar(log_ratios, Int, data_size)
     ξ = similar(log_ratios, F, data_size)
-    @. tail_length = def_tail_length(post_sample_size, rel_eff)
-    @. ξ = do_psis_i!($eachslice(weights; dims=1), tail_length)
+    @tturbo @. tail_length = def_tail_length(post_sample_size, rel_eff)
+    @tturbo @. ξ = do_psis_i!($eachrow(weights), tail_length)
 
     @tullio norm_const[i] := weights[i, j]
-    @tturbo weights .= weights ./ norm_const
+    @tturbo @. weights /= norm_const
     ess = ESS.psis_n_eff(weights, rel_eff)
 
     weights = reshape(weights, dims)
@@ -164,7 +163,7 @@ function do_psis_i!(
     cutoff = sorted_ratios[tail_start-1]
     ξ = psis_smooth_tail!(tail, cutoff)
 
-    # truncate at max of raw wts (which is 1)
+    # truncate at max of raw weights (1 after scaling)
     clamp!(sorted_ratios, 0, 1)
     # unsort the ratios to their original position:
     is_ratios .= @views sorted_ratios[invperm(ordering)]
@@ -192,12 +191,14 @@ with PSIS before returning shape parameter `ξ`.
 """
 function psis_smooth_tail!(tail::AbstractVector{T}, cutoff::T) where {T<:AbstractFloat}
     len = length(tail)
-    @turbo @. tail = tail - cutoff
+    #@turbo
+    @. tail = tail - cutoff
 
     # save time not sorting since tail is already sorted
     ξ, σ = GPD.gpdfit(tail)
     if ξ ≠ Inf
-        @turbo @. tail = GPD.gpd_quantile(($(1:len) - .5) / len, ξ, σ) + cutoff
+    #@turbo
+        @. tail = GPD.gpd_quantile(($(1:len) - .5) / len, ξ, σ) + cutoff
     end
     return ξ
 end
