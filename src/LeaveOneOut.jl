@@ -35,10 +35,10 @@ abstract type LooMethod end
 
 struct PsisLooMethod <: LooMethod end
 
-const LOO_METHODS = [PsisLooMethod,]
+const LOO_METHODS = [PsisLooMethod(),]
 
 
-function loo(args...; method::LooMethod=PsisLooMethod, kwargs...)
+function loo(args...; method::LooMethod=PsisLooMethod(), kwargs...)
     if method ∈ LOO_METHODS
         return psis_loo(args...; kwargs...)
     else

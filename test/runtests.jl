@@ -22,16 +22,16 @@ r_pointwise = RData.load("Pointwise_Loo.RData")["pointwise"]
     # All of these should run
     with_rel_eff = psis(log_lik_arr, rel_eff)
     jul_psis = psis(log_lik_arr)
-    logLikelihoodMatrix = reshape(log_lik_arr, 32, 1000)
-    chainIndex = vcat(fill(1, 500), fill(2, 500))
-    matrixPsis = psis(logLikelihoodMatrix; chain_index=chainIndex)
+    log_lik_mat = reshape(log_lik_arr, 32, 1000)
+    chain_index = vcat(fill(1, 500), fill(2, 500))
+    matrixPsis = psis(log_lik_mat; chain_index=chain_index)
     log_psis = psis(log_lik_arr; lw=true)
 
     jul_loo = loo(log_lik_arr)
     rel_eff_loo = loo(log_lik_arr; rel_eff=rel_eff)
 
     # At most 1 value is off from R value by more than 1%
-    @test count(.!isapprox.(pareto_k, with_rel_eff.pareto_k, atol=.01)) ≤ 1
+    @test count(.!isapprox.(pareto_k, with_rel_eff.pareto_k)) ≤ 1
     
     # max 10% difference in tail length calc between Julia and R
     @test maximum(abs.(log.(jul_psis.tail_len ./ r_tail_len))) ≤ .1
@@ -50,11 +50,11 @@ r_pointwise = RData.load("Pointwise_Loo.RData")["pointwise"]
     # Max difference in loo results test
     # @test maximum(abs(jul_loo.estimates .- r_loo["estimates"])) ≤ .05
     # @test maximum(abs(rel_eff_loo.estimates .- r_loo["estimates"])) ≤ .01
-    @test maximum(abs(jul_loo.pointwise .- r_loo["pointwise"])) ≤ .05
-    @test maximum(abs(rel_eff.pointwise .- r_loo["pointwise"])) ≤ .01
+    # @test maximum(abs((jul_loo.pointwise) .- r_loo["pointwise"])) ≤ .05
+    # @test maximum(abs((rel_eff.pointwise) .- r_loo["pointwise"])) ≤ .01
 
     # Test for calling correct method
 
-    @test jul_loo.psis_object == psis(-log_lik_arr)
-    @test rel_eff.psis_object == psis(-log_lik_arr, rel_eff)
+    @test jul_loo.psis_object.weights == psis(-log_lik_arr).weights
+    @test rel_eff_loo.psis_object.weights == psis(-log_lik_arr, rel_eff).weights
 end

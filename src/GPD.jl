@@ -61,7 +61,7 @@ function gpdfit(
     @turbo @. log_like = len * (log(-θ_hats / ξ_hats) - ξ_hats - 1)
     # Calculate weights from log-likelihood:
     weights = ξ_hats  # Reuse preallocated array (which is no longer in use)
-    @tullio threads=false weights[y] = inv(exp(log_like[x] - log_like[y]))
+    @tullio threads=false weights[y] = exp(log_like[x] - log_like[y]) |> inv
     # Take weighted mean:
     @tullio threads=false θ_hat = weights[x] * θ_hats[x]
 
