@@ -1,44 +1,20 @@
+using AxisKeys
+using Distributions
+using InteractiveUtils
 using LoopVectorization
 using ParetoSmooth
 using Statistics
 using StructArrays
 using Tullio
 
-export loo, psis_loo, PsisLoo, Loo, AbstractLoo, LooMethod, PsisLooMethod
+export loo, psis_loo
+
+const LOO_METHODS = subtypes(AbstractLooMethod)
+const TWO_NAT_PROB = exp(-2) / (exp(-2) + 1)
+const TWO_NAT_INTERVAL = (TWO_NAT_PROB / 2, 1 - TWO_NAT_PROB/2)
 
 
-struct LooPoint{F<:AbstractFloat}
-    estimate::F
-    mcse::F
-    p_eff::F
-    pareto_k::F
-end
-
-
-abstract type AbstractLoo end
-
-
-struct PsisLoo{
-    F<:AbstractFloat,
-    AF<:AbstractArray{F},
-    VF<:AbstractVector{F},
-    I<:Integer,
-    VI<:AbstractVector{I},
-} <: AbstractLoo
-    estimates::Dict{String,F}
-    pointwise::StructArray{LooPoint{F}}
-    psis_object::Psis{F,AF,VF,I,VI}
-end
-
-
-abstract type LooMethod end
-
-struct PsisLooMethod <: LooMethod end
-
-const LOO_METHODS = [PsisLooMethod(),]
-
-
-function loo(args...; method::LooMethod=PsisLooMethod(), kwargs...)
+function loo(args...; method::AbstractLooMethod=PsisLooMethod(), kwargs...)
     if method ∈ LOO_METHODS
         return psis_loo(args...; kwargs...)
     else
@@ -48,7 +24,10 @@ end
 
 
 function psis_loo(
-    log_likelihood::ArrayType; rel_eff=similar(log_likelihood, 0)
+    log_likelihood::ArrayType; 
+    rel_eff=similar(log_likelihood, 0), 
+    boostrap_count::Integer=2^12, 
+    conf_int::Tuple{Float64}=two_nat_interval,
 ) where {F<:AbstractFloat,ArrayType<:AbstractArray{F,3}}
 
 
@@ -68,27 +47,30 @@ function psis_loo(
     # Replace with quantile mcse estimate from R LOO package?
     @tullio pointwise_mcse[i] := sqrt <|
         (weights[i, j, k] * log_likelihood[i, j, k] - pointwise_ev[i])^2 / ess[i]
-    @tullio pointwise_naive[i] := exp(log_likelihood[i, j, k] - log(mcmc_count)) |> log
+    let log_count = log(mcmc_count)
+        @tullio pointwise_naive[i] := exp(log_likelihood[i, j, k] - log_count) |> log
+    end
     pointwise_p_eff = pointwise_naive - pointwise_ev
-    points = (estimate=pointwise_ev, mcse=pointwise_mcse, p_eff=pointwise_p_eff, pareto_k=ξ)
-    pointwise = StructArray{LooPoint{F}}(points)
+    pointwise = StructArray{LooPoint{F}}(
+        estimate=pointwise_ev, 
+        mcse=pointwise_mcse, 
+        p_eff=pointwise_p_eff, 
+        pareto_k=ξ
+        )
+
+    table = KeyedArray(similar(log_likelihood, (3,2)); 
+        estimate=[:Estimate, :SE], criterion=[:loo, :p_loo, :loo_ic]
+        )
+    
+    # Use Bayesian bootstrap to build confidence intervals
+    table[criterion=:loo, estimate=:Estimate] = ev_loo = mean(pointwise_ev)
+    table[criterion=:p_loo, estimate=:Estimate] = p_eff = sum(pointwise_p_eff)
+    table[criterion=:loo_ic, estimate=:Estimate] = -2 * ev_loo
+
+    ev_loo_se = sqrt(var(pointwise_ev; mean=ev_loo) / data_size)
+    p_eff_se = sqrt(var(pointwise_p_eff; mean=p_eff/data_size) * data_size)
 
 
-    @tullio ev := points.estimate[i]
-    @tullio ev_naive := pointwise_naive[i]
-    p_eff = ev_naive - ev
-
-    ev_se = sqrt(var(pointwise_ev; mean=ev) / data_size)
-    p_eff_se = sqrt(var(pointwise_p_eff; mean=p_eff / data_size) / data_size)
-
-    vals = Dict(
-        "Score Est" => ev,
-        "Parameters (Eff)" => p_eff,
-        "SE(Score Est)" => ev_se,
-        "SE(Parameters)" => p_eff_se,
-    )
-
-    return PsisLoo(vals, pointwise, psis_object)
+    return PsisLoo(table, pointwise, psis_object)
 
 end
-
