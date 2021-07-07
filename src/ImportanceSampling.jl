@@ -187,14 +187,12 @@ with PSIS before returning shape parameter `ξ`.
 """
 function psis_smooth_tail!(tail::AbstractVector{T}, cutoff::T) where {T<:AbstractFloat}
     len = length(tail)
-    #@turbo
-    @. tail = tail - cutoff
+    @turbo @. tail = tail - cutoff
 
     # save time not sorting since tail is already sorted
     ξ, σ = gpdfit(tail)
     if ξ ≠ Inf
-    #@turbo
-        @. tail = gpd_quantile(($(1:len) - .5) / len, ξ, σ) + cutoff
+    @turbo @. tail = gpd_quantile(($(1:len) - .5) / len, ξ, σ) + cutoff
     end
     return ξ
 end
