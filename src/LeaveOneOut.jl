@@ -64,12 +64,11 @@ function psis_loo(
     ξ = psis_object.pareto_k
     ess = psis_object.ess
 
-    @tullio pointwise_ev[i] := log(weights[i, j, k] * exp(log_likelihood[i, j, k]))
+    @tullio pointwise_ev[i] := weights[i, j, k] * exp(log_likelihood[i, j, k]) |> log
     # Replace with quantile mcse estimate from R LOO package?
-    @tullio pointwise_mcvar[i] :=
-        (weights[i, j, k] * log_likelihood[i, j, k] - pointwise_ev[i])^2 / (ess[i] - 1)
-    @tullio pointwise_naive[i] := log(exp(log_likelihood[i, j, k] - log(mcmc_count)))
-    pointwise_mcse = sqrt.(pointwise_mcvar)
+    @tullio pointwise_mcse[i] := sqrt <|
+        (weights[i, j, k] * log_likelihood[i, j, k] - pointwise_ev[i])^2 / ess[i]
+    @tullio pointwise_naive[i] := exp(log_likelihood[i, j, k] - log(mcmc_count)) |> log
     pointwise_p_eff = pointwise_naive - pointwise_ev
     points = (estimate=pointwise_ev, mcse=pointwise_mcse, p_eff=pointwise_p_eff, pareto_k=ξ)
     pointwise = StructArray{LooPoint{F}}(points)
@@ -79,9 +78,8 @@ function psis_loo(
     @tullio ev_naive := pointwise_naive[i]
     p_eff = ev_naive - ev
 
-    # Use law of total variance to recover combined standard error of estimator
-    ev_se = sqrt((var(pointwise_ev; mean=ev) / data_size + mean(pointwise_mcvar ./ ess)))
-    p_eff_se = std(pointwise_p_eff; mean=p_eff) / sqrt(data_size)
+    ev_se = sqrt(var(pointwise_ev; mean=ev) / data_size)
+    p_eff_se = sqrt(var(pointwise_p_eff; mean=p_eff / data_size) / data_size)
 
     vals = Dict(
         "Score Est" => ev,
