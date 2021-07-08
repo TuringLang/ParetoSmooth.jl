@@ -1,6 +1,7 @@
 using ParetoSmooth
 using Test
 using Statistics
+using AxisKeys
 
 import RData
 
@@ -19,6 +20,16 @@ r_psis = RData.load("Psis_Object.RData")["x"]
 r_tail_len = Int.(RData.load("Tail_Vector.RData")["tail"])
 pareto_k = RData.load("Pareto_K.RData")["pareto_k"]
 r_loo = RData.load("Example_Loo.RData")["example_loo"]
+
+# Add labels, drop loo_ic
+r_loo["estimates"] = KeyedArray(r_loo["estimates"][Not(3), :];
+                                crit=[:loo, :p_loo],
+                                est=[:Estimate, :SE],
+                            )
+r_loo["pointwise"] = KeyedArray(r_loo["pointwise"][:, Not(4)];
+                            data = 1:size(r_loo["pointwise"], 1),
+                            statistic=[:est_score, :mcse_score, :est_overfit, :pareto_k],
+                        )
 r_pointwise = RData.load("Pointwise_Loo.RData")["pointwise"]
 
 @testset "ParetoSmooth.jl" begin
@@ -32,7 +43,7 @@ r_pointwise = RData.load("Pointwise_Loo.RData")["pointwise"]
     log_psis = psis(log_lik_arr; lw=true)
 
     jul_loo = loo(log_lik_arr)
-    rel_eff_loo = loo(log_lik_arr; rel_eff=rel_eff)
+    rel_eff_loo = psis_loo(log_lik_arr; rel_eff=rel_eff)
 
     # At most 1 value is off from R value by more than 1%
     @test count(.!isapprox.(pareto_k, with_rel_eff.pareto_k)) ≤ 1
@@ -51,16 +62,28 @@ r_pointwise = RData.load("Pointwise_Loo.RData")["pointwise"]
     # Max difference is 1%
     @test maximum(log_psis.weights .- log.(r_weights)) ≤ .01
 
-    # Max difference in loo results test
-    # @test maximum(abs(jul_loo.estimates .- r_loo["estimates"])) ≤ .05
-    # @test maximum(abs(rel_eff_loo.estimates .- r_loo["estimates"])) ≤ .01
-    # @test maximum(abs((jul_loo.pointwise) .- r_loo["pointwise"])) ≤ .05
-    # @test maximum(abs((rel_eff.pointwise) .- r_loo["pointwise"])) ≤ .01
+
+    # Test max difference in loo results
+    for (r_col, j_col) in (eachcol(r_loo["pointwise"]), eachcol(jul_loo.pointwise))
+        @test maximum(abs.(r_col - j_col)) ≤ .1
+    end
+
+    for (r_col, j_col) in (eachcol(r_loo["pointwise"]), eachcol(rel_eff_loo.pointwise))
+        @test maximum(abs.(r_col - j_col)) ≤ .01
+    end
+    
+    for (r_col, j_col) in (eachcol(r_loo["estimates"]), eachcol(jul_loo.estimates))
+        @test maximum(abs.(r_col - j_col)) ≤ .01
+    end
+
+    for (r_col, j_col) in (eachcol(r_loo["estimates"]), eachcol(rel_eff_loo.estimates))
+        @test maximum(abs.(r_col - j_col)) ≤ .001
+    end
 
     # Test for calling correct method
 
-    @test jul_loo.psis_object.weights == psis(-log_lik_arr).weights
-    @test rel_eff_loo.psis_object.weights == psis(-log_lik_arr, rel_eff).weights
+    @test jul_loo.psis_object.weights ≈ psis(-log_lik_arr).weights
+    @test rel_eff_loo.psis_object.weights ≈ psis(-log_lik_arr, rel_eff).weights
 end
 
 cd(pwd,"..")

@@ -63,7 +63,7 @@ function gpdfit(
     weights = ξ_hats  # Reuse preallocated array (which is no longer in use)
     @tullio threads=false weights[y] = exp(log_like[x] - log_like[y]) |> inv
     # Take weighted mean:
-    @tullio threads=false θ_hat = weights[x] * θ_hats[x]
+    @tullio threads=false θ_hat := weights[x] * θ_hats[x]
 
     ξ::T = calc_ξ(sample, θ_hat)
     σ::T = -ξ / θ_hat
