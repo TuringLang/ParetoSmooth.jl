@@ -5,9 +5,6 @@ using AxisKeys
 
 import RData
 
-if last(pwd(), 4) ≠ "test"
-    cd("test")
-end
 
 let og_array = RData.load("Example_Log_Likelihood_Array.RData")["x"]
     global log_lik_arr = copy(permutedims(og_array, [3, 1, 2]))
