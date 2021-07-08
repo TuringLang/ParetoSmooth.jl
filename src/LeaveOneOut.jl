@@ -8,8 +8,6 @@ using Tullio
 export loo, psis_loo
 
 const LOO_METHODS = subtypes(AbstractLooMethod)
-const TWO_NAT_PROB = exp(-2) / (exp(-2) + 1)
-const TWO_NAT_INTERVAL = (TWO_NAT_PROB / 2, 1 - TWO_NAT_PROB/2)
 
 
 function loo(args...; method=PsisLooMethod(), kwargs...)
@@ -22,8 +20,7 @@ end
 
 
 function psis_loo(log_likelihood::ArrayType; 
-    rel_eff=similar(log_likelihood, 0), 
-    conf_int::Tuple=TWO_NAT_INTERVAL,
+    rel_eff=similar(log_likelihood, 0),
 ) where {F<:AbstractFloat,ArrayType<:AbstractArray{F,3}}
 
 
