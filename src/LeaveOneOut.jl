@@ -62,10 +62,10 @@ function psis_loo(log_likelihood::ArrayType;
         )
     
     # Use Bayesian bootstrap to build confidence intervals
-    table[Key(:loo), Key(:Estimate)] = ev_loo = mean(pointwise_ev)
+    table[Key(:loo), Key(:Estimate)] = ev_loo = sum(pointwise_ev)
     table[Key(:p_loo), Key(:Estimate)] = p_eff = sum(pointwise_p_eff)
 
-    table[Key(:loo), Key(:SE)] = se = sqrt(varm(pointwise_ev, ev_loo) / data_size)
+    table[Key(:loo), Key(:SE)] = sqrt(varm(pointwise_ev, ev_loo / data_size) * data_size)
     table[Key(:p_loo), Key(:SE)] = sqrt(varm(pointwise_p_eff, p_eff / data_size) * data_size)
 
     return PsisLoo(table, pointwise, psis_object);

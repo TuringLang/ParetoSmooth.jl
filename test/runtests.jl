@@ -5,6 +5,10 @@ using AxisKeys
 
 import RData
 
+if last(pwd(), 4) ≠ "test"
+    cd("test")
+end
+
 let og_array = RData.load("Example_Log_Likelihood_Array.RData")["x"]
     global log_lik_arr = copy(permutedims(og_array, [3, 1, 2]))
 end
@@ -26,7 +30,6 @@ r_loo["pointwise"] = KeyedArray(r_loo["pointwise"][:, Not(4)];
                             data = 1:size(r_loo["pointwise"], 1),
                             statistic=[:est_score, :mcse_score, :est_overfit, :pareto_k],
                         )
-r_pointwise = RData.load("Pointwise_Loo.RData")["pointwise"]
 
 @testset "ParetoSmooth.jl" begin
 
