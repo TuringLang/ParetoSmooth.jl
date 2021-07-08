@@ -3,7 +3,6 @@ using InteractiveUtils
 using LoopVectorization
 using ParetoSmooth
 using Statistics
-using StructArrays
 using Tullio
 
 export loo, psis_loo
