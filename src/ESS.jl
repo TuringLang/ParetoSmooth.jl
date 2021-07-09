@@ -6,18 +6,20 @@ using Tullio
 export relative_eff, psis_n_eff
 
 """
-    relative_eff(sample::AbstractArray{AbstractFloat, 3})
+    relative_eff(sample::AbstractArray{AbstractFloat, 3}; method=FFTESSMethod())
 
 Compute the MCMC effective sample size divided by the nominal sample size.
 """
-function relative_eff(sample::AbstractArray{T,3}) where {T<:AbstractFloat}
+function relative_eff(sample::AbstractArray{T,3}; 
+        method=FFTESSMethod()
+    ) where {T<:AbstractFloat}
     dims = size(sample)
     post_sample_size = dims[2] * dims[3]
     # Only need ESS, not rhat
     ess_sample = inv.(permutedims(sample, [2, 1, 3]))
-    ess, = MCMCChains.ess_rhat(ess_sample; method=FFTESSMethod(), maxlag=dims[2])
-    rel_eff = ess / post_sample_size
-    return rel_eff
+    ess, = MCMCChains.ess_rhat(ess_sample; method=method, maxlag=dims[2])
+    r_eff = ess / post_sample_size
+    return r_eff
 end
 
 """
