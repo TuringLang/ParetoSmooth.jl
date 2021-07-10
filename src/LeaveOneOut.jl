@@ -67,8 +67,8 @@ function psis_loo(log_likelihood::T;
     )
                 
     table = KeyedArray(similar(log_likelihood, 3, 2); 
-        crit=[:total_score, :overfit, :avg_score],
-        est=[:Estimate, :SE],
+        criterion=[:total_score, :overfit, :avg_score],
+        estimate=[:Estimate, :SE],
         )
     
     table(:total_score, :Estimate, :) .= ev_loo = sum(pointwise_ev)
@@ -95,11 +95,9 @@ end
 
 
 function mcse_elpd(log_likelihood, weights, elpd, r_eff, n_samples = 1000)
-    likelihood = exp.(log_likelihood)
-    exp_elpd = exp.(elpd)  # geometric mean of probability density
     norm_quantiles = _qnorm(n_samples)
-    @tullio sd_epd[i] := (weights[i, j, k] * (likelihood[i, j, k] - exp_elpd[i])) ^ 2 |> sqrt
-    z = exp_elpd .+ sd_epd .* norm_quantiles'
-    var_elpd = dropdims(var(log.(clamp.(z, 0, Inf)); dims=2); dims=2)
+    @tullio sd_elpd[i] := (weights[i, j, k] * (log_likelihood[i, j, k] - elpd[i])) ^ 2 |> sqrt
+    z = elpd .+ sd_elpd .* norm_quantiles'
+    var_elpd = dropdims(var(z; dims=2); dims=2)
     return sqrt.(var_elpd ./ r_eff)
 end

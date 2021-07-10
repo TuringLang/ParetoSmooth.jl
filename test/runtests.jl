@@ -19,15 +19,18 @@ pareto_k = RData.load("Pareto_K.RData")["pareto_k"]
 r_loo = RData.load("Example_Loo.RData")["example_loo"]
 
 
-# Add labels, drop loo_ic
-r_loo["estimates"] = KeyedArray(r_loo["estimates"][Not(3), :];
-                                crit=[:loo, :p_loo],
-                                est=[:Estimate, :SE],
-                            )
+# Add labels, reformat
 r_loo["pointwise"] = KeyedArray(r_loo["pointwise"][:, Not(4)];
                             data = 1:size(r_loo["pointwise"], 1),
-                            statistic=[:est_score, :mcse_score, :est_overfit, :pareto_k],
+                            statistic=[:est_score, :mcse, :est_overfit, :pareto_k],
                         )
+
+r_loo["estimates"] = KeyedArray(r_loo["estimates"];
+                                criterion=[:total_score, :overfit, :avg_score],
+                                estimate=[:Estimate, :SE],
+                            )
+r_loo["estimates"](criterion=:avg_score) .= 
+    r_loo["estimates"](criterion=:total_score) / size(r_loo["pointwise"], 1)
 
 
 @testset "ParetoSmooth.jl" begin
@@ -61,22 +64,30 @@ r_loo["pointwise"] = KeyedArray(r_loo["pointwise"][:, Not(4)];
     @test maximum(log_psis.weights .- log.(r_weights)) ≤ .01
 
 
-    # Test max difference in loo results
-    for (r_col, j_col) in (eachcol(r_loo["pointwise"]), eachcol(jul_loo.pointwise))
-        @test maximum(abs.(r_col - j_col)) ≤ .1
-    end
+    ## Test difference in loo pointwise results
 
-    for (r_col, j_col) in (eachcol(r_loo["pointwise"]), eachcol(r_eff_loo.pointwise))
-        @test maximum(abs.(r_col - j_col)) ≤ .01
-    end
+    # Different r_eff
+    errs = (r_loo["pointwise"] - jul_loo.pointwise).^2
+    @test sqrt(mean(errs(:est_score))) ≤ .01
+    @test sqrt(mean(errs(:est_overfit))) ≤ .01
+    @test sqrt(mean(errs(:pareto_k))) ≤ .05
+    errs_mcse = log.(r_loo["pointwise"](:mcse) ./ jul_loo.pointwise(:mcse)).^2
+    @test sqrt(mean(errs_mcse)) ≤ .1
+
+    # Same r_eff
+    errs = (r_loo["pointwise"] - r_eff_loo.pointwise).^2
+    @test sqrt(mean(errs(:est_score))) ≤ .01
+    @test sqrt(mean(errs(:est_overfit))) ≤ .01
+    @test sqrt(mean(errs(:pareto_k))) ≤ .05
+    errs_mcse = log.(r_loo["pointwise"](:mcse) ./ r_eff_loo.pointwise(:mcse)).^2
+    @test sqrt(mean(errs_mcse)) ≤ .1
     
-    for (r_col, j_col) in (eachcol(r_loo["estimates"]), eachcol(jul_loo.estimates))
-        @test maximum(abs.(r_col - j_col)) ≤ .01
-    end
-
-    for (r_col, j_col) in (eachcol(r_loo["estimates"]), eachcol(r_eff_loo.estimates))
-        @test maximum(abs.(r_col - j_col)) ≤ .001
-    end
+    # Test estimates
+    errs = r_loo["estimates"] - jul_loo.estimates
+    @test maximum(abs.(errs)) ≤ .01
+    
+    errs = r_loo["estimates"] - r_eff_loo.estimates
+    @test maximum(abs.(errs)) ≤ .01
 
     # Test for calling correct method
     @test jul_loo.psis_object.weights ≈ psis(-log_lik_arr).weights
