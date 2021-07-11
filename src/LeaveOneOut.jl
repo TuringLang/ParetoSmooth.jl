@@ -2,7 +2,6 @@ using AxisKeys
 using Bootstrap
 using InteractiveUtils
 using LoopVectorization
-using Memoization
 using Statistics
 using Tullio
 
