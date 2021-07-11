@@ -1,17 +1,13 @@
-module ImportanceSampling
-
 using LoopVectorization
 using Tullio
 
-import ..ESS
-import ..GPD
 
 const LIKELY_ERROR_CAUSES = """
 1. Bugs in the program that generated the sample, or otherwise incorrect input variables. 
 2. Your chains failed to converge. Check your diagnostics. 
 3. You do not have enough posterior samples (Less than ~100 samples) -- try sampling more values.
 """
-const MIN_TAIL_LEN = 5  # Minimum size of a tail for PSIS to work
+const MIN_TAIL_LEN = 16  # Minimum size of a tail for PSIS to give sensible answers
 const SAMPLE_SOURCES = ["mcmc", "vi", "other"]
 
 export Psis, psis
@@ -19,9 +15,9 @@ export Psis, psis
 """
     psis(
         log_ratios::AbstractArray{T:>AbstractFloat}, 
-        rel_eff; 
+        r_eff; 
         source::String="mcmc", 
-        lw::Bool=false
+        log_weights::Bool=false
         ) -> Psis
 
 Implements Pareto-smoothed importance sampling (PSIS).
@@ -33,8 +29,8 @@ PSIS-LOO these are *negative* log-likelihood values). Indices must be ordered as
 `[data, draw, chain]`: `log_ratios[1, 2, 3]` should be the log-likelihood of the first data 
 point, evaluated at the second iteration of the third chain. Chain indices can be left off 
 if there is only a single chain, or if keyword argument `chain_index` is provided.
-- `rel_eff::AbstractArray{T}`: An (optional) vector of relative effective sample sizes used 
-in ESS calculations. If left empty, calculated automatically using the default ESS method 
+- `r_eff::AbstractArray{T}`: An (optional) vector of relative effective sample sizes used 
+in ESS calculations. If left empty, calculated automatically using the FFTESS method 
 from InferenceDiagnostics.jl. See `relative_eff` to calculate these values. 
 
 ## Keyword Arguments
@@ -44,12 +40,11 @@ each sample belongs to.
 - `source::String="mcmc"`: A string or symbol describing the source of the sample being 
 used. If `"mcmc"`, adjusts ESS for autocorrelation. Otherwise, samples are assumed to be 
 independent. Currently permitted values are $SAMPLE_SOURCES.
-- `lw::Bool=false`: Return the logarithm of the weights instead of the weights themselves. 
+- `log_weights::Bool=false`: Return the logarithm of the weights instead of the weights themselves. 
 """
 function psis(
-    log_ratios::T, rel_eff::AbstractArray{F}=similar(log_ratios,0);
-    source::Union{AbstractString,Symbol}="mcmc",
-    lw::Bool=false
+    log_ratios::T, r_eff::AbstractArray{F}=similar(log_ratios,0);
+    source::Union{AbstractString,Symbol}="mcmc", log_weights::Bool=false
 ) where {F<:AbstractFloat,T<:AbstractArray{F,3}}
 
     source = lowercase(String(source))
@@ -63,25 +58,24 @@ function psis(
     log_ratios = reshape(log_ratios, data_size, post_sample_size)
     weights::AbstractArray{F} = similar(log_ratios)
     # Shift ratios by maximum to prevent overflow
-    # then shift by log of posterior sample size to avoid loss of precision for small values
     @tturbo @. weights = exp(log_ratios - $maximum(log_ratios; dims=2))
 
-    rel_eff = generate_rel_eff(weights, dims, rel_eff, source)
-    check_input_validity_psis(reshape(log_ratios, dims), rel_eff)
+    r_eff = _generate_r_eff(weights, dims, r_eff, source)
+    check_input_validity_psis(reshape(log_ratios, dims), r_eff)
     
 
     tail_length = similar(log_ratios, Int, data_size)
     ξ = similar(log_ratios, F, data_size)
-    @. tail_length = def_tail_length(post_sample_size, rel_eff)
-    @. ξ = do_psis_i!($eachslice(weights; dims=1), tail_length)
+    @tturbo @. tail_length = def_tail_length(post_sample_size, r_eff)
+    @tturbo @. ξ = do_psis_i!($eachrow(weights), tail_length)
 
     @tullio norm_const[i] := weights[i, j]
-    @tturbo weights .= weights ./ norm_const
-    ess = ESS.psis_n_eff(weights, rel_eff)
+    @tturbo @. weights /= norm_const
+    ess = psis_n_eff(weights, r_eff)
 
     weights = reshape(weights, dims)
     
-    if lw
+    if log_weights
         @tturbo @. weights = log(weights)
     end
 
@@ -89,6 +83,7 @@ function psis(
         weights,
         ξ,
         ess,
+        r_eff,
         tail_length,
         post_sample_size,
         data_size,
@@ -98,7 +93,7 @@ end
 
 
 function psis(log_ratios::AbstractMatrix{T}, 
-    rel_eff::AbstractVector{T}=similar(log_ratios, 0); 
+    r_eff::AbstractVector{T}=similar(log_ratios, 0); 
     chain_index::AbstractVector{I}=assume_one_chain(log_ratios), 
     kwargs...
     ) where {T<:AbstractFloat, I<:Integer}
@@ -118,12 +113,12 @@ function psis(log_ratios::AbstractMatrix{T},
             throw(ArgumentError("All chains must be of equal length."))
         end
     end
-    newRatios = similar(log_ratios, dims[1], dims[2] ÷ biggest_idx, biggest_idx)
+    new_ratios = similar(log_ratios, dims[1], dims[2] ÷ biggest_idx, biggest_idx)
     for i in 1:biggest_idx    
-        newRatios[:, :, i] .= log_ratios[:, chain_index .== i]
+        new_ratios[:, :, i] .= log_ratios[:, chain_index .== i]
     end
 
-    return psis(newRatios, rel_eff; kwargs...)
+    return psis(new_ratios, r_eff; kwargs...)
 end
 
 
@@ -164,7 +159,7 @@ function do_psis_i!(
     cutoff = sorted_ratios[tail_start-1]
     ξ = psis_smooth_tail!(tail, cutoff)
 
-    # truncate at max of raw wts (which is 1)
+    # truncate at max of raw weights (1 after scaling)
     clamp!(sorted_ratios, 0, 1)
     # unsort the ratios to their original position:
     is_ratios .= @views sorted_ratios[invperm(ordering)]
@@ -174,12 +169,12 @@ end
 
 
 """
-    def_tail_length(log_ratios::AbstractVector, rel_eff::AbstractFloat) -> tail_len::Integer
+    def_tail_length(log_ratios::AbstractVector, r_eff::AbstractFloat) -> tail_len::Integer
 
 Define the tail length as in Vehtari et al. (2019).
 """
-function def_tail_length(length::I, rel_eff) where {I<:Integer}
-    return I(ceil(min(length / 5, 3 * sqrt(length / rel_eff))))
+function def_tail_length(length::I, r_eff) where {I<:Integer}
+    return I(ceil(min(length / 5, 3 * sqrt(length / r_eff))))
 end
 
 
@@ -195,9 +190,9 @@ function psis_smooth_tail!(tail::AbstractVector{T}, cutoff::T) where {T<:Abstrac
     @turbo @. tail = tail - cutoff
 
     # save time not sorting since tail is already sorted
-    ξ, σ = GPD.gpdfit(tail)
+    ξ, σ = gpdfit(tail)
     if ξ ≠ Inf
-        @turbo @. tail = GPD.gpd_quantile(($(1:len) - .5) / len, ξ, σ) + cutoff
+        @turbo @. tail = gpd_quantile(($(1:len) - .5) / len, ξ, σ) + cutoff
     end
     return ξ
 end
@@ -232,6 +227,7 @@ struct Psis{
     weights::AF
     pareto_k::VF
     ess::VF
+    r_eff::VF
     tail_len::VI
     posterior_sample_size::I
     data_size::I
@@ -246,13 +242,13 @@ end
 """
 Generate the relative effective sample size if not provided by the user.
 """
-function generate_rel_eff(weights, dims, rel_eff, source)
-    if isempty(rel_eff)
+function _generate_r_eff(weights, dims, r_eff, source)
+    if isempty(r_eff)
         if source == "mcmc"
             @info "Adjusting for autocorrelation. If the posterior samples are not " *
             "autocorrelated, specify the source of the posterior sample using the keyword " *
             "argument `source`. MCMC samples are always autocorrelated; VI samples are not."
-            return ESS.relative_eff(reshape(weights, dims))
+            return relative_eff(reshape(weights, dims))
         elseif source ∈ SAMPLE_SOURCES
             @info "Samples have not been adjusted for autocorrelation. If the posterior " *
             "samples are autocorrelated, as in MCMC methods, ESS estimates will be " *
@@ -267,7 +263,7 @@ function generate_rel_eff(weights, dims, rel_eff, source)
             return ones(size(weights)[1])
         end
     else 
-        return rel_eff
+        return r_eff
     end
 end
 
@@ -276,7 +272,7 @@ Make sure all inputs to `psis` are valid.
 """
 function check_input_validity_psis(
     log_ratios::AbstractArray{T,3},
-    rel_eff::AbstractVector{T},
+    r_eff::AbstractVector{T},
 ) where {T<:AbstractFloat}
     if any(isnan, log_ratios)
         throw(DomainError("Invalid input for `log_ratios` (contains NaN values)."))
@@ -284,14 +280,14 @@ function check_input_validity_psis(
         throw(DomainError("Invalid input for `log_ratios` (contains infinite values)."))
     elseif isempty(log_ratios)
         throw(ArgumentError("Invalid input for `log_ratios` (array is empty)."))
-    elseif any(isnan, rel_eff)
-        throw(ArgumentError("Invalid input for `rel_eff` (contains NaN values)."))
-    elseif any(isinf, rel_eff)
-        throw(DomainError("Invalid input for `rel_eff` (contains infinite values)."))
+    elseif any(isnan, r_eff)
+        throw(ArgumentError("Invalid input for `r_eff` (contains NaN values)."))
+    elseif any(isinf, r_eff)
+        throw(DomainError("Invalid input for `r_eff` (contains infinite values)."))
     elseif isempty(log_ratios)
-        throw(ArgumentError("Invalid input for `rel_eff` (array is empty)."))
-    elseif length(rel_eff) ≠ size(log_ratios, 1)
-        throw(ArgumentError("Size of `rel_eff` does not equal the number of data points."))
+        throw(ArgumentError("Invalid input for `r_eff` (array is empty)."))
+    elseif length(r_eff) ≠ size(log_ratios, 1)
+        throw(ArgumentError("Size of `r_eff` does not equal the number of data points."))
     end
     return nothing
 end
@@ -324,6 +320,4 @@ function assume_one_chain(log_ratios)
     @info "Chain information was not provided; " * 
     "all samples are assumed to be drawn from a single chain."
     return ones(length(log_ratios))
-end
-
 end
