@@ -7,7 +7,7 @@ const LIKELY_ERROR_CAUSES = """
 2. Your chains failed to converge. Check your diagnostics. 
 3. You do not have enough posterior samples (Less than ~100 samples) -- try sampling more values.
 """
-const MIN_TAIL_LEN = 5  # Minimum size of a tail for PSIS to work
+const MIN_TAIL_LEN = 16  # Minimum size of a tail for PSIS to give sensible answers
 const SAMPLE_SOURCES = ["mcmc", "vi", "other"]
 
 export Psis, psis
@@ -113,12 +113,12 @@ function psis(log_ratios::AbstractMatrix{T},
             throw(ArgumentError("All chains must be of equal length."))
         end
     end
-    newRatios = similar(log_ratios, dims[1], dims[2] ÷ biggest_idx, biggest_idx)
+    new_ratios = similar(log_ratios, dims[1], dims[2] ÷ biggest_idx, biggest_idx)
     for i in 1:biggest_idx    
-        newRatios[:, :, i] .= log_ratios[:, chain_index .== i]
+        new_ratios[:, :, i] .= log_ratios[:, chain_index .== i]
     end
 
-    return psis(newRatios, r_eff; kwargs...)
+    return psis(new_ratios, r_eff; kwargs...)
 end
 
 

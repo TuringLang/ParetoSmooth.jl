@@ -47,8 +47,9 @@ function psis_loo(log_likelihood::T;
 
     @tullio pointwise_ev[i] := weights[i, j, k] * exp(log_likelihood[i, j, k]) |> log
     @tullio pointwise_naive[i] := exp(log_likelihood[i, j, k] - log_count) |> log
-    pointwise_mcse = similar(pointwise_ev)
-    pointwise_mcse .= mcse_elpd(log_likelihood, weights, pointwise_ev, r_eff)
+    @tullio pointwise_mcse[i] := (weights[i, j, k] * (log_likelihood[i, j, k] - pointwise_ev[i]))^2
+    @. pointwise_mcse = sqrt(pointwise_mcse / r_eff)
+    
 
     pointwise_p_eff = pointwise_naive - pointwise_ev
     pointwise = KeyedArray(hcat(
@@ -91,13 +92,4 @@ end
     correction = 3/8  # results in approximately unbiased sample quantiles
     probs = (1:n .- correction) ./ (n - 2 * correction + 1)
     return erfinv.((1 .+ probs) / 2)
-end
-
-
-function mcse_elpd(log_likelihood, weights, elpd, r_eff, n_samples = 1000)
-    norm_quantiles = _qnorm(n_samples)
-    @tullio sd_elpd[i] := (weights[i, j, k] * (log_likelihood[i, j, k] - elpd[i])) ^ 2 |> sqrt
-    z = elpd .+ sd_elpd .* norm_quantiles'
-    var_elpd = dropdims(var(z; dims=2); dims=2)
-    return sqrt.(var_elpd ./ r_eff)
 end
