@@ -41,7 +41,6 @@ function psis_loo(log_likelihood::T;
     psis_object = psis(-log_likelihood, r_eff; source=source, log_weights=log_weights)
     weights = psis_object.weights
     ξ = psis_object.pareto_k
-    ess = psis_object.ess
     r_eff = psis_object.r_eff
 
 
@@ -84,12 +83,3 @@ function psis_loo(log_likelihood::T;
 
 end
 
-function elpd(weights, log_likelihood)
-    return @tullio pointwise_ev[i] := weights[i, j, k] * exp(log_likelihood[i, j, k]) |> log
-end
-
-@memoize function _qnorm(n::Integer)
-    correction = 3/8  # results in approximately unbiased sample quantiles
-    probs = (1:n .- correction) ./ (n - 2 * correction + 1)
-    return erfinv.((1 .+ probs) / 2)
-end
