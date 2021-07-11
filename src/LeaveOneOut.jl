@@ -3,7 +3,6 @@ using Bootstrap
 using InteractiveUtils
 using LoopVectorization
 using Memoization
-using SpecialFunctions
 using Statistics
 using Tullio
 
