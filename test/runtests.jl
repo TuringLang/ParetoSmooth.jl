@@ -1,3 +1,4 @@
+using Base: sign_mask
 using ParetoSmooth
 using Test
 using Statistics
@@ -92,4 +93,53 @@ r_loo["estimates"](criterion=:avg_score) .=
     # Test for calling correct method
     @test jul_loo.psis_object.weights ≈ psis(-log_lik_arr).weights
     @test r_eff_loo.psis_object.weights ≈ psis(-log_lik_arr, r_eff).weights
+end
+
+@testset "compute loo" begin
+    using ParetoSmooth, MCMCChains, Distributions, Random
+    Random.seed!(112)
+    # simulated samples for μ
+    samples = randn(50, 1, 3)
+
+    data = randn(50)
+
+    chain = Chains(samples)
+
+    function compute_loglike(μ, data)
+        return logpdf(Normal(μ, 1), data)
+    end
+
+    loo = compute_loo(chain, data, compute_loglike)
+    @test isa(loo, Float64)
+end
+
+@testset "pointwise log likelihoods" begin
+    using ParetoSmooth, MCMCChains, Distributions, Random
+    Random.seed!(112)
+    # simulated samples for μ
+    samples = randn(1000, 1, 3)
+
+    data = randn(50)
+
+    chain = Chains(samples)
+
+    function compute_loglike(μ, data)
+        return logpdf(Normal(μ, 1), data)
+    end
+
+    pll1 = pointwise_loglikes(chain, data, compute_loglike)
+    pll2 = pointwise_loglikes(samples, data, compute_loglike)
+
+    @test pll1 ≈ pll2 atol = 1e-6
+    # data points, samples, chains
+    @test size(pll1) == (50, 1000, 3)
+
+    # simulated samples for μ
+    samples = randn(1, 1, 1)
+
+    data = randn(50)
+
+    pll3 = pointwise_loglikes(samples, data, compute_loglike)
+
+    @test sum(logpdf.(Normal(samples[1], 1), data)) ≈ sum(pll3) atol = 1e6
 end
