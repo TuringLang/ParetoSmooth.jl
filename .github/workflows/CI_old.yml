@@ -1,12 +1,7 @@
 name: CI
 on:
-  pull_request:
-    branches:
-      - master
-  push:
-    branches:
-      - master
-    tags: '*'
+  - push
+  - pull_request
 jobs:
   test:
     name: Julia ${{ matrix.version }} - ${{ matrix.os }} - ${{ matrix.arch }} - ${{ github.event_name }}
@@ -15,9 +10,8 @@ jobs:
       fail-fast: false
       matrix:
         version:
-          - '1.6' # Replace this with the minimum Julia version that your package supports. E.g. if your package requires Julia 1.5 or higher, change this to '1.5'.
-          - '1' # Leave this line unchanged. '1' will automatically expand to the latest stable 1.x release of Julia.
-          #- 'nightly'
+          - '1.6'
+          - 'nightly'
         os:
           - ubuntu-latest
         arch:
@@ -44,3 +38,29 @@ jobs:
       - uses: codecov/codecov-action@v1
         with:
           file: lcov.info
+      - uses: julia-actions/julia-uploadcoveralls@v1
+        env:
+          COVERALLS_TOKEN: ${{ secrets.COVERALLS_TOKEN }}
+  docs:
+    name: Documentation
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - uses: julia-actions/setup-julia@v1
+        with:
+          version: '1'
+      - run: |
+          julia --project=docs -e '
+            using Pkg
+            Pkg.develop(PackageSpec(path=pwd()))
+            Pkg.instantiate()'
+      - run: |
+          julia --project=docs -e '
+            using Documenter: DocMeta, doctest
+            using ParetoSmooth
+            DocMeta.setdocmeta!(ParetoSmooth, :DocTestSetup, :(using ParetoSmooth); recursive=true)
+            doctest(ParetoSmooth)'
+      - run: julia --project=docs docs/make.jl
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          DOCUMENTER_KEY: ${{ secrets.DOCUMENTER_KEY }}
