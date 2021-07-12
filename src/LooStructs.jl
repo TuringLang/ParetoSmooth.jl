@@ -1,7 +1,7 @@
 
 using AxisKeys
 
-export PsisLoo, Loo, AbstractLoo, AbstractLooMethod, PsisLooMethod
+export PsisLoo, AbstractLoo, AbstractLooMethod, PsisLooMethod
 
 abstract type AbstractLoo end
 struct PsisLoo{
@@ -15,7 +15,6 @@ struct PsisLoo{
     pointwise::KeyedArray
     psis_object::Psis{F,AF,VF,I,VI}
 end
-
 
 abstract type AbstractLooMethod end
 
