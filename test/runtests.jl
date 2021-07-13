@@ -3,6 +3,7 @@ using ParetoSmooth
 using Test
 using Statistics
 using AxisKeys
+using Turing
 
 import RData
 
@@ -97,6 +98,7 @@ end
 
 @testset "compute loo" begin
     using ParetoSmooth, MCMCChains, Distributions, Random
+
     Random.seed!(112)
     # simulated samples for μ
     samples = randn(50, 1, 3)
@@ -110,6 +112,19 @@ end
     end
 
     loo = compute_loo(chain, data, compute_loglike)
+    # pass if yields a value
+    @test isa(loo, Float64)
+
+    @model function model(y)
+        μ ~ Normal(0, 1)
+        σ ~ truncated(Cauchy(0, 1), 0, Inf)
+        y .~ Normal(μ, σ)
+    end
+
+    chain = sample(model(data), NUTS(1000, .65), MCMCThreads(), 1000, 4)
+
+    loo = compute_loo(chain, model(data))
+    # pass if yields a value
     @test isa(loo, Float64)
 end
 
