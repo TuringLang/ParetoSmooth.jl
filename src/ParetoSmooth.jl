@@ -1,7 +1,5 @@
 module ParetoSmooth
 
-using AxisKeys
-
 include("ESS.jl")
 include("GPD.jl")
 include("ImportanceSampling.jl")

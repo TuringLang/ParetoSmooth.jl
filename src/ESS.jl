@@ -1,5 +1,5 @@
 using FFTW
-using MCMCChains
+using MCMCDiagnosticTools
 using LoopVectorization
 using Tullio
 
@@ -17,7 +17,7 @@ function relative_eff(
     post_sample_size = dims[2] * dims[3]
     # Only need ESS, not rhat
     ess_sample = inv.(permutedims(sample, [2, 1, 3]))
-    ess, = MCMCChains.ess_rhat(ess_sample; method=method, maxlag=dims[2])
+    ess, = MCMCDiagnosticTools.ess_rhat(ess_sample; method=method, maxlag=dims[2])
     r_eff = ess / post_sample_size
     return r_eff
 end
