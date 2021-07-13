@@ -1,6 +1,6 @@
 using Turing
 """
-compute_loo(chain::Chain, data, ll_fun)
+    compute_loo(chain::Chain, data, ll_fun)
 
 Computes leave one out (loo) cross validation based on posterior distribution of model parameters.
 
