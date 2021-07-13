@@ -54,7 +54,7 @@ function gpdfit(
     θ_hats = similar(sample, grid_size)
     ξ_hats = similar(sample, grid_size)
     @turbo @. θ_hats =
-        inv(sample[len]) + (1 - sqrt(grid_size / ($(1:grid_size) - 0.5))) / prior / quartile
+        inv(sample[len]) + (1 - sqrt((grid_size+1) / $(1:grid_size))) / prior / quartile
     @tullio threads=false ξ_hats[x] := log1p(-θ_hats[x] * sample[y]) |> _ / len
     log_like = similar(ξ_hats)
     # Calculate profile log-likelihood at each estimate:
