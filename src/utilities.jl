@@ -63,6 +63,19 @@ end
 
 Computes leave one out (loo) cross validation based on posterior distribution of model parameters.
 
+- `pointwise_lls`: pointwise log likelihood where `pointwise_lls[d,s,c]` corresponds to log likelihood of 
+evaluated at datapoint d, sample s, for chain c.  
+"""
+function compute_loo(pointwise_lls)
+    psis_output = psis(pointwise_lls)
+    return compute_loo(psis_output, pointwise_lls)
+end
+
+"""
+    compute_loo(psis_output, pointwise_lls)
+
+Computes leave one out (loo) cross validation based on posterior distribution of model parameters.
+
 - `psis_output`: object returned from `psis`
 - `pointwise_lls`: pointwise log likelihood where `pointwise_lls[d,s,c]` corresponds to log likelihood of 
 evaluated at datapoint d, sample s, for chain c.  
@@ -85,7 +98,7 @@ Computes leave one out (loo) cross validation based on posterior distribution of
 - `model`: a Turing model with data in the form of model(data)
 """
 function compute_loo(chain::Chains, model)
-    pointwise_lls = pointwise_loglikes(chain,  model)
+    pointwise_lls = pointwise_loglikes(chain, model)
     psis_output = psis(pointwise_lls)
     return compute_loo(psis_output, pointwise_lls)
 end

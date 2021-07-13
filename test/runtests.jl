@@ -107,9 +107,13 @@ end
         return logpdf(Normal(μ, 1), data)
     end
 
-    loo = compute_loo(chain, data, compute_loglike)
+    loo1 = compute_loo(chain, data, compute_loglike)
     # pass if yields a value
-    @test isa(loo, Float64)
+    @test isa(loo1, Float64)
+
+    pw_lls = pointwise_loglikes(samples, data, compute_loglike)
+    loo2 = compute_loo(pw_lls)
+    @test loo1 ≈ loo2 atol = 1e-6
 
     @model function model(y)
         μ ~ Normal(0, 1)
