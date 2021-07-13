@@ -16,7 +16,7 @@ Tullio = "bc48ee85-29a4-5162-ae0b-a64e1601d4bc"
 
 [compat]
 AxisKeys = "0.1.18"
-Distributions = "0.25.0"
+Distributions = "0.25.10"
 FFTW = "1.4.3"
 LoopVectorization = "0.12.37"
 MCMCDiagnosticTools = "0.1.0"
