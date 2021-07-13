@@ -94,6 +94,7 @@ end
 
 @testset "compute loo" begin
     using ParetoSmooth, MCMCChains, Distributions, Random
+    using Turing
 
     Random.seed!(112)
     # simulated samples for μ
