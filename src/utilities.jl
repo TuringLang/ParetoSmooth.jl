@@ -1,23 +1,8 @@
-using MCMCChains, StatsFuns
-export pointwise_loglikes, compute_loo
+using Tullio
+export pointwise_log_likelihoods
 
 """
-    pointwise_loglikes(chain::Chains, data, ll_fun)
-
-Computes the pointwise log likelihoods where [d,s,c] corresponds to log likelihood of 
-evaluated at datapoint d, sample s, for chain c. 
-
-- `chain`: a chain object from MCMCChains
-- `data`: a vector of data used to estimate parameters of the model 
-- `ll_fun`: a function that computes the log likelihood of a single data point: f(θ1, ..., θn, data), where θi is the ith parameter
-"""
-function pointwise_loglikes(chain::Chains, data, ll_fun)
-    samples = Array(Chains(chain, :parameters).value)
-    pointwise_loglikes(samples, data, ll_fun)
-end
-
-"""
-    pointwise_loglikes(samples::Array{Float64,3}, data, ll_fun)
+    pointwise_log_likelihoods(samples::Array{<:AbstractFloat,3}, data, ll_fun)
 
 Computes the pointwise log likelihood 
 
@@ -26,10 +11,10 @@ the samples, and the third dimension represents the chains.
 - `data`: a vector of data used to estimate parameters of the model 
 - `ll_fun`: a function that computes the log likelihood of a single data point: f(θ1, ..., θn, data), where θi is the ith parameter
 """
-function pointwise_loglikes(samples::Array{Float64,3}, data, ll_fun)
+function pointwise_log_likelihoods(samples::Array{<:AbstractFloat,3}, data, ll_fun)
     fun = (p,d)-> ll_fun(p..., d)
     n_data = length(data)
-    n_samples, n_chains = size(samples)[[1,3]]
+    n_samples, _,n_chains = size(samples)
     pointwise_lls = fill(0.0, n_data, n_samples, n_chains)
     for c in 1:n_chains 
         for s in 1:n_samples
@@ -41,49 +26,17 @@ function pointwise_loglikes(samples::Array{Float64,3}, data, ll_fun)
     return pointwise_lls
 end
 
-"""
-    compute_loo(psis_output, pointwise_lls)
+# the code in the function works, but does not work when called from the function
+# function pointwise_log_likelihoods(samples::Array{<:AbstractFloat,3}, data, ll_fun)
+#     fun = (p,d)-> ll_fun(p..., d)
+#     @tullio pointwise_lls[d,s,c] := fun(samples[s,:,c], data[d])
+# end
 
-Computes leave one out (loo) cross validation based on posterior distribution of model parameters.
-
-- `pointwise_lls`: pointwise log likelihood where `pointwise_lls[d,s,c]` corresponds to log likelihood of 
-evaluated at datapoint d, sample s, for chain c.  
-"""
-function compute_loo(pointwise_lls)
-    psis_output = psis(pointwise_lls)
-    return compute_loo(psis_output, pointwise_lls)
-end
-
-"""
-    compute_loo(psis_output, pointwise_lls)
-
-Computes leave one out (loo) cross validation based on posterior distribution of model parameters.
-
-- `psis_output`: object returned from `psis`
-- `pointwise_lls`: pointwise log likelihood where `pointwise_lls[d,s,c]` corresponds to log likelihood of 
-evaluated at datapoint d, sample s, for chain c.  
-"""
-function compute_loo(psis_output, pointwise_lls)
-    dims = size(pointwise_lls)
-    lwp = deepcopy(pointwise_lls)
-    lwp += psis_output.weights
-    lwpt = reshape(lwp, dims[1], dims[2] * dims[3])'
-    loos = reshape(logsumexp(lwpt; dims=1), size(lwpt, 2))
-    return sum(loos)
-end
-
-
-"""
-    compute_loo(chain::Chain, data, ll_fun)
-
-Computes leave one out (loo) cross validation based on posterior distribution of model parameters.
-
-- `chain`: a chain object from MCMCChains
-- `data`: a vector of data used to estimate parameters of the model 
-- `ll_fun`: a function that computes the log likelihood of a single data point: f(θ1, ..., θn, data), where θi is the ith parameter
-"""
-function compute_loo(chain::Chains, data, ll_fun::Function)
-    pointwise_lls = pointwise_loglikes(chain, data, ll_fun)
-    psis_output = psis(pointwise_lls)
-    return compute_loo(psis_output, pointwise_lls)
-end
+# # the code in the function works, but does not work when called from the function
+# function pointwise_log_likelihoods(samples::Array{<:AbstractFloat,3}, data, ll_fun)
+#     println("hi")
+#     x = rand(3, 3, 3)
+#     y = rand(5)
+#     f(x, y) = sum(x) / y
+#     @tullio m[d,s,c] := f(x[s,:,c], y[d])
+# end

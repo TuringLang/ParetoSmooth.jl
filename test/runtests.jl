@@ -1,12 +1,11 @@
-using Base: sign_mask
 using ParetoSmooth
 using Test
 using Statistics
 using AxisKeys
 using Turing
+using MCMCChains
 
 import RData
-
 
 let og_array = RData.load("Example_Log_Likelihood_Array.RData")["x"]
     global log_lik_arr = copy(permutedims(og_array, [3, 1, 2]))
@@ -92,45 +91,8 @@ r_loo["estimates"](criterion=:avg_score) .=
     @test r_eff_loo.psis_object.weights ≈ psis(-log_lik_arr, r_eff).weights
 end
 
-@testset "compute loo" begin
-    using ParetoSmooth, MCMCChains, Distributions, Random
-    using Turing
-
-    Random.seed!(112)
-    # simulated samples for μ
-    samples = randn(50, 1, 3)
-
-    data = randn(50)
-
-    chain = Chains(samples)
-
-    function compute_loglike(μ, data)
-        return logpdf(Normal(μ, 1), data)
-    end
-
-    loo1 = compute_loo(chain, data, compute_loglike)
-    # pass if yields a value
-    @test isa(loo1, Float64)
-
-    pw_lls = pointwise_loglikes(samples, data, compute_loglike)
-    loo2 = compute_loo(pw_lls)
-    @test loo1 ≈ loo2 atol = 1e-6
-
-    @model function model(y)
-        μ ~ Normal(0, 1)
-        σ ~ truncated(Cauchy(0, 1), 0, Inf)
-        y .~ Normal(μ, σ)
-    end
-
-    chain = sample(model(data), NUTS(1000, .65), MCMCThreads(), 1000, 4)
-
-    loo = compute_loo(chain, model(data))
-    # pass if yields a value
-    @test isa(loo, Float64)
-end
-
 @testset "pointwise log likelihoods" begin
-    using ParetoSmooth, MCMCChains, Distributions, Random
+    using ParetoSmooth, Distributions, Random
     Random.seed!(112)
     # simulated samples for μ
     samples = randn(1000, 1, 3)
@@ -143,8 +105,8 @@ end
         return logpdf(Normal(μ, 1), data)
     end
 
-    pll1 = pointwise_loglikes(chain, data, compute_loglike)
-    pll2 = pointwise_loglikes(samples, data, compute_loglike)
+    pll1 = pointwise_log_likelihoods(chain, data, compute_loglike)
+    pll2 = pointwise_log_likelihoods(samples, data, compute_loglike)
 
     @test pll1 ≈ pll2 atol = 1e-6
     # data points, samples, chains
@@ -155,7 +117,21 @@ end
 
     data = randn(50)
 
-    pll3 = pointwise_loglikes(samples, data, compute_loglike)
+    pll3 = pointwise_log_likelihoods(samples, data, compute_loglike)
 
     @test sum(logpdf.(Normal(samples[1], 1), data)) ≈ sum(pll3) atol = 1e6
+
+    @model function model(y)
+        μ ~ Normal(0, 1)
+        σ ~ truncated(Cauchy(0, 1), 0, Inf)
+        for i in eachindex(y)
+            y[i] ~ Normal(μ, σ)
+        end
+    end
+
+    chain = sample(model(data), NUTS(1000, .65), MCMCThreads(), 1000, 4)
+
+    pw_lls = pointwise_log_likelihoods(chain, model(data))
+
+    @test size(pw_lls) == (50, 1000, 4)
 end
