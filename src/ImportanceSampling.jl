@@ -4,9 +4,9 @@ using Tullio
 const LIKELY_ERROR_CAUSES = """
 1. Bugs in the program that generated the sample, or otherwise incorrect input variables. 
 2. Your chains failed to converge. Check your diagnostics. 
-3. You do not have enough posterior samples (Less than ~100 samples) -- try sampling more values.
+3. You do not have enough posterior samples (Effective sample size less than 250).
 """
-const MIN_TAIL_LEN = 16  # Minimum size of a tail for PSIS to give sensible answers
+const MIN_TAIL_LEN = 15  # Minimum size of a tail for PSIS to give sensible answers
 const SAMPLE_SOURCES = ["mcmc", "vi", "other"]
 
 export Psis, psis
@@ -75,15 +75,6 @@ function psis(
 
     if log_weights
         @tturbo @. weights = log(weights)
-    end
-
-    if any(ξ .≥ .7)
-        @warn "Some Pareto k values are very high (>0.7), indicating that PSIS has " * 
-        "failed to approximate the true distribution for these points. Treat them " *
-        "with caution."
-    elseif any(ξ .≥ .5)
-        @info "Some Pareto k values are slightly high (>0.5); convergence may be slow " *
-        "and MCSE estimates may be slight underestimates."
     end
 
     return Psis(weights, ξ, ess, r_eff, tail_length, post_sample_size, data_size)
@@ -326,4 +317,19 @@ function _convert_to_array(log_ratios::AbstractMatrix, chain_index::AbstractVect
         new_ratios[:, :, i] .= log_ratios[:, chain_index .== i]
     end
     return new_ratios
+end
+
+
+"""
+Throw warnings if pareto_k values are high.
+"""
+function _throw_pareto_k_warnings(ξ::AbstractVector)
+    if any(ξ .≥ .7)
+        @warn "Some Pareto k values are very high (>0.7), indicating that PSIS has " * 
+        "failed to approximate the true distribution for these points. Treat them " *
+        "with caution."
+    elseif any(ξ .≥ .5)
+        @info "Some Pareto k values are slightly high (>0.5); convergence may be slow " *
+        "and MCSE estimates may be slight underestimates."
+    end
 end
