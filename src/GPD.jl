@@ -4,7 +4,6 @@ using Statistics
 using Tullio
 
 
-
 """
     gpdfit(
         sample::AbstractVector{T<:AbstractFloat}; 

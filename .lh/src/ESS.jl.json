@@ -1,0 +1,34 @@
+{
+    "sourceFile": "src/ESS.jl",
+    "activeCommit": 0,
+    "commits": [
+        {
+            "activePatchIndex": 4,
+            "patches": [
+                {
+                    "date": 1626309971342,
+                    "content": "Index: \n===================================================================\n--- \n+++ \n"
+                },
+                {
+                    "date": 1626310317671,
+                    "content": "Index: \n===================================================================\n--- \n+++ \n@@ -1,8 +1,7 @@\n using FFTW\n using MCMCDiagnosticTools\n using LoopVectorization\n-using TensorOperations\n using Tullio\n \n export relative_eff, psis_n_eff\n \n"
+                },
+                {
+                    "date": 1626310325166,
+                    "content": "Index: \n===================================================================\n--- \n+++ \n@@ -38,9 +38,9 @@\n function psis_n_eff(\n     weights::AbstractMatrix{T}, r_eff::AbstractVector{T}\n ) where {T<:AbstractFloat}\n     @tullio sum_of_squares[x] := weights[x, y]^2\n-    return @turbo r_eff ./ sum_of_squares\n+    return @tturbo r_eff ./ sum_of_squares\n end\n \n function psis_n_eff(weights::AbstractArray{T}) where {T<:AbstractFloat}\n     @warn \"PSIS ESS not adjusted based on MCMC ESS. MCSE and ESS estimates \" *\n"
+                },
+                {
+                    "date": 1626314405224,
+                    "content": "Index: \n===================================================================\n--- \n+++ \n@@ -1,7 +1,8 @@\n using FFTW\n using MCMCDiagnosticTools\n using LoopVectorization\n+using TensorOperations\n using Tullio\n \n export relative_eff, psis_n_eff\n \n"
+                },
+                {
+                    "date": 1626314567863,
+                    "content": "Index: \n===================================================================\n--- \n+++ \n@@ -1,8 +1,7 @@\n using FFTW\n using MCMCDiagnosticTools\n using LoopVectorization\n-using TensorOperations\n using Tullio\n \n export relative_eff, psis_n_eff\n \n"
+                }
+            ],
+            "date": 1626309971342,
+            "name": "Commit-0",
+            "content": "using FFTW\nusing MCMCDiagnosticTools\nusing LoopVectorization\nusing TensorOperations\nusing Tullio\n\nexport relative_eff, psis_n_eff\n\n\"\"\"\n    relative_eff(sample::AbstractArray{AbstractFloat, 3}; method=FFTESSMethod())\n\nCompute the MCMC effective sample size divided by the nominal sample size.\n\"\"\"\nfunction relative_eff(\n    sample::AbstractArray{T,3}; method=FFTESSMethod()\n) where {T<:AbstractFloat}\n    dims = size(sample)\n    post_sample_size = dims[2] * dims[3]\n    # Only need ESS, not rhat\n    ess_sample = inv.(permutedims(sample, [2, 1, 3]))\n    ess, = MCMCDiagnosticTools.ess_rhat(ess_sample; method=method, maxlag=dims[2])\n    r_eff = ess / post_sample_size\n    return r_eff\nend\n\n\"\"\"\n    function psis_n_eff(\n        weights::AbstractVector{T},\n        r_eff::AbstractVector{T}\n    ) -> AbstractVector{T}\n\"\"\"\nfunction psis_n_eff(\n    weights::AbstractVector{T}, r_eff::AbstractVector{T}\n) where {T<:AbstractFloat}\n    @tullio sum_of_squares := weights[x]^2\n    return r_eff ./ sum_of_squares\nend\n\nfunction psis_n_eff(\n    weights::AbstractMatrix{T}, r_eff::AbstractVector{T}\n) where {T<:AbstractFloat}\n    @tullio sum_of_squares[x] := weights[x, y]^2\n    return @turbo r_eff ./ sum_of_squares\nend\n\nfunction psis_n_eff(weights::AbstractArray{T}) where {T<:AbstractFloat}\n    @warn \"PSIS ESS not adjusted based on MCMC ESS. MCSE and ESS estimates \" *\n          \"will be overoptimistic if samples are autocorrelated.\"\n    return psis_n_eff(weights, ones(size(weights)))\nend\n"
+        }
+    ]
+}
