@@ -1,12 +1,14 @@
 using LoopVectorization
+using Polyester
 using Tullio
+
 
 const LIKELY_ERROR_CAUSES = """
 1. Bugs in the program that generated the sample, or otherwise incorrect input variables. 
 2. Your chains failed to converge. Check your diagnostics. 
-3. You do not have enough posterior samples (Effective sample size less than 250).
+3. You do not have enough posterior samples (Less than ~100 samples) -- try sampling more values.
 """
-const MIN_TAIL_LEN = 15  # Minimum size of a tail for PSIS to give sensible answers
+const MIN_TAIL_LEN = 16  # Minimum size of a tail for PSIS to give sensible answers
 const SAMPLE_SOURCES = ["mcmc", "vi", "other"]
 
 export Psis, psis
@@ -63,18 +65,29 @@ function psis(
     check_input_validity_psis(reshape(log_ratios, dims), r_eff)
 
     tail_length = similar(log_ratios, Int, data_size)
-    ξ = similar(log_ratios, F, data_size)
-    @tturbo @. tail_length = def_tail_length(post_sample_size, r_eff)
-    @tturbo @. ξ = do_psis_i!($eachrow(weights), tail_length)
-
+    ξ = similar(log_ratios, data_size)
+    @inbounds Threads.@threads for i in eachindex(tail_length)
+        tail_length[i] = def_tail_length(post_sample_size, r_eff[i])
+        ξ[i] = @views ParetoSmooth.do_psis_i!(weights[i,:], tail_length[i])
+    end
+    
     @tullio norm_const[i] := weights[i, j]
-    @tturbo @. weights /= norm_const
+    weights .= weights ./ norm_const
     ess = psis_n_eff(weights, r_eff)
 
     weights = reshape(weights, dims)
 
     if log_weights
         @tturbo @. weights = log(weights)
+    end
+
+    if any(ξ .≥ .7)
+        @warn "Some Pareto k values are very high (>0.7), indicating that PSIS has " * 
+        "failed to approximate the true distribution for these points. Treat them " *
+        "with caution."
+    elseif any(ξ .≥ .5)
+        @info "Some Pareto k values are slightly high (>0.5); convergence may be slow " *
+        "and MCSE estimates may be slight underestimates."
     end
 
     return Psis(weights, ξ, ess, r_eff, tail_length, post_sample_size, data_size)
@@ -262,15 +275,15 @@ function check_tail(tail::AbstractVector{T}) where {T<:AbstractFloat}
     if maximum(tail) ≈ minimum(tail)
         throw(
             ArgumentError(
-                "Unable to fit generalized Pareto distribution: all tail values are the 
-                same. $LIKELY_ERROR_CAUSES",
+                "Unable to fit generalized Pareto distribution: all tail values are the" *
+                "same. Likely causes are: \n$LIKELY_ERROR_CAUSES",
             ),
         )
     elseif length(tail) < MIN_TAIL_LEN
         throw(
             ArgumentError(
-                "Unable to fit generalized Pareto distribution: tail length was too short.
-                $LIKELY_ERROR_CAUSES"
+                "Unable to fit generalized Pareto distribution: tail length was too " *
+                "short. Likely causese are: \n$LIKELY_ERROR_CAUSES"
             ),
         )
     end
@@ -317,19 +330,4 @@ function _convert_to_array(log_ratios::AbstractMatrix, chain_index::AbstractVect
         new_ratios[:, :, i] .= log_ratios[:, chain_index .== i]
     end
     return new_ratios
-end
-
-
-"""
-Throw warnings if pareto_k values are high.
-"""
-function _throw_pareto_k_warnings(ξ::AbstractVector)
-    if any(ξ .≥ .7)
-        @warn "Some Pareto k values are very high (>0.7), indicating that PSIS has " * 
-        "failed to approximate the true distribution for these points. Treat them " *
-        "with caution."
-    elseif any(ξ .≥ .5)
-        @info "Some Pareto k values are slightly high (>0.5); convergence may be slow " *
-        "and MCSE estimates may be slight underestimates."
-    end
 end

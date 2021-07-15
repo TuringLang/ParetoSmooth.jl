@@ -1,0 +1,26 @@
+{
+    "sourceFile": "src/LeaveOneOut.jl",
+    "activeCommit": 0,
+    "commits": [
+        {
+            "activePatchIndex": 2,
+            "patches": [
+                {
+                    "date": 1626310486785,
+                    "content": "Index: \n===================================================================\n--- \n+++ \n"
+                },
+                {
+                    "date": 1626314395084,
+                    "content": "Index: \n===================================================================\n--- \n+++ \n@@ -1,8 +1,9 @@\n using AxisKeys\n using InteractiveUtils\n using LoopVectorization\n using Statistics\n+using TensorOperations\n using Tullio\n \n \n export loo, psis_loo\n"
+                },
+                {
+                    "date": 1626314575968,
+                    "content": "Index: \n===================================================================\n--- \n+++ \n@@ -1,9 +1,8 @@\n using AxisKeys\n using InteractiveUtils\n using LoopVectorization\n using Statistics\n-using TensorOperations\n using Tullio\n \n \n export loo, psis_loo\n"
+                }
+            ],
+            "date": 1626310486785,
+            "name": "Commit-0",
+            "content": "using AxisKeys\nusing InteractiveUtils\nusing LoopVectorization\nusing Statistics\nusing Tullio\n\n\nexport loo, psis_loo\n\nconst LOO_METHODS = subtypes(AbstractLooMethod)\n\nfunction loo(args...; method=PsisLooMethod(), kwargs...)\n    if typeof(method) ∈ LOO_METHODS\n        return psis_loo(args...; kwargs...)\n    else\n        throw(ArgumentError(\"Invalid method provided. Valid methods are $LOO_METHODS\"))\n    end\nend\n\n\nfunction psis_loo(log_likelihood::T, \n    r_eff=similar(log_likelihood, 0);\n    source::Union{AbstractString,Symbol}=\"mcmc\", \n    log_weights::Bool=false\n) where {F<:AbstractFloat,T<:AbstractArray{F,3}}\n\n    source = lowercase(string(source))\n    dims = size(log_likelihood)\n    data_size = dims[1]\n    mcmc_count = dims[2] * dims[3]  # total number of samples from posterior\n    log_count = log(mcmc_count)\n\n\n    # TODO: Add a way of using score functions other than ELPD\n    # log_likelihood::ArrayType = similar(log_likelihood)\n    # log_likelihood .= score(log_likelihood)\n\n    psis_object = psis(-log_likelihood, r_eff; source=source, log_weights=log_weights)\n    weights = psis_object.weights\n    ξ = psis_object.pareto_k\n    r_eff = psis_object.r_eff\n\n\n    @tullio pointwise_ev[i] := weights[i, j, k] * exp(log_likelihood[i, j, k]) |> log\n    @tullio pointwise_naive[i] := exp(log_likelihood[i, j, k] - log_count) |> log\n    @tullio pointwise_mcse[i] := (weights[i, j, k] * (log_likelihood[i, j, k] - pointwise_ev[i]))^2\n    @. pointwise_mcse = sqrt(pointwise_mcse / r_eff)\n    \n\n    pointwise_p_eff = pointwise_naive - pointwise_ev\n    pointwise = KeyedArray(hcat(\n                    pointwise_ev,\n                    pointwise_mcse,\n                    pointwise_p_eff,\n                    ξ,\n                );\n                data=1:length(pointwise_ev),\n                statistic=[\n                    :est_score, \n                    :mcse, \n                    :est_overfit, \n                    :pareto_k\n                ]\n    )\n                \n    table = KeyedArray(similar(log_likelihood, 3, 2); \n        criterion=[:total_score, :overfit, :avg_score],\n        estimate=[:Estimate, :SE],\n        )\n    \n    table(:total_score, :Estimate, :) .= ev_loo = sum(pointwise_ev)\n    table(:avg_score, :Estimate, :) .= ev_avg = ev_loo / data_size\n    table(:overfit, :Estimate, :) .= p_eff = sum(pointwise_p_eff)\n\n    table(:total_score, :SE, :) .= ev_se = sqrt(varm(pointwise_ev, ev_avg) * data_size)\n    table(:avg_score, :SE, :) .= ev_se / data_size\n    table(:overfit, :SE, :) .= sqrt(varm(pointwise_p_eff, p_eff / data_size) * data_size)\n\n    return PsisLoo(table, pointwise, psis_object);\n\nend\n\n\nfunction psis_loo(log_likelihood::T, \n    r_eff=similar(log_likelihood, 0);\n    chain_index=ones(size(log_likelihood, 1)),\n    source::Union{AbstractString,Symbol}=\"mcmc\", \n    log_weights::Bool=false\n) where {F<:AbstractFloat,T<:AbstractMatrix{F}}\n    new_log_ratios = _convert_to_array(log_likelihood, chain_index)\n    return psis_loo(new_log_ratios, r_eff; source, log_weights)\nend\n"
+        }
+    ]
+}
