@@ -1,5 +1,7 @@
 using LoopVectorization
+using Polyester
 using Tullio
+
 
 const LIKELY_ERROR_CAUSES = """
 1. Bugs in the program that generated the sample, or otherwise incorrect input variables. 
@@ -63,12 +65,14 @@ function psis(
     check_input_validity_psis(reshape(log_ratios, dims), r_eff)
 
     tail_length = similar(log_ratios, Int, data_size)
-    ξ = similar(log_ratios, F, data_size)
-    @tturbo @. tail_length = def_tail_length(post_sample_size, r_eff)
-    @tturbo @. ξ = do_psis_i!($eachrow(weights), tail_length)
-
+    ξ = similar(log_ratios, data_size)
+    @inbounds Threads.@threads for i in eachindex(tail_length)
+        tail_length[i] = def_tail_length(post_sample_size, r_eff[i])
+        ξ[i] = @views ParetoSmooth.do_psis_i!(weights[i,:], tail_length[i])
+    end
+    
     @tullio norm_const[i] := weights[i, j]
-    @tturbo @. weights /= norm_const
+    weights .= weights ./ norm_const
     ess = psis_n_eff(weights, r_eff)
 
     weights = reshape(weights, dims)
@@ -77,41 +81,30 @@ function psis(
         @tturbo @. weights = log(weights)
     end
 
+    if any(ξ .≥ .7)
+        @warn "Some Pareto k values are very high (>0.7), indicating that PSIS has " * 
+        "failed to approximate the true distribution for these points. Treat them " *
+        "with caution."
+    elseif any(ξ .≥ .5)
+        @info "Some Pareto k values are slightly high (>0.5); convergence may be slow " *
+        "and MCSE estimates may be slight underestimates."
+    end
+
     return Psis(weights, ξ, ess, r_eff, tail_length, post_sample_size, data_size)
 end
+
 
 function psis(
     log_ratios::AbstractMatrix{T},
     r_eff::AbstractVector{T}=similar(log_ratios, 0);
-    chain_index::AbstractVector{I}=assume_one_chain(log_ratios),
+    chain_index::AbstractVector{I}=_assume_one_chain(log_ratios),
     kwargs...,
 ) where {T<:AbstractFloat,I<:Integer}
-    indices = unique(chain_index)
-    biggest_idx = maximum(indices)
-    dims = size(log_ratios)
-    if dims[2] ≠ length(chain_index)
-        throw(ArgumentError("Some entries do not have a chain index."))
-    elseif !issetequal(indices, 1:biggest_idx)
-        throw(
-            ArgumentError(
-                "Indices must be numbered from 1 through the total number of chains."
-            ),
-        )
-    else
-        # Check how many elements are in each chain, assign to "counts"
-        counts = count.(eachslice(chain_index .== indices'; dims=2))
-        # check if all inputs are the same length
-        if !all(==(counts[1]), counts)
-            throw(ArgumentError("All chains must be of equal length."))
-        end
-    end
-    new_ratios = similar(log_ratios, dims[1], dims[2] ÷ biggest_idx, biggest_idx)
-    for i in 1:biggest_idx
-        new_ratios[:, :, i] .= log_ratios[:, chain_index .== i]
-    end
-
-    return psis(new_ratios, r_eff; kwargs...)
+    
+    new_log_ratios = _convert_to_array(log_ratios, chain_index)
+    return psis(new_log_ratios, r_eff; kwargs...)
 end
+
 
 """
     do_psis_i!(is_ratios::AbstractVector{AbstractFloat}, tail_length::Integer)::T
@@ -191,7 +184,7 @@ end
 """
     Psis{V<:AbstractVector{F},I<:Integer} where {F<:AbstractFloat}
 
-A struct containing the results of Pareto-smoothed improtance sampling.
+A struct containing the results of Pareto-smoothed importance sampling.
 
 # Fields
 - `weights`: A vector of smoothed, truncated, and *normalized* importance sampling weights.
@@ -228,8 +221,9 @@ function _generate_r_eff(weights, dims, r_eff, source)
     if isempty(r_eff)
         if source == "mcmc"
             @info "Adjusting for autocorrelation. If the posterior samples are not " *
-                  "autocorrelated, specify the source of the posterior sample using the keyword " *
-                  "argument `source`. MCMC samples are always autocorrelated; VI samples are not."
+                  "autocorrelated, specify the source of the posterior sample using the " *
+                  "keyword argument `source`. MCMC samples are always autocorrelated; VI " *
+                  "samples are not."
             return relative_eff(reshape(weights, dims))
         elseif source ∈ SAMPLE_SOURCES
             @info "Samples have not been adjusted for autocorrelation. If the posterior " *
@@ -240,7 +234,7 @@ function _generate_r_eff(weights, dims, r_eff, source)
         else
             throw(
                 ArgumentError(
-                    "$source is not a valid source. " * "Valid sources are $SAMPLE_SOURCES."
+                    "$source is not a valid source. Valid sources are $SAMPLE_SOURCES."
                 ),
             )
             return ones(size(weights, 1))
@@ -281,23 +275,59 @@ function check_tail(tail::AbstractVector{T}) where {T<:AbstractFloat}
     if maximum(tail) ≈ minimum(tail)
         throw(
             ArgumentError(
-                "Unable to fit generalized Pareto distribution: all tail values are the same.
-                $LIKELY_ERROR_CAUSES",
+                "Unable to fit generalized Pareto distribution: all tail values are the" *
+                "same. Likely causes are: \n$LIKELY_ERROR_CAUSES",
             ),
         )
     elseif length(tail) < MIN_TAIL_LEN
         throw(
             ArgumentError(
-                "Unable to fit generalized Pareto distribution: tail length was too short.
-                $LIKELY_ERROR_CAUSES"
+                "Unable to fit generalized Pareto distribution: tail length was too " *
+                "short. Likely causese are: \n$LIKELY_ERROR_CAUSES"
             ),
         )
     end
     return nothing
 end
 
-function assume_one_chain(log_ratios)
+
+"""
+Assume that all objects belong to a single chain if chain index is missing. Warn user.
+"""
+function _assume_one_chain(log_ratios)
     @info "Chain information was not provided; " *
           "all samples are assumed to be drawn from a single chain."
     return ones(length(log_ratios))
+end
+
+
+"""
+Convert a matrix+chain_index representation to a 3d array representation to pass it off to 
+the method for arrays.
+"""
+function _convert_to_array(log_ratios::AbstractMatrix, chain_index::AbstractVector)
+    indices = unique(chain_index)
+    biggest_idx = maximum(indices)
+    dims = size(log_ratios)
+    if dims[2] ≠ length(chain_index)
+        throw(ArgumentError("Some entries do not have a chain index."))
+    elseif !issetequal(indices, 1:biggest_idx)
+        throw(
+            ArgumentError(
+                "Indices must be numbered from 1 through the total number of chains."
+            ),
+        )
+    else
+        # Check how many elements are in each chain, assign to "counts"
+        counts = count.(eachslice(chain_index .== indices'; dims=2))
+        # check if all inputs are the same length
+        if !all(==(counts[1]), counts)
+            throw(ArgumentError("All chains must be of equal length."))
+        end
+    end
+    new_ratios = similar(log_ratios, dims[1], dims[2] ÷ biggest_idx, biggest_idx)
+    for i in 1:biggest_idx
+        new_ratios[:, :, i] .= log_ratios[:, chain_index .== i]
+    end
+    return new_ratios
 end

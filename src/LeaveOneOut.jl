@@ -18,8 +18,8 @@ function loo(args...; method=PsisLooMethod(), kwargs...)
 end
 
 
-function psis_loo(log_likelihood::T; 
-    r_eff=similar(log_likelihood, 0),
+function psis_loo(log_likelihood::T, 
+    r_eff=similar(log_likelihood, 0);
     source::Union{AbstractString,Symbol}="mcmc", 
     log_weights::Bool=false
 ) where {F<:AbstractFloat,T<:AbstractArray{F,3}}
@@ -80,3 +80,13 @@ function psis_loo(log_likelihood::T;
 
 end
 
+
+function psis_loo(log_likelihood::T, 
+    r_eff=similar(log_likelihood, 0);
+    chain_index=ones(size(log_likelihood, 1)),
+    source::Union{AbstractString,Symbol}="mcmc", 
+    log_weights::Bool=false
+) where {F<:AbstractFloat,T<:AbstractMatrix{F}}
+    new_log_ratios = _convert_to_array(log_likelihood, chain_index)
+    return psis_loo(new_log_ratios, r_eff; source, log_weights)
+end

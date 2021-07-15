@@ -45,7 +45,7 @@ r_loo["estimates"](criterion=:avg_score) .=
     log_psis = psis(log_lik_arr; log_weights=true)
 
     jul_loo = loo(log_lik_arr)
-    r_eff_loo = psis_loo(log_lik_arr; r_eff=r_eff)
+    r_eff_loo = psis_loo(log_lik_arr, r_eff)
     
     
     # max 10% difference in tail length calc between Julia and R
