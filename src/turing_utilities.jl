@@ -16,7 +16,8 @@ function pointwise_log_likelihoods(chain::Chains, model)
     chain_params = MCMCChains.get_sections(chain, :parameters)
     # compute the pointwise log likelihoods
     pointwise_log_like_dict = pointwise_loglikelihoods(model, chain_params)
-    ind_from_string(x) = parse(Int, x[3:end-1])
+    # parse "var[i]" -> i
+    ind_from_string(x) = parse(Int, split(split(x, "[")[2], "]")[1])
     # collect variable names
     sorted_keys = sort(collect(keys(pointwise_log_like_dict)); by=ind_from_string)
     # Convert from dictionary to 3d array

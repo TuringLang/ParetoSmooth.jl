@@ -121,11 +121,11 @@ end
 
     @test sum(logpdf.(Normal(samples[1], 1), data)) ≈ sum(pll3) atol = 1e6
 
-    @model function model(y)
+    @model function model(data)
         μ ~ Normal(0, 1)
         σ ~ truncated(Cauchy(0, 1), 0, Inf)
-        for i in eachindex(y)
-            y[i] ~ Normal(μ, σ)
+        for i in eachindex(data)
+            data[i] ~ Normal(μ, σ)
         end
     end
 
