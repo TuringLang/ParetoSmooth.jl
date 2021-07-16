@@ -72,7 +72,7 @@ function psis(
     
     @tullio norm_const[i] := weights[i, j]
     weights .= weights ./ norm_const
-    ess = psis_n_eff(weights, r_eff)
+    ess = psis_ess(weights, r_eff)
 
     weights = reshape(weights, dims)
 
@@ -106,7 +106,7 @@ end
 
 
 """
-    do_psis_i!(is_ratios::AbstractVector{AbstractFloat}, tail_length::Integer)::T
+    do_psis_i!(is_ratios::AbstractVector{AbstractFloat}, tail_length::Integer) -> T
 
 Do PSIS on a single vector, smoothing its tail values.
 
@@ -243,6 +243,7 @@ function _generate_r_eff(weights, dims, r_eff, source)
     end
 end
 
+
 """
 Make sure all inputs to `psis` are valid.
 """
@@ -266,6 +267,7 @@ function check_input_validity_psis(
     end
     return nothing
 end
+
 
 """
 Check the tail to make sure a GPD fit is possible.
