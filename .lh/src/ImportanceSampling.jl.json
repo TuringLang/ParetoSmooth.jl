@@ -3,7 +3,7 @@
     "activeCommit": 0,
     "commits": [
         {
-            "activePatchIndex": 32,
+            "activePatchIndex": 33,
             "patches": [
                 {
                     "date": 1626309654641,
@@ -136,6 +136,10 @@
                 {
                     "date": 1626363453857,
                     "content": "Index: \n===================================================================\n--- \n+++ \n@@ -65,9 +65,9 @@\n     check_input_validity_psis(reshape(log_ratios, dims), r_eff)\n \n     tail_length = similar(log_ratios, Int, data_size)\n     ξ = similar(log_ratios, data_size)\n-    @inbounds @batch per=thread for i in eachindex(tail_length)\n+    @inbounds Threads.@threads for i in eachindex(tail_length)\n         tail_length[i] = def_tail_length(post_sample_size, r_eff[i])\n         ξ[i] = @views ParetoSmooth.do_psis_i!(weights[i,:], tail_length[i])\n     end\n     \n"
+                },
+                {
+                    "date": 1626452759502,
+                    "content": "Index: \n===================================================================\n--- \n+++ \n@@ -1,6 +1,5 @@\n using LoopVectorization\n-using Polyester\n using Tullio\n \n \n const LIKELY_ERROR_CAUSES = \"\"\"\n"
                 }
             ],
             "date": 1626309654640,

@@ -1,5 +1,4 @@
 using LoopVectorization
-using Polyester
 using Tullio
 
 
