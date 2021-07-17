@@ -57,7 +57,7 @@ function psis_loo(
     source::Union{AbstractString,Symbol}="mcmc", log_weights::Bool=false, kwargs...
     )
     pointwise_log_likes = pointwise_log_likelihoods(chain, model)
-    return psis_loo(-1 * pointwise_log_likes, args...; source, log_weights, kwargs...)
+    return psis_loo(pointwise_log_likes, args...; source, log_weights, kwargs...)
 end
 """
     psis(
@@ -94,7 +94,7 @@ function psis(
     source::Union{AbstractString,Symbol}="mcmc", log_weights::Bool=false
     )
     pointwise_log_likes = pointwise_log_likelihoods(chain, model)
-    return psis(-1 * pointwise_log_likes, r_eff; source, log_weights)
+    return psis(-pointwise_log_likes, r_eff; source, log_weights)
 end
 
 function psis(
@@ -103,5 +103,5 @@ function psis(
     )
     pointwise_log_likes = pointwise_log_likelihoods(chain, model)
     r_eff = similar(pointwise_log_likes, 0)
-    return psis(-1 * pointwise_log_likes, r_eff; source, log_weights)
+    return psis(-pointwise_log_likes, r_eff; source, log_weights)
 end
