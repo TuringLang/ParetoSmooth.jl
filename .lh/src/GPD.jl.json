@@ -3,7 +3,7 @@
     "activeCommit": 0,
     "commits": [
         {
-            "activePatchIndex": 7,
+            "activePatchIndex": 14,
             "patches": [
                 {
                     "date": 1626310029646,
@@ -36,6 +36,34 @@
                 {
                     "date": 1626362509519,
                     "content": "Index: \n===================================================================\n--- \n+++ \n@@ -44,9 +44,8 @@\n \n \n     prior = 3\n     grid_size = min_grid_pts + isqrt(len) # isqrt = floor sqrt\n-    grid_size = grid_size - (grid_size % 32) # multiples of 32 speed up calcs\n     n_0 = 10  # determines how strongly to nudge ξ towards .5\n     quartile::T = sample[(len+2)÷4]\n \n \n"
+                },
+                {
+                    "date": 1626484293993,
+                    "content": "Index: \n===================================================================\n--- \n+++ \n@@ -33,9 +33,9 @@\n     sample::AbstractVector{T};\n     wip::Bool=true,\n     min_grid_pts::Integer=30,\n     sort_sample::Bool=false,\n-) where {T<:AbstractFloat}\n+) where {T <: AbstractFloat}\n \n     len = length(sample)\n     # sample must be sorted, but we can skip if sample is already sorted\n     if sort_sample\n@@ -52,18 +52,18 @@\n     # build pointwise estimates of ξ and θ at each grid point\n     θ_hats = similar(sample, grid_size)\n     ξ_hats = similar(sample, grid_size)\n     @turbo @. θ_hats =\n-        inv(sample[len]) + (1 - sqrt((grid_size+1) / $(1:grid_size))) / prior / quartile\n-    @tullio threads=false ξ_hats[x] := log1p(-θ_hats[x] * sample[y]) |> _ / len\n+        inv(sample[len]) + (1 - sqrt((grid_size + 1) / $(1:grid_size))) / prior / quartile\n+    @tullio threads = false ξ_hats[x] := log1p(-θ_hats[x] * sample[y]) |> _ / len\n     log_like = similar(ξ_hats)\n     # Calculate profile log-likelihood at each estimate:\n     @turbo @. log_like = len * (log(-θ_hats / ξ_hats) - ξ_hats - 1)\n     # Calculate weights from log-likelihood:\n     weights = ξ_hats  # Reuse preallocated array (which is no longer in use)\n-    @tullio threads=false weights[y] = exp(log_like[x] - log_like[y]) |> inv\n+    @tullio threads = false weights[y] = exp(log_like[x] - log_like[y]) |> inv\n     # Take weighted mean:\n-    @tullio threads=false θ_hat := weights[x] * θ_hats[x]\n+    @tullio threads = false θ_hat := weights[x] * θ_hats[x]\n \n     ξ::T = calc_ξ(sample, θ_hat)\n     σ::T = -ξ / θ_hat\n \n@@ -90,9 +90,9 @@\n # Returns\n \n A quantile of the Generalized Pareto Distribution.\n \"\"\"\n-function gpd_quantile(p, k::T, sigma::T) where {T<:AbstractFloat}\n+function gpd_quantile(p, k::T, sigma::T) where {T <: AbstractFloat}\n     return sigma * expm1(-k * log1p(-p)) / k\n end\n \n \n@@ -100,9 +100,9 @@\n     calc_ξ(sample, θ_hat)\n \n Calculate ξ, the parameter for the GPD.\n \"\"\"\n-function calc_ξ(sample::AbstractVector{T}, θ_hat::T) where {T<:AbstractFloat}\n+function calc_ξ(sample::AbstractVector{T}, θ_hat::T) where {T <: AbstractFloat}\n     ξ = zero(T)\n     @turbo for i in eachindex(sample)\n         ξ += log1p(-θ_hat * sample[i]) / length(sample)\n     end\n"
+                },
+                {
+                    "date": 1626484439615,
+                    "content": "Index: \n===================================================================\n--- \n+++ \n@@ -52,18 +52,18 @@\n     # build pointwise estimates of ξ and θ at each grid point\n     θ_hats = similar(sample, grid_size)\n     ξ_hats = similar(sample, grid_size)\n     @turbo @. θ_hats =\n-        inv(sample[len]) + (1 - sqrt((grid_size + 1) / $(1:grid_size))) / prior / quartile\n-    @tullio threads = false ξ_hats[x] := log1p(-θ_hats[x] * sample[y]) |> _ / len\n+        inv(sample[len]) + (1 - sqrt((grid_size+1) / $(1:grid_size))) / prior / quartile\n+    @tullio threads=false ξ_hats[x] := log1p(-θ_hats[x] * sample[y]) |> _ / len\n     log_like = similar(ξ_hats)\n     # Calculate profile log-likelihood at each estimate:\n     @turbo @. log_like = len * (log(-θ_hats / ξ_hats) - ξ_hats - 1)\n     # Calculate weights from log-likelihood:\n     weights = ξ_hats  # Reuse preallocated array (which is no longer in use)\n-    @tullio threads = false weights[y] = exp(log_like[x] - log_like[y]) |> inv\n+    @tullio threads=false weights[y] = exp(log_like[x] - log_like[y]) |> inv\n     # Take weighted mean:\n-    @tullio threads = false θ_hat := weights[x] * θ_hats[x]\n+    @tullio threads=false θ_hat := weights[x] * θ_hats[x]\n \n     ξ::T = calc_ξ(sample, θ_hat)\n     σ::T = -ξ / θ_hat\n \n"
+                },
+                {
+                    "date": 1626484457349,
+                    "content": "Index: \n===================================================================\n--- \n+++ \n@@ -101,11 +101,11 @@\n \n Calculate ξ, the parameter for the GPD.\n \"\"\"\n function calc_ξ(sample::AbstractVector{T}, θ_hat::T) where {T <: AbstractFloat}\n-    ξ = zero(T)\n+    ξ::T = zero(T)\n     @turbo for i in eachindex(sample)\n         ξ += log1p(-θ_hat * sample[i]) / length(sample)\n     end\n-    return ξ::T\n+    return ξ\n end\n \n"
+                },
+                {
+                    "date": 1626484527691,
+                    "content": "Index: \n===================================================================\n--- \n+++ \n@@ -62,8 +62,9 @@\n     weights = ξ_hats  # Reuse preallocated array (which is no longer in use)\n     @tullio threads=false weights[y] = exp(log_like[x] - log_like[y]) |> inv\n     # Take weighted mean:\n     @tullio threads=false θ_hat := weights[x] * θ_hats[x]\n+    @tullio threads=false ξ := log1p(-θ_hat * sample[i]) |> _ / len\n \n     ξ::T = calc_ξ(sample, θ_hat)\n     σ::T = -ξ / θ_hat\n \n@@ -94,18 +95,4 @@\n function gpd_quantile(p, k::T, sigma::T) where {T <: AbstractFloat}\n     return sigma * expm1(-k * log1p(-p)) / k\n end\n \n-\n-\"\"\"\n-    calc_ξ(sample, θ_hat)\n-\n-Calculate ξ, the parameter for the GPD.\n-\"\"\"\n-function calc_ξ(sample::AbstractVector{T}, θ_hat::T) where {T <: AbstractFloat}\n-    ξ::T = zero(T)\n-    @turbo for i in eachindex(sample)\n-        ξ += log1p(-θ_hat * sample[i]) / length(sample)\n-    end\n-    return ξ\n-end\n-\n"
+                },
+                {
+                    "date": 1626486963522,
+                    "content": "Index: \n===================================================================\n--- \n+++ \n@@ -9,9 +9,9 @@\n         sample::AbstractVector{T<:AbstractFloat}; \n         wip::Bool=true, \n         min_grid_pts::Integer=30, \n         sort_sample::Bool=false\n-        ) -> (ξ::T, σ::T)\n+    ) -> (ξ::T, σ::T)\n \n Return a named list of estimates for the parameters ξ (shape) and σ (scale) of the\n generalized Pareto distribution (GPD), assuming the location parameter is 0.\n \n"
+                },
+                {
+                    "date": 1626487070812,
+                    "content": "Index: \n===================================================================\n--- \n+++ \n@@ -64,9 +64,8 @@\n     # Take weighted mean:\n     @tullio threads=false θ_hat := weights[x] * θ_hats[x]\n     @tullio threads=false ξ := log1p(-θ_hat * sample[i]) |> _ / len\n \n-    ξ::T = calc_ξ(sample, θ_hat)\n     σ::T = -ξ / θ_hat\n \n     # Drag towards .5 to reduce variance for small len\n     if wip\n"
+                },
+                {
+                    "date": 1626487134955,
+                    "content": "Index: \n===================================================================\n--- \n+++ \n@@ -62,10 +62,10 @@\n     weights = ξ_hats  # Reuse preallocated array (which is no longer in use)\n     @tullio threads=false weights[y] = exp(log_like[x] - log_like[y]) |> inv\n     # Take weighted mean:\n     @tullio threads=false θ_hat := weights[x] * θ_hats[x]\n-    @tullio threads=false ξ := log1p(-θ_hat * sample[i]) |> _ / len\n-\n+    @tullio threads=false ξ := log1p(-θ_hat * sample[i])\n+    ξ /= len\n     σ::T = -ξ / θ_hat\n \n     # Drag towards .5 to reduce variance for small len\n     if wip\n"
                 }
             ],
             "date": 1626310029646,

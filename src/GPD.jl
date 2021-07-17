@@ -10,7 +10,7 @@ using Tullio
         wip::Bool=true, 
         min_grid_pts::Integer=30, 
         sort_sample::Bool=false
-        ) -> (ξ::T, σ::T)
+    ) -> (ξ::T, σ::T)
 
 Return a named list of estimates for the parameters ξ (shape) and σ (scale) of the
 generalized Pareto distribution (GPD), assuming the location parameter is 0.
@@ -34,7 +34,7 @@ function gpdfit(
     wip::Bool=true,
     min_grid_pts::Integer=30,
     sort_sample::Bool=false,
-) where {T<:AbstractFloat}
+) where {T <: AbstractFloat}
 
     len = length(sample)
     # sample must be sorted, but we can skip if sample is already sorted
@@ -63,8 +63,8 @@ function gpdfit(
     @tullio threads=false weights[y] = exp(log_like[x] - log_like[y]) |> inv
     # Take weighted mean:
     @tullio threads=false θ_hat := weights[x] * θ_hats[x]
-
-    ξ::T = calc_ξ(sample, θ_hat)
+    @tullio threads=false ξ := log1p(-θ_hat * sample[i])
+    ξ /= len
     σ::T = -ξ / θ_hat
 
     # Drag towards .5 to reduce variance for small len
@@ -91,21 +91,7 @@ Compute the `p` quantile of the Generalized Pareto Distribution (GPD).
 
 A quantile of the Generalized Pareto Distribution.
 """
-function gpd_quantile(p, k::T, sigma::T) where {T<:AbstractFloat}
+function gpd_quantile(p, k::T, sigma::T) where {T <: AbstractFloat}
     return sigma * expm1(-k * log1p(-p)) / k
-end
-
-
-"""
-    calc_ξ(sample, θ_hat)
-
-Calculate ξ, the parameter for the GPD.
-"""
-function calc_ξ(sample::AbstractVector{T}, θ_hat::T) where {T<:AbstractFloat}
-    ξ = zero(T)
-    @turbo for i in eachindex(sample)
-        ξ += log1p(-θ_hat * sample[i]) / length(sample)
-    end
-    return ξ::T
 end
 
