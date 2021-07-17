@@ -5,9 +5,9 @@ using Tullio
 const LIKELY_ERROR_CAUSES = """
 1. Bugs in the program that generated the sample, or otherwise incorrect input variables. 
 2. Your chains failed to converge. Check your diagnostics. 
-3. You do not have enough posterior samples (Less than ~100 samples) -- try sampling more values.
+3. You do not have enough posterior samples (ESS < ~100).
 """
-const MIN_TAIL_LEN = 16  # Minimum size of a tail for PSIS to give sensible answers
+const MIN_TAIL_LEN = 5  # Minimum size of a tail for PSIS to give sensible answers
 const SAMPLE_SOURCES = ["mcmc", "vi", "other"]
 
 export Psis, psis
@@ -18,7 +18,7 @@ export Psis, psis
         r_eff; 
         source::String="mcmc", 
         log_weights::Bool=false
-        ) -> Psis
+    ) -> Psis
 
 Implements Pareto-smoothed importance sampling (PSIS).
 
@@ -61,7 +61,7 @@ function psis(
     @tturbo @. weights = exp(log_ratios - $maximum(log_ratios; dims=2))
 
     r_eff = _generate_r_eff(weights, dims, r_eff, source)
-    check_input_validity_psis(reshape(log_ratios, dims), r_eff)
+    _check_input_validity_psis(reshape(log_ratios, dims), r_eff)
 
     tail_length = similar(log_ratios, Int, data_size)
     ξ = similar(log_ratios, data_size)
@@ -82,8 +82,8 @@ function psis(
 
     if any(ξ .≥ .7)
         @warn "Some Pareto k values are very high (>0.7), indicating that PSIS has " * 
-        "failed to approximate the true distribution for these points. Treat them " *
-        "with caution."
+        "failed to approximate the true distribution for these points. Treat these " *
+        "estimates with caution."
     elseif any(ξ .≥ .5)
         @info "Some Pareto k values are slightly high (>0.5); convergence may be slow " *
         "and MCSE estimates may be slight underestimates."
@@ -135,7 +135,7 @@ function do_psis_i!(
     # Define and check tail
     tail_start = len - tail_length + 1  # index of smallest tail value
     @views tail = sorted_ratios[tail_start:len]
-    check_tail(tail)
+    _check_tail(tail)
 
     # Get value just before the tail starts:
     cutoff = sorted_ratios[tail_start - 1]
@@ -243,11 +243,11 @@ function _generate_r_eff(weights, dims, r_eff, source)
     end
 end
 
-
+    
 """
 Make sure all inputs to `psis` are valid.
 """
-function check_input_validity_psis(
+function _check_input_validity_psis(
     log_ratios::AbstractArray{T,3}, r_eff::AbstractVector{T}
 ) where {T<:AbstractFloat}
     if any(isnan, log_ratios)
@@ -272,7 +272,7 @@ end
 """
 Check the tail to make sure a GPD fit is possible.
 """
-function check_tail(tail::AbstractVector{T}) where {T<:AbstractFloat}
+function _check_tail(tail::AbstractVector{T}) where {T<:AbstractFloat}
     if maximum(tail) ≈ minimum(tail)
         throw(
             ArgumentError(
@@ -293,7 +293,7 @@ end
 
 
 """
-Assume that all objects belong to a single chain if chain index is missing. Warn user.
+Assume that all objects belong to a single chain if chain index is missing. Inform user.
 """
 function _assume_one_chain(log_ratios)
     @info "Chain information was not provided; " *

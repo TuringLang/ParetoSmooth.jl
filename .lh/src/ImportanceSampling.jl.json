@@ -3,7 +3,7 @@
     "activeCommit": 0,
     "commits": [
         {
-            "activePatchIndex": 36,
+            "activePatchIndex": 43,
             "patches": [
                 {
                     "date": 1626309654641,
@@ -152,6 +152,34 @@
                 {
                     "date": 1626454092733,
                     "content": "Index: \n===================================================================\n--- \n+++ \n@@ -71,9 +71,9 @@\n     end\n     \n     @tullio norm_const[i] := weights[i, j]\n     weights .= weights ./ norm_const\n-    ess = psis_n_eff(weights, r_eff)\n+    ess = psis_ess(weights, r_eff)\n \n     weights = reshape(weights, dims)\n \n     if log_weights\n"
+                },
+                {
+                    "date": 1626458228667,
+                    "content": "Index: \n===================================================================\n--- \n+++ \n@@ -60,9 +60,9 @@\n     # Shift ratios by maximum to prevent overflow\n     @tturbo @. weights = exp(log_ratios - $maximum(log_ratios; dims=2))\n \n     r_eff = _generate_r_eff(weights, dims, r_eff, source)\n-    check_input_validity_psis(reshape(log_ratios, dims), r_eff)\n+    _check_input_validity_psis(reshape(log_ratios, dims), r_eff)\n \n     tail_length = similar(log_ratios, Int, data_size)\n     ξ = similar(log_ratios, data_size)\n     @inbounds Threads.@threads for i in eachindex(tail_length)\n@@ -134,9 +134,9 @@\n \n     # Define and check tail\n     tail_start = len - tail_length + 1  # index of smallest tail value\n     @views tail = sorted_ratios[tail_start:len]\n-    check_tail(tail)\n+    _check_tail(tail)\n \n     # Get value just before the tail starts:\n     cutoff = sorted_ratios[tail_start - 1]\n     ξ = psis_smooth_tail!(tail, cutoff)\n@@ -246,9 +246,9 @@\n \n \"\"\"\n Make sure all inputs to `psis` are valid.\n \"\"\"\n-function check_input_validity_psis(\n+function _check_input_validity_psis(\n     log_ratios::AbstractArray{T,3}, r_eff::AbstractVector{T}\n ) where {T<:AbstractFloat}\n     if any(isnan, log_ratios)\n         throw(DomainError(\"Invalid input for `log_ratios` (contains NaN values).\"))\n@@ -271,9 +271,9 @@\n \n \"\"\"\n Check the tail to make sure a GPD fit is possible.\n \"\"\"\n-function check_tail(tail::AbstractVector{T}) where {T<:AbstractFloat}\n+function _check_tail(tail::AbstractVector{T}) where {T<:AbstractFloat}\n     if maximum(tail) ≈ minimum(tail)\n         throw(\n             ArgumentError(\n                 \"Unable to fit generalized Pareto distribution: all tail values are the\" *\n"
+                },
+                {
+                    "date": 1626484622160,
+                    "content": "Index: \n===================================================================\n--- \n+++ \n@@ -242,9 +242,9 @@\n         return r_eff\n     end\n end\n \n-\n+    \n \"\"\"\n Make sure all inputs to `psis` are valid.\n \"\"\"\n function _check_input_validity_psis(\n"
+                },
+                {
+                    "date": 1626484665188,
+                    "content": "Index: \n===================================================================\n--- \n+++ \n@@ -4,11 +4,11 @@\n \n const LIKELY_ERROR_CAUSES = \"\"\"\n 1. Bugs in the program that generated the sample, or otherwise incorrect input variables. \n 2. Your chains failed to converge. Check your diagnostics. \n-3. You do not have enough posterior samples (Less than ~100 samples) -- try sampling more values.\n+3. You do not have enough posterior samples (ESS < ~100).\n \"\"\"\n-const MIN_TAIL_LEN = 16  # Minimum size of a tail for PSIS to give sensible answers\n+const MIN_TAIL_LEN = 10  # Minimum size of a tail for PSIS to give sensible answers\n const SAMPLE_SOURCES = [\"mcmc\", \"vi\", \"other\"]\n \n export Psis, psis\n \n@@ -251,9 +251,9 @@\n     log_ratios::AbstractArray{T,3}, r_eff::AbstractVector{T}\n ) where {T<:AbstractFloat}\n     if any(isnan, log_ratios)\n         throw(DomainError(\"Invalid input for `log_ratios` (contains NaN values).\"))\n-    elseif any(isinf, log_ratios)\n+    elseif any(isinf, log_rati    os)\n         throw(DomainError(\"Invalid input for `log_ratios` (contains infinite values).\"))\n     elseif isempty(log_ratios)\n         throw(ArgumentError(\"Invalid input for `log_ratios` (array is empty).\"))\n     elseif any(isnan, r_eff)\n"
+                },
+                {
+                    "date": 1626484737810,
+                    "content": "Index: \n===================================================================\n--- \n+++ \n@@ -6,9 +6,9 @@\n 1. Bugs in the program that generated the sample, or otherwise incorrect input variables. \n 2. Your chains failed to converge. Check your diagnostics. \n 3. You do not have enough posterior samples (ESS < ~100).\n \"\"\"\n-const MIN_TAIL_LEN = 10  # Minimum size of a tail for PSIS to give sensible answers\n+const MIN_TAIL_LEN = 5  # Minimum size of a tail for PSIS to give sensible answers\n const SAMPLE_SOURCES = [\"mcmc\", \"vi\", \"other\"]\n \n export Psis, psis\n \n@@ -251,9 +251,9 @@\n     log_ratios::AbstractArray{T,3}, r_eff::AbstractVector{T}\n ) where {T<:AbstractFloat}\n     if any(isnan, log_ratios)\n         throw(DomainError(\"Invalid input for `log_ratios` (contains NaN values).\"))\n-    elseif any(isinf, log_rati    os)\n+    elseif any(isinf, log_ratios)\n         throw(DomainError(\"Invalid input for `log_ratios` (contains infinite values).\"))\n     elseif isempty(log_ratios)\n         throw(ArgumentError(\"Invalid input for `log_ratios` (array is empty).\"))\n     elseif any(isnan, r_eff)\n"
+                },
+                {
+                    "date": 1626484881897,
+                    "content": "Index: \n===================================================================\n--- \n+++ \n@@ -292,9 +292,9 @@\n end\n \n \n \"\"\"\n-Assume that all objects belong to a single chain if chain index is missing. Warn user.\n+Assume that all objects belong to a single chain if chain index is missing. Inform user.\n \"\"\"\n function _assume_one_chain(log_ratios)\n     @info \"Chain information was not provided; \" *\n           \"all samples are assumed to be drawn from a single chain.\"\n"
+                },
+                {
+                    "date": 1626486225465,
+                    "content": "Index: \n===================================================================\n--- \n+++ \n@@ -81,10 +81,10 @@\n     end\n \n     if any(ξ .≥ .7)\n         @warn \"Some Pareto k values are very high (>0.7), indicating that PSIS has \" * \n-        \"failed to approximate the true distribution for these points. Treat them \" *\n-        \"with caution.\"\n+        \"failed to approximate the true distribution for these points. Treat these \" *\n+        \"estimates with caution.\"\n     elseif any(ξ .≥ .5)\n         @info \"Some Pareto k values are slightly high (>0.5); convergence may be slow \" *\n         \"and MCSE estimates may be slight underestimates.\"\n     end\n"
+                },
+                {
+                    "date": 1626486967591,
+                    "content": "Index: \n===================================================================\n--- \n+++ \n@@ -17,9 +17,9 @@\n         log_ratios::AbstractArray{T:>AbstractFloat}, \n         r_eff; \n         source::String=\"mcmc\", \n         log_weights::Bool=false\n-        ) -> Psis\n+    ) -> Psis\n \n Implements Pareto-smoothed importance sampling (PSIS).\n \n # Arguments\n"
                 }
             ],
             "date": 1626309654640,

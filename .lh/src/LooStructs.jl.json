@@ -1,0 +1,22 @@
+{
+    "sourceFile": "src/LooStructs.jl",
+    "activeCommit": 0,
+    "commits": [
+        {
+            "activePatchIndex": 1,
+            "patches": [
+                {
+                    "date": 1626484301733,
+                    "content": "Index: \n===================================================================\n--- \n+++ \n"
+                },
+                {
+                    "date": 1626487363855,
+                    "content": "Index: \n===================================================================\n--- \n+++ \n@@ -21,9 +21,8 @@\n struct PsisLooMethod <: AbstractLooMethod end\n \n \n function Base.show(io::IO, ::MIME\"text/plain\", loo_object::PsisLoo)\n-    _throw_pareto_k_warnings(loo_object.pointwise(:pareto_k))\n     table = loo_object.estimates\n     return pretty_table(\n         table;\n         compact_printing=false,\n"
+                }
+            ],
+            "date": 1626484301733,
+            "name": "Commit-0",
+            "content": "\nusing AxisKeys\nusing PrettyTables\nexport PsisLoo, AbstractLoo, AbstractLooMethod, PsisLooMethod\n\nabstract type AbstractLoo end\nstruct PsisLoo{\n    F <: AbstractFloat,\n    AF <: AbstractArray{F},\n    VF <: AbstractVector{F},\n    I <: Integer,\n    VI <: AbstractVector{I},\n} <: AbstractLoo\n    estimates::KeyedArray\n    pointwise::KeyedArray\n    psis_object::Psis{F, AF, VF, I, VI}\nend\n\nabstract type AbstractLooMethod end\n\nstruct PsisLooMethod <: AbstractLooMethod end\n\n\nfunction Base.show(io::IO, ::MIME\"text/plain\", loo_object::PsisLoo)\n    _throw_pareto_k_warnings(loo_object.pointwise(:pareto_k))\n    table = loo_object.estimates\n    return pretty_table(\n        table;\n        compact_printing=false,\n        header=table.estimate,\n        row_names=table.criterion,\n        formatters=ft_printf(\"%5.2f\"),\n        alignment=:r,\n    )\nend\n"
+        }
+    ]
+}
