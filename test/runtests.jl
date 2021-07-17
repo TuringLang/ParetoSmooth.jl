@@ -1,7 +1,9 @@
-using ParetoSmooth
-using Test
-using Statistics
 using AxisKeys
+using MCMCChains
+using ParetoSmooth
+using Statistics
+using Test
+using Turing
 
 import RData
 
@@ -89,4 +91,84 @@ r_loo["estimates"](criterion=:avg_score) .=
     # Test for calling correct method
     @test jul_loo.psis_object.weights ≈ psis(-log_lik_arr).weights
     @test r_eff_loo.psis_object.weights ≈ psis(-log_lik_arr, r_eff).weights
+end
+
+@testset "MCMCChains and Turing utilities" begin
+    using Distributions, Random
+    Random.seed!(112)
+    # simulated samples for μ
+    samples = randn(1000, 1, 3)
+    data = randn(50)
+    chain = Chains(samples)
+
+    function compute_loglike(μ, data)
+        return logpdf(Normal(μ, 1), data)
+    end
+
+    pll1 = pointwise_log_likelihoods(compute_loglike, chain, data)
+    pll2 = pointwise_log_likelihoods(compute_loglike, samples, data)
+    # the pointwise log likehoods should be the same for both methods
+    @test pll1 ≈ pll2 atol = 1e-6
+    # test the dimensions: data points, samples, chains
+    @test size(pll1) == (50, 1000, 3)
+    # test that sum of pointwise log likelihoods equals sum of log likelihoods
+    @test sum(sum(map(s->logpdf.(Normal(s, 1), data), samples))) ≈ sum(pll1) atol = 1e6
+    # test that psis_loo works with MCMCChains and yields correct type
+    psis_loo_output = psis_loo(compute_loglike, chain, data)
+    @test isa(psis_loo_output, PsisLoo)
+    # test that loo works with MCMCChains and yields correct type
+    psis_output = loo(compute_loglike, chain, data)
+    @test isa(psis_output, PsisLoo)
+    # test that psis works with MCMCChains and yields correct type
+    psis_output = psis(compute_loglike, chain, data)
+    @test isa(psis_output, Psis)
+
+    # ensure that methods work with r_eff argument
+    r_eff = similar(pll2, 0)
+    # test that psis_loo works with MCMCChains and yields correct type
+    psis_loo_output = psis_loo(compute_loglike, chain, data, r_eff)
+    @test isa(psis_loo_output, PsisLoo)
+    # test that loo works with MCMCChains and yields correct type
+    psis_output = loo(compute_loglike, chain, data, r_eff)
+    @test isa(psis_output, PsisLoo)
+    # test that psis works with MCMCChains and yields correct type
+    psis_output = psis(compute_loglike, chain, data, r_eff)
+    @test isa(psis_output, Psis)
+
+    @model function model(data)
+        μ ~ Normal(0, 1)
+        σ ~ truncated(Cauchy(0, 1), 0, Inf)
+        for i in eachindex(data)
+            data[i] ~ Normal(μ, σ)
+        end
+    end
+
+    chain = sample(model(data), NUTS(1000, .65), MCMCThreads(), 1000, 4)
+    pw_lls = pointwise_log_likelihoods(chain, model(data))
+    # test the dimensions: data points, samples, chains
+    @test size(pw_lls) == (50, 1000, 4)
+    # test that sum of pointwise log likelihoods equals sum of log likelihoods
+    @test sum(sum(map(s->logpdf.(Normal(s, 1), data), samples))) ≈ sum(pw_lls) atol = 1e6
+
+    # test that psis_loo works with Turing model and MCMCChains and yields correct type
+    psis_loo_output = psis_loo(model(data), chain)
+    @test isa(psis_loo_output, PsisLoo)
+    # test that loo works with Turing model and MCMCChains and yields correct type
+    psis_output = loo(model(data), chain)
+    @test isa(psis_output, PsisLoo)
+    # test that psis works with Turing model and MCMCChains and yields correct type
+    psis_output = psis(model(data), chain)
+    @test isa(psis_output, Psis)
+
+    # ensure that methods work with r_eff argument
+    r_eff = similar(pw_lls, 0)
+    # test that psis_loo works with Turing model and MCMCChains and yields correct type
+    psis_loo_output = psis_loo(model(data), chain, r_eff)
+    @test isa(psis_loo_output, PsisLoo)
+    # test that loo works with Turing model and MCMCChains and yields correct type
+    psis_output = loo(model(data), chain, r_eff)
+    @test isa(psis_output, PsisLoo)
+    # test that psis works with Turing model and MCMCChains and yields correct type
+    psis_output = psis(model(data), chain, r_eff)
+    @test isa(psis_output, Psis)
 end

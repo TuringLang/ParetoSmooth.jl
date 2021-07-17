@@ -6,14 +6,14 @@ using Tullio
 export relative_eff, psis_ess, psis_n_eff
 
 """
-    relative_eff(sample::AbstractArray{AbstractFloat, 3}; method=FFTESSMethod())
+    relative_eff(sample::AbstractArray{AbstractFloat, 3}; method=MCMCDiagnosticTools.FFTESSMethod())
 
 Calculate the relative efficiency of an MCMC chain, i.e. the effective sample size divided
 by the nominal sample size.
 """
 function relative_eff(
-    sample::AbstractArray{T, 3}; method=FFTESSMethod()
-) where {T <: AbstractFloat}
+    sample::AbstractArray{T,3}; method=MCMCDiagnosticTools.FFTESSMethod()
+) where {T<:AbstractFloat}
     dims = size(sample)
     post_sample_size = dims[2] * dims[3]
     # Only need ESS, not rhat
