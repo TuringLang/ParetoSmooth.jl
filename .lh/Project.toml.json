@@ -3,7 +3,7 @@
     "activeCommit": 0,
     "commits": [
         {
-            "activePatchIndex": 1,
+            "activePatchIndex": 2,
             "patches": [
                 {
                     "date": 1626451797647,
@@ -12,6 +12,10 @@
                 {
                     "date": 1626452976500,
                     "content": "Index: \n===================================================================\n--- \n+++ \n@@ -21,8 +21,10 @@\n Distributions = \"0.25.10\"\n FFTW = \"1.4.3\"\n LoopVectorization = \"0.12.37\"\n MCMCDiagnosticTools = \"0.1.0\"\n+Polyester = \"0.3.4\"\n+PrettyTables = \"1.1.0\"\n Tullio = \"0.2.14\"\n julia = \"1.6\"\n \n [extras]\n"
+                },
+                {
+                    "date": 1626490295685,
+                    "content": "Index: \n===================================================================\n--- \n+++ \n@@ -1,8 +1,8 @@\n name = \"ParetoSmooth\"\n uuid = \"a68b5a21-f429-434e-8bfa-46b447300aac\"\n authors = [\"Carlos Parada <paradac@carleton.edu>\"]\n-version = \"0.2.1\"\n+version = \"0.2.2\"\n \n [deps]\n AxisKeys = \"94b1ba4f-4ee9-5380-92f1-94cde586c3c5\"\n Distributions = \"31c24e10-a181-5473-b8eb-7969acd0382f\"\n"
                 }
             ],
             "date": 1626451797647,
