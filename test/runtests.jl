@@ -45,7 +45,8 @@ r_loo["estimates"](criterion=:avg_score) .=
 
     jul_loo = loo(log_lik_arr)
     r_eff_loo = psis_loo(log_lik_arr, r_eff)
-    
+
+    display(jul_loo)
     
     # max 10% difference in tail length calc between Julia and R
     @test maximum(abs.(log.(jul_psis.tail_len ./ r_tail_len))) ≤ .1
