@@ -3,7 +3,7 @@
     "activeCommit": 0,
     "commits": [
         {
-            "activePatchIndex": 4,
+            "activePatchIndex": 11,
             "patches": [
                 {
                     "date": 1626309971342,
@@ -24,6 +24,34 @@
                 {
                     "date": 1626314567863,
                     "content": "Index: \n===================================================================\n--- \n+++ \n@@ -1,8 +1,7 @@\n using FFTW\n using MCMCDiagnosticTools\n using LoopVectorization\n-using TensorOperations\n using Tullio\n \n export relative_eff, psis_n_eff\n \n"
+                },
+                {
+                    "date": 1626454088792,
+                    "content": "Index: \n===================================================================\n--- \n+++ \n@@ -2,14 +2,15 @@\n using MCMCDiagnosticTools\n using LoopVectorization\n using Tullio\n \n-export relative_eff, psis_n_eff\n+export relative_eff, psis_ess\n \n \"\"\"\n     relative_eff(sample::AbstractArray{AbstractFloat, 3}; method=FFTESSMethod())\n \n-Compute the MCMC effective sample size divided by the nominal sample size.\n+Calculate the relative efficiency of an MCMC chain, i.e. the effective sample size divided\n+by the nominal sample size.\n \"\"\"\n function relative_eff(\n     sample::AbstractArray{T,3}; method=FFTESSMethod()\n ) where {T<:AbstractFloat}\n@@ -22,28 +23,37 @@\n     return r_eff\n end\n \n \"\"\"\n-    function psis_n_eff(\n+    function psis_ess(\n         weights::AbstractVector{T},\n         r_eff::AbstractVector{T}\n     ) -> AbstractVector{T}\n+\n+Calculate the (approximate) effective sample size of a PSIS sample, using the correction in\n+Vehtari et al. 2019.\n+\n+# Arguments\n+\n+- `weights`: A set of importance sampling weights derived from PSIS.\n+- `r_eff`: The relative efficiency of the MCMC chains from which PSIS samples were derived.\n+See `?relative_eff` to calculate `r_eff`.\n \"\"\"\n-function psis_n_eff(\n+function psis_ess(\n     weights::AbstractVector{T}, r_eff::AbstractVector{T}\n ) where {T<:AbstractFloat}\n     @tullio sum_of_squares := weights[x]^2\n     return r_eff ./ sum_of_squares\n end\n \n-function psis_n_eff(\n+function psis_ess(\n     weights::AbstractMatrix{T}, r_eff::AbstractVector{T}\n ) where {T<:AbstractFloat}\n     @tullio sum_of_squares[x] := weights[x, y]^2\n     return @tturbo r_eff ./ sum_of_squares\n end\n \n-function psis_n_eff(weights::AbstractArray{T}) where {T<:AbstractFloat}\n+function psis_ess(weights::AbstractArray{T}) where {T<:AbstractFloat}\n     @warn \"PSIS ESS not adjusted based on MCMC ESS. MCSE and ESS estimates \" *\n           \"will be overoptimistic if samples are autocorrelated.\"\n-    return psis_n_eff(weights, ones(size(weights)))\n+    return psis_ess(weights, ones(size(weights)))\n end\n"
+                },
+                {
+                    "date": 1626454315198,
+                    "content": "Index: \n===================================================================\n--- \n+++ \n@@ -56,4 +56,8 @@\n     @warn \"PSIS ESS not adjusted based on MCMC ESS. MCSE and ESS estimates \" *\n           \"will be overoptimistic if samples are autocorrelated.\"\n     return psis_ess(weights, ones(size(weights)))\n end\n+\n+function psis_n_eff(args...) \n+    psis_ess\n+end\n\\ No newline at end of file\n"
+                },
+                {
+                    "date": 1626454380380,
+                    "content": "Index: \n===================================================================\n--- \n+++ \n@@ -2,9 +2,9 @@\n using MCMCDiagnosticTools\n using LoopVectorization\n using Tullio\n \n-export relative_eff, psis_ess\n+export relative_eff, psis_ess, psis_n_eff\n \n \"\"\"\n     relative_eff(sample::AbstractArray{AbstractFloat, 3}; method=FFTESSMethod())\n \n"
+                },
+                {
+                    "date": 1626454430031,
+                    "content": "Index: \n===================================================================\n--- \n+++ \n@@ -51,13 +51,13 @@\n     @tullio sum_of_squares[x] := weights[x, y]^2\n     return @tturbo r_eff ./ sum_of_squares\n end\n \n-function psis_ess(weights::AbstractArray{T}) where {T<:AbstractFloat}\n+function psis_ess(weights::AbstractMatrix{T}) where {T<:AbstractFloat}\n     @warn \"PSIS ESS not adjusted based on MCMC ESS. MCSE and ESS estimates \" *\n           \"will be overoptimistic if samples are autocorrelated.\"\n     return psis_ess(weights, ones(size(weights)))\n end\n \n-function psis_n_eff(args...) \n-    psis_ess\n+function psis_n_eff(args...; kwargs...) \n+    return psis_ess(args...; kwargs...)\n end\n\\ No newline at end of file\n"
+                },
+                {
+                    "date": 1626454496697,
+                    "content": "Index: \n===================================================================\n--- \n+++ \n@@ -57,7 +57,7 @@\n           \"will be overoptimistic if samples are autocorrelated.\"\n     return psis_ess(weights, ones(size(weights)))\n end\n \n-function psis_n_eff(args...; kwargs...) \n+function psis_n_eff(args...; kwargs...)  # Alias for compatibility with R version\n     return psis_ess(args...; kwargs...)\n end\n\\ No newline at end of file\n"
+                },
+                {
+                    "date": 1626454514402,
+                    "content": "Index: \n===================================================================\n--- \n+++ \n@@ -2,9 +2,9 @@\n using MCMCDiagnosticTools\n using LoopVectorization\n using Tullio\n \n-export relative_eff, psis_ess, psis_n_eff\n+export relative_eff, psis_ess\n \n \"\"\"\n     relative_eff(sample::AbstractArray{AbstractFloat, 3}; method=FFTESSMethod())\n \n@@ -56,8 +56,4 @@\n     @warn \"PSIS ESS not adjusted based on MCMC ESS. MCSE and ESS estimates \" *\n           \"will be overoptimistic if samples are autocorrelated.\"\n     return psis_ess(weights, ones(size(weights)))\n end\n-\n-function psis_n_eff(args...; kwargs...)  # Alias for compatibility with R version\n-    return psis_ess(args...; kwargs...)\n-end\n\\ No newline at end of file\n"
+                },
+                {
+                    "date": 1626454525488,
+                    "content": "Index: \n===================================================================\n--- \n+++ \n@@ -2,9 +2,9 @@\n using MCMCDiagnosticTools\n using LoopVectorization\n using Tullio\n \n-export relative_eff, psis_ess\n+export relative_eff, psis_ess, psis_n_eff\n \n \"\"\"\n     relative_eff(sample::AbstractArray{AbstractFloat, 3}; method=FFTESSMethod())\n \n@@ -56,4 +56,8 @@\n     @warn \"PSIS ESS not adjusted based on MCMC ESS. MCSE and ESS estimates \" *\n           \"will be overoptimistic if samples are autocorrelated.\"\n     return psis_ess(weights, ones(size(weights)))\n end\n+\n+function psis_n_eff(args...; kwargs...)  # Alias for compatibility with R version\n+    return psis_ess(args...; kwargs...)\n+end\n\\ No newline at end of file\n"
                 }
             ],
             "date": 1626309971342,

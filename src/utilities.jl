@@ -1,17 +1,22 @@
-using Tullio
 export pointwise_log_likelihoods
 
 """
-    pointwise_log_likelihoods(samples::Array{<:AbstractFloat,3}, data, ll_fun)
+    pointwise_log_likelihoods(ll_fun::Function, samples::AbstractArray{<:AstractFloat,3}, data) 
 
-Computes the pointwise log likelihood 
+Computes the pointwise log likelihood.
 
-- `samples`: a three dimensional array of mcmc samples where the first dimension represents the samples, the second dimension represents
-the samples, and the third dimension represents the chains. 
+# Arguments
+- `ll_fun::Function`: a function that computes the log likelihood of a single data point:
+     f(θ1, ..., θn, data), where θi is the ith parameter
+- `samples::AbstractArray{<:AstractFloat,3}`: a three dimensional array of mcmc samples 
+    where the first dimension represents the samples, the second dimension represents
+    the samples, and the third dimension represents the chains. 
 - `data`: a vector of data used to estimate parameters of the model 
-- `ll_fun`: a function that computes the log likelihood of a single data point: f(θ1, ..., θn, data), where θi is the ith parameter
+
+# Returns
+- `Array{Float64,3}`: a three dimensional array of pointwise log likelihoods
 """
-function pointwise_log_likelihoods(samples::Array{<:AbstractFloat,3}, data, ll_fun)
+function pointwise_log_likelihoods(ll_fun::Function, samples::AbstractArray{<:AbstractFloat,3}, data)
     fun = (p,d)-> ll_fun(p..., d)
     n_data = length(data)
     n_samples, _,n_chains = size(samples)
@@ -25,18 +30,3 @@ function pointwise_log_likelihoods(samples::Array{<:AbstractFloat,3}, data, ll_f
     end
     return pointwise_lls
 end
-
-# the code in the function works, but does not work when called from the function
-# function pointwise_log_likelihoods(samples::Array{<:AbstractFloat,3}, data, ll_fun)
-#     fun = (p,d)-> ll_fun(p..., d)
-#     @tullio pointwise_lls[d,s,c] := fun(samples[s,:,c], data[d])
-# end
-
-# # the code in the function works, but does not work when called from the function
-# function pointwise_log_likelihoods(samples::Array{<:AbstractFloat,3}, data, ll_fun)
-#     println("hi")
-#     x = rand(3, 3, 3)
-#     y = rand(5)
-#     f(x, y) = sum(x) / y
-#     @tullio m[d,s,c] := f(x[s,:,c], y[d])
-# end

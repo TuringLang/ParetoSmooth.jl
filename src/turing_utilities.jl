@@ -4,12 +4,17 @@ export pointwise_log_likelihoods
 """
     pointwise_log_likelihoods(chain::Chains, model)
 
-Computes the pointwise log likelihoods from Turing model where [d,s,c] corresponds to log likelihood of 
-evaluated at datapoint d, sample s, for chain c. Note that currently the posterior log likelihood must be 
-computed in a for loop in the Turing model.
+Computes the pointwise log likelihoods from Turing model where [d,s,c] corresponds to 
+    log likelihood of evaluated at datapoint d, sample s, for chain c. Note that currently
+     the posterior log likelihood must be computed in a for loop in the Turing model.
 
-- `chain`: a chain object from MCMCChains from a Turing model
+# Arguments
+- `chain::Chains`: a chain object from MCMCChains from a Turing model
 - `model`: a Turing model with data in the form of model(data)
+
+# Returns
+- `Array{Float64,3}`: a three dimensional array of pointwise log likelihoods
+
 """
 function pointwise_log_likelihoods(chain::Chains, model)
     # subset of chain for mcmc samples

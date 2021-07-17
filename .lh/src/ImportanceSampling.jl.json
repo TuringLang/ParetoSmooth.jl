@@ -3,7 +3,7 @@
     "activeCommit": 0,
     "commits": [
         {
-            "activePatchIndex": 32,
+            "activePatchIndex": 36,
             "patches": [
                 {
                     "date": 1626309654641,
@@ -136,6 +136,22 @@
                 {
                     "date": 1626363453857,
                     "content": "Index: \n===================================================================\n--- \n+++ \n@@ -65,9 +65,9 @@\n     check_input_validity_psis(reshape(log_ratios, dims), r_eff)\n \n     tail_length = similar(log_ratios, Int, data_size)\n     ξ = similar(log_ratios, data_size)\n-    @inbounds @batch per=thread for i in eachindex(tail_length)\n+    @inbounds Threads.@threads for i in eachindex(tail_length)\n         tail_length[i] = def_tail_length(post_sample_size, r_eff[i])\n         ξ[i] = @views ParetoSmooth.do_psis_i!(weights[i,:], tail_length[i])\n     end\n     \n"
+                },
+                {
+                    "date": 1626452759502,
+                    "content": "Index: \n===================================================================\n--- \n+++ \n@@ -1,6 +1,5 @@\n using LoopVectorization\n-using Polyester\n using Tullio\n \n \n const LIKELY_ERROR_CAUSES = \"\"\"\n"
+                },
+                {
+                    "date": 1626453064337,
+                    "content": "Index: \n===================================================================\n--- \n+++ \n@@ -105,9 +105,9 @@\n end\n \n \n \"\"\"\n-    do_psis_i!(is_ratios::AbstractVector{AbstractFloat}, tail_length::Integer)::T\n+    do_psis_i!(is_ratios::AbstractVector{AbstractFloat}, tail_length::Integer) -> T\n \n Do PSIS on a single vector, smoothing its tail values.\n \n # Arguments\n"
+                },
+                {
+                    "date": 1626453089719,
+                    "content": "Index: \n===================================================================\n--- \n+++ \n@@ -242,8 +242,9 @@\n         return r_eff\n     end\n end\n \n+\n \"\"\"\n Make sure all inputs to `psis` are valid.\n \"\"\"\n function check_input_validity_psis(\n@@ -266,8 +267,9 @@\n     end\n     return nothing\n end\n \n+\n \"\"\"\n Check the tail to make sure a GPD fit is possible.\n \"\"\"\n function check_tail(tail::AbstractVector{T}) where {T<:AbstractFloat}\n"
+                },
+                {
+                    "date": 1626454092733,
+                    "content": "Index: \n===================================================================\n--- \n+++ \n@@ -71,9 +71,9 @@\n     end\n     \n     @tullio norm_const[i] := weights[i, j]\n     weights .= weights ./ norm_const\n-    ess = psis_n_eff(weights, r_eff)\n+    ess = psis_ess(weights, r_eff)\n \n     weights = reshape(weights, dims)\n \n     if log_weights\n"
                 }
             ],
             "date": 1626309654640,
