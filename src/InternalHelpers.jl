@@ -4,6 +4,12 @@ const CHAIN_INDEX_DOC = """
     `log_likelihood[:, step]` belongs to the second chain.
 """
 
+const LIKELIHOOD_FUNCTION_ARG = """
+`ll_fun::Function`: A function taking a single data point and returning the log-likelihood 
+of that point. This function must take the form `f(θ[1], ..., θ[n], data)`, where `θ` is the
+parameter vector. See also the `splat` keyword argument.
+"""
+
 const R_EFF_DOC = """
 `r_eff::AbstractArray{T}`: An (optional) vector of relative effective sample sizes used 
 in ESS calculations. If left empty, calculated automatically using the FFTESS method 

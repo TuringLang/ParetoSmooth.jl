@@ -5,15 +5,13 @@ export pointwise_log_likelihoods
         ll_fun::Function, 
         samples::AbstractArray{<:AstractFloat,3}, 
         data;
-        splat::Bool=true,
-        turbo=true
+        splat::Bool=true
     ) 
 
 Compute the pointwise log likelihood.
 
 # Arguments
-  - `ll_fun::Function`: a function of the form `f(θ[1], ..., θ[n], data)`, where `θ` is the
-    parameter vector. See also the `splat` keyword argument.
+  - $LIKELIHOOD_FUNCTION_ARG
   - `samples::AbstractArray`: A three dimensional array of MCMC samples. Here, the first
     dimension should indicate the parameter being sampled; the second dimension should
     indicate the iteration of the MCMC ; and the third dimension represents the chains. 
