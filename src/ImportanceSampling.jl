@@ -4,8 +4,8 @@ using Tullio
 
 const LIKELY_ERROR_CAUSES = """
 1. Bugs in the program that generated the sample, or otherwise incorrect input variables. 
-2. Your chains failed to converge. Check your diagnostics. 
-3. You do not have enough posterior samples (ESS < ~100).
+2. Your chains failed to converge. Check diagnostics. 
+3. You do not have enough posterior samples (ESS < ~25).
 """
 const MIN_TAIL_LEN = 5  # Minimum size of a tail for PSIS to give sensible answers
 const SAMPLE_SOURCES = ["mcmc", "vi", "other"]
@@ -15,7 +15,7 @@ export Psis, psis
 """
     psis(
         log_ratios::AbstractArray{T:>AbstractFloat}, 
-        r_eff; 
+        r_eff::AbstractVector; 
         source::String="mcmc", 
         log_weights::Bool=false
     ) -> Psis
@@ -24,30 +24,30 @@ Implements Pareto-smoothed importance sampling (PSIS).
 
 # Arguments
 ## Positional Arguments
-- `log_ratios::AbstractArray{T}`: An array of importance ratios on the log scale (for 
-PSIS-LOO these are *negative* log-likelihood values). Indices must be ordered as 
-`[data, draw, chain]`: `log_ratios[1, 2, 3]` should be the log-likelihood of the first data 
-point, evaluated at the second iteration of the third chain. Chain indices can be left off 
-if there is only a single chain, or if keyword argument `chain_index` is provided.
-- `r_eff::AbstractArray{T}`: An (optional) vector of relative effective sample sizes used 
-in ESS calculations. If left empty, calculated automatically using the FFTESS method 
-from InferenceDiagnostics.jl. See `relative_eff` to calculate these values. 
+  - `log_ratios::AbstractArray`: A 2d or 3d array of importance ratios on the log scale (for 
+    PSIS-LOO these are *negative* log-likelihood values). Indices must be ordered as 
+    `[data, step, chain]`: `log_ratios[1, 2, 3]` should be the log-likelihood of the first 
+    data point, evaluated at the second step in the third chain. Chain indices can be
+    left off if there is only one chain, or if keyword argument `chain_index` is provided.
+  - $R_EFF_DOC
 
 ## Keyword Arguments
 
-- `chain_index::Vector{Integer}`: An (optional) vector of integers indicating which chain 
-each sample belongs to.
-- `source::String="mcmc"`: A string or symbol describing the source of the sample being 
-used. If `"mcmc"`, adjusts ESS for autocorrelation. Otherwise, samples are assumed to be 
-independent. Currently permitted values are $SAMPLE_SOURCES.
-- `log_weights::Bool=false`: Return log weights, rather than the PSIS weights. 
+  - $CHAIN_INDEX_DOC
+  - `source::String="mcmc"`: A string or symbol describing the source of the sample being 
+    used. If `"mcmc"`, adjusts ESS for autocorrelation. Otherwise, samples are assumed to be 
+    independent. Currently permitted values are $SAMPLE_SOURCES.
+  - `log_weights::Bool=false`: Return the log weights, rather than the PSIS weights. 
+
+See also: [`relative_eff`]@ref, [`psis_loo`]@ref, [`psis_ess`]@ref.
 """
 function psis(
-    log_ratios::T,
-    r_eff::AbstractArray{F}=similar(log_ratios, 0);
+    log_ratios::AbstractArray{T, 3},
+    r_eff::AbstractVector{T}=similar(log_ratios, 0);
     source::Union{AbstractString,Symbol}="mcmc",
     log_weights::Bool=false,
-) where {F<:AbstractFloat,T<:AbstractArray{F,3}}
+) where {T<:AbstractFloat}
+
     source = lowercase(String(source))
     dims = size(log_ratios)
 
@@ -56,7 +56,7 @@ function psis(
 
     # Reshape to matrix (easier to deal with)
     log_ratios = reshape(log_ratios, data_size, post_sample_size)
-    weights::AbstractArray{F} = similar(log_ratios)
+    weights::AbstractArray{T} = similar(log_ratios)
     # Shift ratios by maximum to prevent overflow
     @tturbo @. weights = exp(log_ratios - $maximum(log_ratios; dims=2))
 
@@ -66,27 +66,18 @@ function psis(
     tail_length = similar(log_ratios, Int, data_size)
     ξ = similar(log_ratios, data_size)
     @inbounds Threads.@threads for i in eachindex(tail_length)
-        tail_length[i] = def_tail_length(post_sample_size, r_eff[i])
-        ξ[i] = @views ParetoSmooth.do_psis_i!(weights[i,:], tail_length[i])
+        tail_length[i] = _def_tail_length(post_sample_size, r_eff[i])
+        ξ[i] = @views ParetoSmooth._do_psis_i!(weights[i,:], tail_length[i])
     end
     
     @tullio norm_const[i] := weights[i, j]
-    weights .= weights ./ norm_const
+    @turbo weights .= weights ./ norm_const
     ess = psis_ess(weights, r_eff)
 
     weights = reshape(weights, dims)
 
     if log_weights
         @tturbo @. weights = log(weights)
-    end
-
-    if any(ξ .≥ .7)
-        @warn "Some Pareto k values are very high (>0.7), indicating that PSIS has " * 
-        "failed to approximate the true distribution for these points. Treat these " *
-        "estimates with caution."
-    elseif any(ξ .≥ .5)
-        @info "Some Pareto k values are slightly high (>0.5); convergence may be slow " *
-        "and MCSE estimates may be slight underestimates."
     end
 
     return Psis(weights, ξ, ess, r_eff, tail_length, post_sample_size, data_size)
@@ -106,7 +97,7 @@ end
 
 
 """
-    do_psis_i!(is_ratios::AbstractVector{AbstractFloat}, tail_length::Integer) -> T
+    _do_psis_i!(is_ratios::AbstractVector{AbstractFloat}, tail_length::Integer) -> T
 
 Do PSIS on a single vector, smoothing its tail values.
 
@@ -123,7 +114,7 @@ scaled to have a maximum of 1.
 
 Additional information can be found in the LOO package from R.
 """
-function do_psis_i!(
+function _do_psis_i!(
     is_ratios::AbstractVector{T}, tail_length::Integer
 ) where {T<:AbstractFloat}
     len = length(is_ratios)
@@ -139,7 +130,7 @@ function do_psis_i!(
 
     # Get value just before the tail starts:
     cutoff = sorted_ratios[tail_start - 1]
-    ξ = psis_smooth_tail!(tail, cutoff)
+    ξ = _psis_smooth_tail!(tail, cutoff)
 
     # truncate at max of raw weights (1 after scaling)
     clamp!(sorted_ratios, 0, 1)
@@ -149,22 +140,24 @@ function do_psis_i!(
     return ξ::T
 end
 
+
 """
-    def_tail_length(log_ratios::AbstractVector, r_eff::AbstractFloat) -> tail_len::Integer
+    _def_tail_length(log_ratios::AbstractVector, r_eff::AbstractFloat) -> tail_len::Integer
 
 Define the tail length as in Vehtari et al. (2019).
 """
-function def_tail_length(length::I, r_eff) where {I<:Integer}
+function _def_tail_length(length::I, r_eff) where {I<:Integer}
     return I(ceil(min(length / 5, 3 * sqrt(length / r_eff))))
 end
 
+
 """
-    psis_smooth_tail!(tail::AbstractVector{T}, cutoff::T) where {T<:AbstractFloat} -> ξ::T
+    _psis_smooth_tail!(tail::AbstractVector{T}, cutoff::T) where {T<:AbstractFloat} -> ξ::T
 
 Takes an *already sorted* vector of observations from the tail and smooths it *in place*  
 with PSIS before returning shape parameter `ξ`.
 """
-function psis_smooth_tail!(tail::AbstractVector{T}, cutoff::T) where {T<:AbstractFloat}
+function _psis_smooth_tail!(tail::AbstractVector{T}, cutoff::T) where {T<:AbstractFloat}
     len = length(tail)
     @turbo @. tail = tail - cutoff
 
@@ -176,38 +169,7 @@ function psis_smooth_tail!(tail::AbstractVector{T}, cutoff::T) where {T<:Abstrac
     return ξ
 end
 
-##########################
-#####  PSIS STRUCTS  #####
-##########################
 
-"""
-    Psis{V<:AbstractVector{F},I<:Integer} where {F<:AbstractFloat}
-
-A struct containing the results of Pareto-smoothed importance sampling.
-
-# Fields
-- `weights`: A vector of smoothed, truncated, and *normalized* importance sampling weights.
-- `pareto_k`: Estimates of the shape parameter ``k`` of the generalized Pareto distribution.
-- `ess`: Estimated effective sample size for each LOO evaluation.
-- `tail_len`: Vector of tail lengths used for smoothing the generalized Pareto distribution.
-- `dims`: Named tuple of length 2 containing `s` (posterior sample size) and `n` (number of
-observations).
-"""
-struct Psis{
-    F<:AbstractFloat,
-    AF<:AbstractArray{F,3},
-    VF<:AbstractVector{F},
-    I<:Integer,
-    VI<:AbstractVector{I},
-}
-    weights::AF
-    pareto_k::VF
-    ess::VF
-    r_eff::VF
-    tail_len::VI
-    posterior_sample_size::I
-    data_size::I
-end
 
 ##########################
 #### HELPER FUNCTIONS ####
@@ -292,43 +254,36 @@ function _check_tail(tail::AbstractVector{T}) where {T<:AbstractFloat}
 end
 
 
-"""
-Assume that all objects belong to a single chain if chain index is missing. Inform user.
-"""
-function _assume_one_chain(log_ratios)
-    @info "Chain information was not provided; " *
-          "all samples are assumed to be drawn from a single chain."
-    return ones(length(log_ratios))
-end
 
+##########################
+#####  PSIS STRUCTS  #####
+##########################
 
 """
-Convert a matrix+chain_index representation to a 3d array representation to pass it off to 
-the method for arrays.
+    Psis{V<:AbstractVector{F},I<:Integer} where {F<:AbstractFloat}
+
+A struct containing the results of Pareto-smoothed importance sampling.
+
+# Fields
+- `weights`: A vector of smoothed, truncated, and *normalized* importance sampling weights.
+- `pareto_k`: Estimates of the shape parameter ``k`` of the generalized Pareto distribution.
+- `ess`: Estimated effective sample size for each LOO evaluation.
+- `tail_len`: Vector of tail lengths used for smoothing the generalized Pareto distribution.
+- `dims`: Named tuple of length 2 containing `s` (posterior sample size) and `n` (number of
+observations).
 """
-function _convert_to_array(log_ratios::AbstractMatrix, chain_index::AbstractVector)
-    indices = unique(chain_index)
-    biggest_idx = maximum(indices)
-    dims = size(log_ratios)
-    if dims[2] ≠ length(chain_index)
-        throw(ArgumentError("Some entries do not have a chain index."))
-    elseif !issetequal(indices, 1:biggest_idx)
-        throw(
-            ArgumentError(
-                "Indices must be numbered from 1 through the total number of chains."
-            ),
-        )
-    else
-        # Check how many elements are in each chain, assign to "counts"
-        counts = count.(eachslice(chain_index .== indices'; dims=2))
-        # check if all inputs are the same length
-        if !all(==(counts[1]), counts)
-            throw(ArgumentError("All chains must be of equal length."))
-        end
-    end
-    new_ratios = similar(log_ratios, dims[1], dims[2] ÷ biggest_idx, biggest_idx)
-    for i in 1:biggest_idx
-        new_ratios[:, :, i] .= log_ratios[:, chain_index .== i]
-    end
-    return new_ratios
+struct Psis{
+    F<:AbstractFloat,
+    AF<:AbstractArray{F,3},
+    VF<:AbstractVector{F},
+    I<:Integer,
+    VI<:AbstractVector{I},
+}
+    weights::AF
+    pareto_k::VF
+    ess::VF
+    r_eff::VF
+    tail_len::VI
+    posterior_sample_size::I
+    data_size::I
 end

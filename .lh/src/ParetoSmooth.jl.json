@@ -3,11 +3,19 @@
     "activeCommit": 0,
     "commits": [
         {
-            "activePatchIndex": 0,
+            "activePatchIndex": 2,
             "patches": [
                 {
                     "date": 1626484302460,
                     "content": "Index: \n===================================================================\n--- \n+++ \n"
+                },
+                {
+                    "date": 1626542495989,
+                    "content": "Index: \n===================================================================\n--- \n+++ \n@@ -1,9 +1,18 @@\n module ParetoSmooth\n+    using Requires\n \n-include(\"ESS.jl\")\n-include(\"GPD.jl\")\n-include(\"ImportanceSampling.jl\")\n-include(\"LooStructs.jl\")\n-include(\"LeaveOneOut.jl\")\n+    function __init__()\n+        @require Turing = \n+            \"fce5fe82-541a-59a6-adf8-730c64b5f9a0\" include(\"TuringUtilities.jl\")\n+        @require MCMCChains = \n+            \"c7f686f2-ff18-58e9-bc7b-31028e88f75d\" include(\"MCMCChainsUtilities.jl\")\n+    end\n \n+    include(\"ESS.jl\")\n+    include(\"GPD.jl\")\n+    include(\"ImportanceSampling.jl\")\n+    include(\"LooStructs.jl\")\n+    include(\"LeaveOneOut.jl\")\n+    include(\"Utilities.jl\")\n+\n end\n"
+                },
+                {
+                    "date": 1626566249882,
+                    "content": "Index: \n===================================================================\n--- \n+++ \n@@ -2,17 +2,18 @@\n     using Requires\n \n     function __init__()\n         @require Turing = \n-            \"fce5fe82-541a-59a6-adf8-730c64b5f9a0\" include(\"TuringUtilities.jl\")\n+            \"fce5fe82-541a-59a6-adf8-730c64b5f9a0\" include(\"TuringHelpers.jl\")\n         @require MCMCChains = \n-            \"c7f686f2-ff18-58e9-bc7b-31028e88f75d\" include(\"MCMCChainsUtilities.jl\")\n+            \"c7f686f2-ff18-58e9-bc7b-31028e88f75d\" include(\"MCMCChainsHelpers.jl\")\n     end\n \n     include(\"ESS.jl\")\n     include(\"GPD.jl\")\n+    include(\"InternalHelpers.jl\")\n     include(\"ImportanceSampling.jl\")\n     include(\"LooStructs.jl\")\n     include(\"LeaveOneOut.jl\")\n-    include(\"Utilities.jl\")\n+    include(\"PublicHelpers.jl\")\n \n end\n"
                 }
             ],
             "date": 1626484302460,

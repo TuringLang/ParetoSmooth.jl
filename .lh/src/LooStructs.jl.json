@@ -3,7 +3,7 @@
     "activeCommit": 0,
     "commits": [
         {
-            "activePatchIndex": 1,
+            "activePatchIndex": 9,
             "patches": [
                 {
                     "date": 1626484301733,
@@ -12,6 +12,38 @@
                 {
                     "date": 1626487363855,
                     "content": "Index: \n===================================================================\n--- \n+++ \n@@ -21,9 +21,8 @@\n struct PsisLooMethod <: AbstractLooMethod end\n \n \n function Base.show(io::IO, ::MIME\"text/plain\", loo_object::PsisLoo)\n-    _throw_pareto_k_warnings(loo_object.pointwise(:pareto_k))\n     table = loo_object.estimates\n     return pretty_table(\n         table;\n         compact_printing=false,\n"
+                },
+                {
+                    "date": 1626542969541,
+                    "content": "Index: \n===================================================================\n--- \n+++ \n@@ -3,8 +3,21 @@\n using PrettyTables\n export PsisLoo, AbstractLoo, AbstractLooMethod, PsisLooMethod\n \n abstract type AbstractLoo end\n+\n+\"\"\"\n+    PsisLoo\n+\n+A struct containing the results of Pareto-smoothed importance sampling.\n+\n+# Fields\n+\n+  - `estimates::KeyedArray`: A `KeyedArray` with two columns (`:Estimate`, `:SE`) and three\n+  rows (`:total_score`, `:avg_score`, )\n+  - `pointwise::KeyedArray`:\n+\n+\"\"\"\n struct PsisLoo{\n     F <: AbstractFloat,\n     AF <: AbstractArray{F},\n     VF <: AbstractVector{F},\n"
+                },
+                {
+                    "date": 1626543164441,
+                    "content": "Index: \n===================================================================\n--- \n+++ \n@@ -7,15 +7,17 @@\n \n \"\"\"\n     PsisLoo\n \n-A struct containing the results of Pareto-smoothed importance sampling.\n+A struct containing the results of leave-one-out cross validation, as \n \n # Fields\n \n   - `estimates::KeyedArray`: A `KeyedArray` with two columns (`:Estimate`, `:SE`) and three\n   rows (`:total_score`, `:avg_score`, )\n-  - `pointwise::KeyedArray`:\n+  - `pointwise::KeyedArray`: An array of pointwise \n+  - `psis_object::Psis`: A `Psis` object containing the results of Pareto-smoothed \n+  importance sampling.\n \n \"\"\"\n struct PsisLoo{\n     F <: AbstractFloat,\n"
+                },
+                {
+                    "date": 1626543302586,
+                    "content": "Index: \n===================================================================\n--- \n+++ \n@@ -17,8 +17,10 @@\n   - `pointwise::KeyedArray`: An array of pointwise \n   - `psis_object::Psis`: A `Psis` object containing the results of Pareto-smoothed \n   importance sampling.\n \n+See also: [`psis_loo`]@ref, [`Psis`]@ref, \n+\n \"\"\"\n struct PsisLoo{\n     F <: AbstractFloat,\n     AF <: AbstractArray{F},\n"
+                },
+                {
+                    "date": 1626543483009,
+                    "content": "Index: \n===================================================================\n--- \n+++ \n@@ -12,14 +12,14 @@\n \n # Fields\n \n   - `estimates::KeyedArray`: A `KeyedArray` with two columns (`:Estimate`, `:SE`) and three\n-  rows (`:total_score`, `:avg_score`, )\n+  rows (`:total_score`, `:avg_score`, `:`).\n   - `pointwise::KeyedArray`: An array of pointwise \n   - `psis_object::Psis`: A `Psis` object containing the results of Pareto-smoothed \n   importance sampling.\n \n-See also: [`psis_loo`]@ref, [`Psis`]@ref, \n+See also: [`psis_loo`]@ref, [`Psis`]@ref\n \n \"\"\"\n struct PsisLoo{\n     F <: AbstractFloat,\n"
+                },
+                {
+                    "date": 1626559179093,
+                    "content": "Index: \n===================================================================\n--- \n+++ \n@@ -5,20 +5,56 @@\n \n abstract type AbstractLoo end\n \n \"\"\"\n-    PsisLoo\n+    PsisLoo{\n+        F <: AbstractFloat,\n+        AF <: AbstractArray{F},\n+        VF <: AbstractVector{F},\n+        I <: Integer,\n+        VI <: AbstractVector{I},\n+    } <: AbstractLoo\n \n-A struct containing the results of leave-one-out cross validation, as \n+A struct containing the results of leave-one-out cross validation using Pareto smoothed\n+importance sampling.\n \n # Fields\n \n   - `estimates::KeyedArray`: A `KeyedArray` with two columns (`:Estimate`, `:SE`) and three\n-  rows (`:total_score`, `:avg_score`, `:`).\n-  - `pointwise::KeyedArray`: An array of pointwise \n+    rows (`:total_score`, `:overfit`, `:avg_score`). This contains point estimates and\n+    standard errors for the total log score (the sum of all errors); the effective number of \n+    parameters (difference between in-sample and out-of-sample predictive accuracy); and the\n+    average log-score (Sometimes referred to as the ELPD). See the extended help for more\n+    details.\n+  - `pointwise::KeyedArray`: An array of pointwise values\n   - `psis_object::Psis`: A `Psis` object containing the results of Pareto-smoothed \n-  importance sampling.\n+    importance sampling.\n \n+\n+# Extended help\n+\n+The total score depends on the sample size, and summarizes the weight of evidence for or\n+against a model. Total scores are on an interval scale, meaning that only differences of\n+scores are meaningful. *It is not possible to interpret a total score by looking at it.*\n+The total score is not a relative goodness-of-fit statistic (for this, see the average\n+score).\n+\n+\n+The overfit is equal to the difference between the in-sample and out-of-sample predictive\n+accuracy. When using the log probability score, it is equal to the \"effective number of\n+parameters\" -- a model with an overfit of 2 is \"about as overfit\" as a model that has 2 free\n+parameters.\n+\n+\n+The average score is the total score, divided by the sample size. It estimates the expected\n+log score, i.e. the expectation of the log probability density of observing the next point.\n+The average score is a relative goodness-of-fit statistic which does not depend on sample\n+size. \n+\n+\n+Unlike with chi-square goodness of fit tests, models do not have to be nested for PSIS-LOO.\n+\n+\n See also: [`psis_loo`]@ref, [`Psis`]@ref\n \n \"\"\"\n struct PsisLoo{\n"
+                },
+                {
+                    "date": 1626566363530,
+                    "content": "Index: \n===================================================================\n--- \n+++ \n@@ -40,10 +40,10 @@\n \n \n The overfit is equal to the difference between the in-sample and out-of-sample predictive\n accuracy. When using the log probability score, it is equal to the \"effective number of\n-parameters\" -- a model with an overfit of 2 is \"about as overfit\" as a model that has 2 free\n-parameters.\n+parameters\" -- a model with an overfit of 2 has \"about as much overfit\" as a model with 2\n+free parameters and flat priors.\n \n \n The average score is the total score, divided by the sample size. It estimates the expected\n log score, i.e. the expectation of the log probability density of observing the next point.\n"
+                },
+                {
+                    "date": 1626625302819,
+                    "content": "Index: \n===================================================================\n--- \n+++ \n@@ -72,11 +72,22 @@\n abstract type AbstractLooMethod end\n \n struct PsisLooMethod <: AbstractLooMethod end\n \n+function _throw_pareto_k_warning(ξ)\n+    if any(ξ .≥ .7)\n+        @warn \"Some Pareto k values are very high (>0.7), indicating that PSIS has \" * \n+        \"failed to approximate the true distribution. Treat these estimates with caution.\"\n+    elseif any(ξ .≥ .5)\n+        @info \"Some Pareto k values are slightly high (>0.5); some pointwise estimates \" *\n+        \"may be slightly unreliable.\"\n+    end\n+end\n \n+\n function Base.show(io::IO, ::MIME\"text/plain\", loo_object::PsisLoo)\n     table = loo_object.estimates\n+    _throw_pareto_k_warning(loo_object.pointwise(:pareto_k))\n     return pretty_table(\n         table;\n         compact_printing=false,\n         header=table.estimate,\n"
+                },
+                {
+                    "date": 1626625339167,
+                    "content": "Index: \n===================================================================\n--- \n+++ \n@@ -75,12 +75,12 @@\n \n function _throw_pareto_k_warning(ξ)\n     if any(ξ .≥ .7)\n         @warn \"Some Pareto k values are very high (>0.7), indicating that PSIS has \" * \n-        \"failed to approximate the true distribution. Treat these estimates with caution.\"\n+        \"failed to approximate the true distribution.\"\n     elseif any(ξ .≥ .5)\n         @info \"Some Pareto k values are slightly high (>0.5); some pointwise estimates \" *\n-        \"may be slightly unreliable.\"\n+        \"may be slow to converge or have high variance.\"\n     end\n end\n \n \n"
                 }
             ],
             "date": 1626484301733,

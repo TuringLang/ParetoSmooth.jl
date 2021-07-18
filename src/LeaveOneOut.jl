@@ -30,7 +30,8 @@ end
 
 
 """
-    function psis_loo(log_likelihood::Array{Float} [, args...];
+    function psis_loo(
+        log_likelihood::Array{Float} [, args...];
         source::String="mcmc" [, chain_index::Vector{Int}, kwargs...]
     ) -> PsisLoo
 
@@ -40,12 +41,12 @@ score.
 # Arguments
 
   - `log_likelihood::Array`: An array or matrix of log-likelihood values indexed as
-    `[data, step, chain]`. The chain argument can be left off if `chain_index` is provided or if
-    all posterior samples were drawn from a single chain.
+    `[data, step, chain]`. The chain argument can be left off if `chain_index` is provided
+    or if all posterior samples were drawn from a single chain.
   - `args...`: Positional arguments to be passed to [`psis`](@ref).
-  - `chain_index::Vector`: A vector of integers specifying which chain each iteration belongs to. For
-    instance, `chain_index[iteration]` should return `2` if `log_likelihood[:, step]`
-    belongs to the second chain.
+  - `chain_index::Vector`: An (optional) vector of integers specifying which chain each
+    iteration belongs to. For instance, `chain_index[iteration]` should return `2` if
+    `log_likelihood[:, step]`belongs to the second chain.
   - `kwargs...`: Keyword arguments to be passed to [`psis`](@ref).
 
 See also: [`psis`](@ref), [`loo`](@ref), [`PsisLoo`](@ref).
@@ -73,8 +74,8 @@ function psis_loo(
     @tullio pointwise_ev[i] := weights[i, j, k] * exp(log_likelihood[i, j, k]) |> log
     @tullio pointwise_naive[i] := exp(log_likelihood[i, j, k] - log_count) |> log
     @tullio pointwise_mcse[i] :=
-        (weights[i, j, k] * (log_likelihood[i, j, k] - pointwise_ev[i]))^2
-    @tturbo @. pointwise_mcse = sqrt(pointwise_mcse / r_eff)
+        (weights[i, j, k] * (log_likelihood[i, j, k] - pointwise_ev[i]))^2 |> sqrt
+    @tturbo pointwise_mcse .= pointwise_mcse ./ r_eff
 
 
     pointwise_p_eff = pointwise_naive - pointwise_ev
