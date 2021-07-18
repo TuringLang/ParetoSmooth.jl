@@ -163,20 +163,18 @@ r_loo["estimates"](criterion=:avg_score) .=
         @test isa(psis_output, Psis)
 
 
-        @testset "r_eff" begin
-            pw_lls = pointwise_log_likelihoods(model(data), chain)
-            # ensure that methods work with r_eff argument
-            r_eff = similar(pw_lls, 0)
-            # test that psis_loo works with Turin and gives correct type
-            psis_loo_output = psis_loo(model(data), chain, r_eff)
-            @test isa(psis_loo_output, PsisLoo)
-            # test that loo works with Turing model and MCMCChains and gives correct type
-            psis_output = loo(model(data), chain, r_eff)
-            @test isa(psis_output, PsisLoo)
-            # test that psis works with Turing model and MCMCChains and gives correct type
-            psis_output = psis(model(data), chain, r_eff)
-            @test isa(psis_output, Psis)
+        
+        # ensure that methods work with r_eff argument
+        r_eff = similar(pw_lls, 0)
+        # test that psis_loo works with Turin and gives correct type
+        psis_loo_output = psis_loo(model(data), chain, r_eff)
+        @test isa(psis_loo_output, PsisLoo)
+        # test that loo works with Turing model and MCMCChains and gives correct type
+        psis_output = loo(model(data), chain, r_eff)
+        @test isa(psis_output, PsisLoo)
+        # test that psis works with Turing model and MCMCChains and gives correct type
+        psis_output = psis(model(data), chain, r_eff)
+        @test isa(psis_output, Psis)
 
-        end
     end
 end
