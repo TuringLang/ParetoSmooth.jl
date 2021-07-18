@@ -12,10 +12,10 @@ Compute the pointwise log likelihoods.
   - `data`: An array of data points used to estimate the parameters of the model.
 
 # Returns
-  - `Array`: a three dimensional array of pointwise log-likelihoods. Indices are ordered as
-    `[data, step, chain]`.
+  - `Array`: a three dimensional array of pointwise log-likelihoods. Dimensions are ordered
+    as `[data, step, chain]`.
 """
-function pointwise_log_likelihoods(ll_fun::Function, chain::Chains, data)
+function pointwise_log_likelihoods(ll_fun::Function, chain::Chains, data::AbstractVector)
     samples = Array(Chains(chain, :parameters).value)
     pointwise_log_likelihoods(ll_fun, samples, data)
 end
@@ -43,7 +43,7 @@ score from an MCMCChains object.
 See also: [`psis_loo`](@ref), [`loo`](@ref), [`PsisLoo`](@ref).
 """
 function psis_loo(
-    ll_fun::Function, chain::Chains, data, args...; kwargs...)
+    ll_fun::Function, chain::Chains, data::AbstractVector, args...; kwargs...)
     pointwise_log_likes = pointwise_log_likelihoods(ll_fun, chain, data)
     return psis_loo(pointwise_log_likes, args...; kwargs...)
 end
@@ -63,7 +63,7 @@ Implements Pareto-smoothed importance sampling (PSIS) based on MCMCChain object.
 
 See also: [`psis`](@ref), [`psis_loo`](@ref), [`PsisLoo`](@ref).
 """
-function psis(ll_fun::Function, chain::Chains, data, args...; kwargs...)
+function psis(ll_fun::Function, chain::Chains, data::AbstractVector, args...; kwargs...)
     pointwise_log_likes = pointwise_log_likelihoods(ll_fun, chain, data)
     return psis(-pointwise_log_likes, args...; kwargs...)
 end

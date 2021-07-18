@@ -146,7 +146,7 @@ end
 
 Define the tail length as in Vehtari et al. (2019).
 """
-function _def_tail_length(length::I, r_eff) where {I<:Integer}
+function _def_tail_length(length::I, r_eff::AbstractFloat) where {I<:Integer}
     return I(ceil(min(length / 5, 3 * sqrt(length / r_eff))))
 end
 
@@ -178,7 +178,7 @@ end
 """
 Generate the relative effective sample size if not provided by the user.
 """
-function _generate_r_eff(weights, dims, r_eff, source)
+function _generate_r_eff(weights::AbstractArray, dims, r_eff::AbstractArray, source::String)
     if isempty(r_eff)
         if source == "mcmc"
             @info "Adjusting for autocorrelation. If the posterior samples are not " *

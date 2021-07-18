@@ -3,7 +3,7 @@
     "activeCommit": 0,
     "commits": [
         {
-            "activePatchIndex": 65,
+            "activePatchIndex": 74,
             "patches": [
                 {
                     "date": 1626309654641,
@@ -268,6 +268,42 @@
                 {
                     "date": 1626625092666,
                     "content": "Index: \n===================================================================\n--- \n+++ \n@@ -79,17 +79,8 @@\n     if log_weights\n         @tturbo @. weights = log(weights)\n     end\n \n-    if any(ξ .≥ .7)\n-        @warn \"Some Pareto k values are very high (>0.7), indicating that PSIS has \" * \n-        \"failed to approximate the true distribution for these points. Treat these \" *\n-        \"estimates with caution.\"\n-    elseif any(ξ .≥ .5)\n-        @info \"Some Pareto k values are slightly high (>0.5); convergence may be slow \" *\n-        \"and MCSE estimates may be slight underestimates.\"\n-    end\n-\n     return Psis(weights, ξ, ess, r_eff, tail_length, post_sample_size, data_size)\n end\n \n \n"
+                },
+                {
+                    "date": 1626635166904,
+                    "content": "Index: \n===================================================================\n--- \n+++ \n@@ -145,9 +145,9 @@\n     _def_tail_length(log_ratios::AbstractVector, r_eff::AbstractFloat) -> tail_len::Integer\n \n Define the tail length as in Vehtari et al. (2019).\n \"\"\"\n-function _def_tail_length(length::I, r_eff) where {I<:Integer}\n+function _def_tail_length(length::Integer, r_eff)\n     return I(ceil(min(length / 5, 3 * sqrt(length / r_eff))))\n end\n \n \n@@ -177,9 +177,9 @@\n \n \"\"\"\n Generate the relative effective sample size if not provided by the user.\n \"\"\"\n-function _generate_r_eff(weights, dims, r_eff, source)\n+function _generate_r_eff(weights, dims, r_eff::AbstractVector, source::String)\n     if isempty(r_eff)\n         if source == \"mcmc\"\n             @info \"Adjusting for autocorrelation. If the posterior samples are not \" *\n                   \"autocorrelated, specify the source of the posterior sample using the \" *\n"
+                },
+                {
+                    "date": 1626635204088,
+                    "content": "Index: \n===================================================================\n--- \n+++ \n@@ -233,9 +233,9 @@\n \n \"\"\"\n Check the tail to make sure a GPD fit is possible.\n \"\"\"\n-function _check_tail(tail::AbstractVector{T}) where {T<:AbstractFloat}\n+function _check_tail(tail::AbstractVector{<:AbstractFloat})\n     if maximum(tail) ≈ minimum(tail)\n         throw(\n             ArgumentError(\n                 \"Unable to fit generalized Pareto distribution: all tail values are the\" *\n@@ -259,9 +259,9 @@\n #####  PSIS STRUCTS  #####\n ##########################\n \n \"\"\"\n-    Psis{V<:AbstractVector{F},I<:Integer} where {F<:AbstractFloat}\n+    Psis\n \n A struct containing the results of Pareto-smoothed importance sampling.\n \n # Fields\n"
+                },
+                {
+                    "date": 1626635211175,
+                    "content": "Index: \n===================================================================\n--- \n+++ \n@@ -264,9 +264,9 @@\n \n A struct containing the results of Pareto-smoothed importance sampling.\n \n # Fields\n-- `weights`: A vector of smoothed, truncated, and *normalized* importance sampling weights.\n+- `weights`: A vector of smoothed, truncated, and normalized importance sampling weights.\n - `pareto_k`: Estimates of the shape parameter ``k`` of the generalized Pareto distribution.\n - `ess`: Estimated effective sample size for each LOO evaluation.\n - `tail_len`: Vector of tail lengths used for smoothing the generalized Pareto distribution.\n - `dims`: Named tuple of length 2 containing `s` (posterior sample size) and `n` (number of\n"
+                },
+                {
+                    "date": 1626635325612,
+                    "content": "Index: \n===================================================================\n--- \n+++ \n@@ -177,9 +177,9 @@\n \n \"\"\"\n Generate the relative effective sample size if not provided by the user.\n \"\"\"\n-function _generate_r_eff(weights, dims, r_eff::AbstractVector, source::String)\n+function _generate_r_eff(weights, dims, r_eff, source)\n     if isempty(r_eff)\n         if source == \"mcmc\"\n             @info \"Adjusting for autocorrelation. If the posterior samples are not \" *\n                   \"autocorrelated, specify the source of the posterior sample using the \" *\n@@ -233,9 +233,9 @@\n \n \"\"\"\n Check the tail to make sure a GPD fit is possible.\n \"\"\"\n-function _check_tail(tail::AbstractVector{<:AbstractFloat})\n+function _check_tail(tail::AbstractVector{T}) where {T<:AbstractFloat}\n     if maximum(tail) ≈ minimum(tail)\n         throw(\n             ArgumentError(\n                 \"Unable to fit generalized Pareto distribution: all tail values are the\" *\n@@ -259,14 +259,14 @@\n #####  PSIS STRUCTS  #####\n ##########################\n \n \"\"\"\n-    Psis\n+    Psis{V<:AbstractVector{F},I<:Integer} where {F<:AbstractFloat}\n \n A struct containing the results of Pareto-smoothed importance sampling.\n \n # Fields\n-- `weights`: A vector of smoothed, truncated, and normalized importance sampling weights.\n+- `weights`: A vector of smoothed, truncated, and *normalized* importance sampling weights.\n - `pareto_k`: Estimates of the shape parameter ``k`` of the generalized Pareto distribution.\n - `ess`: Estimated effective sample size for each LOO evaluation.\n - `tail_len`: Vector of tail lengths used for smoothing the generalized Pareto distribution.\n - `dims`: Named tuple of length 2 containing `s` (posterior sample size) and `n` (number of\n"
+                },
+                {
+                    "date": 1626635382336,
+                    "content": "Index: \n===================================================================\n--- \n+++ \n@@ -145,9 +145,9 @@\n     _def_tail_length(log_ratios::AbstractVector, r_eff::AbstractFloat) -> tail_len::Integer\n \n Define the tail length as in Vehtari et al. (2019).\n \"\"\"\n-function _def_tail_length(length::Integer, r_eff)\n+function _def_tail_length(length::I, r_eff) where {I<:Integer}\n     return I(ceil(min(length / 5, 3 * sqrt(length / r_eff))))\n end\n \n \n"
+                },
+                {
+                    "date": 1626635533019,
+                    "content": "Index: \n===================================================================\n--- \n+++ \n@@ -145,9 +145,9 @@\n     _def_tail_length(log_ratios::AbstractVector, r_eff::AbstractFloat) -> tail_len::Integer\n \n Define the tail length as in Vehtari et al. (2019).\n \"\"\"\n-function _def_tail_length(length::I, r_eff) where {I<:Integer}\n+function _def_tail_length(length::I, r_eff::AbstractVector) where {I<:Integer}\n     return I(ceil(min(length / 5, 3 * sqrt(length / r_eff))))\n end\n \n \n"
+                },
+                {
+                    "date": 1626635539846,
+                    "content": "Index: \n===================================================================\n--- \n+++ \n@@ -145,9 +145,9 @@\n     _def_tail_length(log_ratios::AbstractVector, r_eff::AbstractFloat) -> tail_len::Integer\n \n Define the tail length as in Vehtari et al. (2019).\n \"\"\"\n-function _def_tail_length(length::I, r_eff::AbstractVector) where {I<:Integer}\n+function _def_tail_length(length::Integer, r_eff::AbstractVector)\n     return I(ceil(min(length / 5, 3 * sqrt(length / r_eff))))\n end\n \n \n"
+                },
+                {
+                    "date": 1626635609802,
+                    "content": "Index: \n===================================================================\n--- \n+++ \n@@ -145,9 +145,9 @@\n     _def_tail_length(log_ratios::AbstractVector, r_eff::AbstractFloat) -> tail_len::Integer\n \n Define the tail length as in Vehtari et al. (2019).\n \"\"\"\n-function _def_tail_length(length::Integer, r_eff::AbstractVector)\n+function _def_tail_length(length::Integer, r_eff::AbstractFloat)\n     return I(ceil(min(length / 5, 3 * sqrt(length / r_eff))))\n end\n \n \n"
+                },
+                {
+                    "date": 1626635706636,
+                    "content": "Index: \n===================================================================\n--- \n+++ \n@@ -145,9 +145,9 @@\n     _def_tail_length(log_ratios::AbstractVector, r_eff::AbstractFloat) -> tail_len::Integer\n \n Define the tail length as in Vehtari et al. (2019).\n \"\"\"\n-function _def_tail_length(length::Integer, r_eff::AbstractFloat)\n+function _def_tail_length(length::I, r_eff::AbstractFloat) where {I<:Integer}\n     return I(ceil(min(length / 5, 3 * sqrt(length / r_eff))))\n end\n \n \n@@ -177,9 +177,9 @@\n \n \"\"\"\n Generate the relative effective sample size if not provided by the user.\n \"\"\"\n-function _generate_r_eff(weights, dims, r_eff, source)\n+function _generate_r_eff(weights::AbstractArray, dims, r_eff::AbstractArray, source::String)\n     if isempty(r_eff)\n         if source == \"mcmc\"\n             @info \"Adjusting for autocorrelation. If the posterior samples are not \" *\n                   \"autocorrelated, specify the source of the posterior sample using the \" *\n"
                 }
             ],
             "date": 1626309654640,
