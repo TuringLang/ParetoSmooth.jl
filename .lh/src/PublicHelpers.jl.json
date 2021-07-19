@@ -3,7 +3,7 @@
     "activeCommit": 0,
     "commits": [
         {
-            "activePatchIndex": 12,
+            "activePatchIndex": 15,
             "patches": [
                 {
                     "date": 1626566146328,
@@ -56,6 +56,18 @@
                 {
                     "date": 1626634228997,
                     "content": "Index: \n===================================================================\n--- \n+++ \n@@ -10,10 +10,9 @@\n \n Compute the pointwise log likelihood.\n \n # Arguments\n-  - `ll_fun::Function`: a log-likelihood function of the form `f(θ[1], ..., θ[n], data)`, \n-    where `θ` is the parameter vector. See also the `splat` keyword argument.\n+  - $LIKELIHOOD_FUNCTION_ARG\n   - `samples::AbstractArray`: A three dimensional array of MCMC samples. Here, the first\n     dimension should indicate the parameter being sampled; the second dimension should\n     indicate the iteration of the MCMC ; and the third dimension represents the chains. \n   - `data`: A vector of data used to estimate the parameters of the model.\n"
+                },
+                {
+                    "date": 1626635966901,
+                    "content": "Index: \n===================================================================\n--- \n+++ \n@@ -19,9 +19,9 @@\n   - `splat`: If `true` (default), `f` must be a function of `n` different parameters. \n     Otherwise, `f` is assumed to be a function of a single parameter vector.\n \n # Returns\n-  - `Array`: a three dimensional array of pointwise log-likelihoods.\n+  - `Array`: A three dimensional array of pointwise log-likelihoods.\n \"\"\"\n function pointwise_log_likelihoods(\n     ll_fun::Function, \n     samples::AbstractArray{<:AbstractFloat, 3}, \n"
+                },
+                {
+                    "date": 1626636109285,
+                    "content": "Index: \n===================================================================\n--- \n+++ \n@@ -48,11 +48,10 @@\n function pointwise_log_likelihoods(\n     ll_fun::Function, \n     samples::AbstractMatrix{<:AbstractFloat}, \n     data;\n-    chain_index::AbstractVector{<:Integer}=_assume_one_chain(samples),\n-    kwargs...\n+    chain_index::AbstractVector{<:Integer}=_assume_one_chain(samples)\n )\n     samples = _convert_to_array(samples, chain_index)\n-    return pointwise_log_likelihoods(ll_fun, samples, data; kwargs...)\n+    return pointwise_log_likelihoods(ll_fun, samples, data)\n end\n \n"
+                },
+                {
+                    "date": 1626650576296,
+                    "content": "Index: \n===================================================================\n--- \n+++ \n@@ -23,9 +23,9 @@\n   - `Array`: A three dimensional array of pointwise log-likelihoods.\n \"\"\"\n function pointwise_log_likelihoods(\n     ll_fun::Function, \n-    samples::AbstractArray{<:AbstractFloat, 3}, \n+    samples::AbstractArray{<:Union{AbstractFloat, Missing}, 3}, \n     data;\n     splat::Bool=true\n )\n     if splat \n@@ -46,11 +46,12 @@\n \n \n function pointwise_log_likelihoods(\n     ll_fun::Function, \n-    samples::AbstractMatrix{<:AbstractFloat}, \n+    samples::AbstractMatrix{<:Union{AbstractFloat, Missing}}, \n     data;\n-    chain_index::AbstractVector{<:Integer}=_assume_one_chain(samples)\n+    chain_index::AbstractVector{<:Integer}=_assume_one_chain(samples),\n+    kwargs...\n )\n     samples = _convert_to_array(samples, chain_index)\n     return pointwise_log_likelihoods(ll_fun, samples, data)\n end\n"
                 }
             ],
             "date": 1626566146328,

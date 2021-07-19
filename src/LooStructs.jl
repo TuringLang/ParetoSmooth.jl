@@ -90,7 +90,7 @@ function Base.show(io::IO, ::MIME"text/plain", loo_object::PsisLoo)
     return pretty_table(
         table;
         compact_printing=false,
-        header=table.estimate,
+        header=table.statistic,
         row_names=table.criterion,
         formatters=ft_printf("%5.2f"),
         alignment=:r,

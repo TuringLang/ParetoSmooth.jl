@@ -3,7 +3,7 @@
     "activeCommit": 0,
     "commits": [
         {
-            "activePatchIndex": 9,
+            "activePatchIndex": 10,
             "patches": [
                 {
                     "date": 1626484301733,
@@ -44,6 +44,10 @@
                 {
                     "date": 1626625339167,
                     "content": "Index: \n===================================================================\n--- \n+++ \n@@ -75,12 +75,12 @@\n \n function _throw_pareto_k_warning(ξ)\n     if any(ξ .≥ .7)\n         @warn \"Some Pareto k values are very high (>0.7), indicating that PSIS has \" * \n-        \"failed to approximate the true distribution. Treat these estimates with caution.\"\n+        \"failed to approximate the true distribution.\"\n     elseif any(ξ .≥ .5)\n         @info \"Some Pareto k values are slightly high (>0.5); some pointwise estimates \" *\n-        \"may be slightly unreliable.\"\n+        \"may be slow to converge or have high variance.\"\n     end\n end\n \n \n"
+                },
+                {
+                    "date": 1626663823479,
+                    "content": "Index: \n===================================================================\n--- \n+++ \n@@ -89,9 +89,9 @@\n     _throw_pareto_k_warning(loo_object.pointwise(:pareto_k))\n     return pretty_table(\n         table;\n         compact_printing=false,\n-        header=table.estimate,\n+        header=table.statistic,\n         row_names=table.criterion,\n         formatters=ft_printf(\"%5.2f\"),\n         alignment=:r,\n     )\n"
                 }
             ],
             "date": 1626484301733,

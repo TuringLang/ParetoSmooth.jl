@@ -1,4 +1,5 @@
 using AxisKeys
+using Distributions
 using InteractiveUtils
 using LoopVectorization
 using Statistics
@@ -45,8 +46,8 @@ score.
     or if all posterior samples were drawn from a single chain.
   - `args...`: Positional arguments to be passed to [`psis`](@ref).
   - `chain_index::Vector`: An (optional) vector of integers specifying which chain each
-    iteration belongs to. For instance, `chain_index[iteration]` should return `2` if
-    `log_likelihood[:, step]`belongs to the second chain.
+    step belongs to. For instance, `chain_index[3]` should return `2` if
+    `log_likelihood[:, 3]` belongs to the second chain.
   - `kwargs...`: Keyword arguments to be passed to [`psis`](@ref).
 
 See also: [`psis`](@ref), [`loo`](@ref), [`PsisLoo`](@ref).
@@ -70,34 +71,56 @@ function psis_loo(
     ξ = psis_object.pareto_k
     r_eff = psis_object.r_eff
 
-
-    @tullio pointwise_ev[i] := weights[i, j, k] * exp(log_likelihood[i, j, k]) |> log
+    @tullio pointwise_loo[i] := weights[i, j, k] * exp(log_likelihood[i, j, k]) |> log
     @tullio pointwise_naive[i] := exp(log_likelihood[i, j, k] - log_count) |> log
-    @tullio pointwise_mcse[i] :=
-        (weights[i, j, k] * (log_likelihood[i, j, k] - pointwise_ev[i]))^2 |> sqrt
-    @tturbo pointwise_mcse .= pointwise_mcse ./ r_eff
+    pointwise_overfit = pointwise_naive - pointwise_loo
+    @tullio pointwise_mcse[i] := sqrt <|
+        (weights[i, j, k] * (log_likelihood[i, j, k] - pointwise_loo[i]))^2
+    @turbo pointwise_mcse .= pointwise_mcse ./ sqrt.(r_eff)  # autocorrelation adjustment
 
 
-    pointwise_p_eff = pointwise_naive - pointwise_ev
     pointwise = KeyedArray(
-        hcat(pointwise_ev, pointwise_mcse, pointwise_p_eff, ξ);
-        data=1:length(pointwise_ev),
-        statistic=[:est_score, :mcse, :est_overfit, :pareto_k],
+        hcat(
+            pointwise_loo, 
+            pointwise_naive,
+            pointwise_overfit,
+            pointwise_mcse,
+            ξ
+        );
+        data=1:length(pointwise_loo),
+        statistic=[
+            :loo_score, 
+            :naive_score, 
+            :overfit,
+            :loo_mcse,
+            :pareto_k
+        ],
     )
 
     table = KeyedArray(
-        similar(log_likelihood, 3, 2);
-        criterion=[:total_score, :overfit, :avg_score],
-        estimate=[:Estimate, :SE],
+        similar(log_likelihood, 3, 4);
+        criterion=[:loo_score, :naive_score, :overfit],
+        statistic=[:total, :se_total, :mean, :se_mean],
     )
+    
 
-    table(:total_score, :Estimate, :) .= ev_loo = sum(pointwise_ev)
-    table(:avg_score, :Estimate, :) .= ev_avg = ev_loo / data_size
-    table(:overfit, :Estimate, :) .= p_eff = sum(pointwise_p_eff)
+    table(:, :total) .= reshape(
+        sum(pointwise([:loo_score, :naive_score, :overfit]); dims=1), 
+        3
+    )
+    table(:, :mean) .= table(:, :total) ./ data_size
 
-    table(:total_score, :SE, :) .= ev_se = sqrt(varm(pointwise_ev, ev_avg) * data_size)
-    table(:avg_score, :SE, :) .= ev_se / data_size
-    table(:overfit, :SE, :) .= sqrt(varm(pointwise_p_eff, p_eff / data_size) * data_size)
+    table(:, :se_total) .= reshape(
+        sqrt.(
+            data_size * varm(
+                pointwise([:loo_score, :naive_score, :overfit]), 
+                table(:, :mean)'; 
+                dims=1
+            )
+        ), 
+        3
+    )
+    table(:, :se_mean) .= table(:, :se_total) ./ data_size
 
     return PsisLoo(table, pointwise, psis_object)
 

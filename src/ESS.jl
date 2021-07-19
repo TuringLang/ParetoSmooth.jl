@@ -6,17 +6,18 @@ using Tullio
 export relative_eff, psis_ess, psis_n_eff
 
 """
-    relative_eff(sample::AbstractArray{AbstractFloat, 3}; method=MCMCDiagnosticTools.FFTESSMethod())
+    relative_eff(sample::AbstractArray{AbstractFloat, 3}; 
+        method=MCMCDiagnosticTools.FFTESSMethod()
+    )
 
 Calculate the relative efficiency of an MCMC chain, i.e. the effective sample size divided
 by the nominal sample size.
 """
 function relative_eff(
     sample::AbstractArray{T,3}; method=MCMCDiagnosticTools.FFTESSMethod()
-) where {T<:AbstractFloat}
+) where {T<:Union{AbstractFloat, Missing}}
     dims = size(sample)
     post_sample_size = dims[2] * dims[3]
-    # Only need ESS, not rhat
     ess_sample = inv.(permutedims(sample, [2, 1, 3]))
     ess, = MCMCDiagnosticTools.ess_rhat(ess_sample; method=method, maxlag=dims[2])
     r_eff = ess / post_sample_size
@@ -41,7 +42,7 @@ Vehtari et al. 2019.
 """
 function psis_ess(
     weights::AbstractVector{T}, r_eff::AbstractVector{T}
-) where {T <: AbstractFloat}
+) where {T <: Union{AbstractFloat, Missing}}
     @tullio sum_of_squares := weights[x]^2
     return r_eff ./ sum_of_squares
 end
@@ -49,13 +50,13 @@ end
 
 function psis_ess(
     weights::AbstractMatrix{T}, r_eff::AbstractVector{T}
-) where {T <: AbstractFloat}
+) where {T <: Union{AbstractFloat, Missing}}
     @tullio sum_of_squares[x] := weights[x, y]^2
     return @tturbo r_eff ./ sum_of_squares
 end
 
 
-function psis_ess(weights::AbstractMatrix{T}) where {T <: AbstractFloat}
+function psis_ess(weights::AbstractMatrix{T}) where {T <: Union{AbstractFloat, Missing}}
     @warn "PSIS ESS not adjusted based on MCMC ESS. MCSE and ESS estimates " *
           "will be overoptimistic if samples are autocorrelated."
     return psis_ess(weights, ones(size(weights)))

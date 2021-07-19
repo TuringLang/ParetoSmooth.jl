@@ -56,7 +56,7 @@ Implements Pareto-smoothed importance sampling (PSIS) based on MCMCChain object.
 # Arguments
 
   - $LIKELIHOOD_FUNCTION_ARG
-  - chain::Chain`: A chain object from MCMCChains.
+  - `chain::Chain`: A chain object from MCMCChains.
   - `data`: A vector of data points used to estimate the parameters of the model.
   - $ARGS [`psis`](@ref).
   - $KWARGS [`psis`](@ref).

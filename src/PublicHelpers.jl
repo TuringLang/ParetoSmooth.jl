@@ -20,11 +20,11 @@ Compute the pointwise log likelihood.
     Otherwise, `f` is assumed to be a function of a single parameter vector.
 
 # Returns
-  - `Array`: a three dimensional array of pointwise log-likelihoods.
+  - `Array`: A three dimensional array of pointwise log-likelihoods.
 """
 function pointwise_log_likelihoods(
     ll_fun::Function, 
-    samples::AbstractArray{<:AbstractFloat, 3}, 
+    samples::AbstractArray{<:Union{AbstractFloat, Missing}, 3}, 
     data;
     splat::Bool=true
 )
@@ -47,12 +47,12 @@ end
 
 function pointwise_log_likelihoods(
     ll_fun::Function, 
-    samples::AbstractMatrix{<:AbstractFloat}, 
+    samples::AbstractMatrix{<:Union{AbstractFloat, Missing}}, 
     data;
     chain_index::AbstractVector{<:Integer}=_assume_one_chain(samples),
     kwargs...
 )
     samples = _convert_to_array(samples, chain_index)
-    return pointwise_log_likelihoods(ll_fun, samples, data; kwargs...)
+    return pointwise_log_likelihoods(ll_fun, samples, data)
 end
 
