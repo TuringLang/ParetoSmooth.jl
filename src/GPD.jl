@@ -27,7 +27,7 @@ generalized Pareto distribution (GPD), assuming the location parameter is 0.
 # Note
 
 Estimation method taken from Zhang, J. and Stephens, M.A. (2009). The parameter ξ is the
-negative of \$k\$.
+negative of k.
 """
 function gpdfit(
     sample::AbstractVector{T};
@@ -43,23 +43,23 @@ function gpdfit(
     end
 
 
-    prior = 3
-    grid_size = min_grid_pts + isqrt(len) # isqrt = floor sqrt
+    grid_size = min_grid_pts + isqrt(len)  # isqrt = floor sqrt
+    grid_size = grid_size - (grid_size % 4)  # multiples of 4 easier to vectorize
     n_0 = 10  # determines how strongly to nudge ξ towards .5
-    quartile::T = sample[(len+2)÷4]
+    x_star::T = inv(3 * sample[(len+2)÷4])  # magic number. ¯\_(ツ)_/¯
 
 
     # build pointwise estimates of ξ and θ at each grid point
     θ_hats = similar(sample, grid_size)
     ξ_hats = similar(sample, grid_size)
-    @turbo @. θ_hats =
-        inv(sample[len]) + (1 - sqrt((grid_size+1) / $(1:grid_size))) / prior / quartile
-    @tullio threads=false ξ_hats[x] := log1p(-θ_hats[x] * sample[y]) |> _ / len
-    log_like = similar(ξ_hats)
+    invmax = inv(sample[len])
+    @tullio threads=false θ_hats[i] = invmax + (1 - sqrt((grid_size+1) / i)) * x_star
+    @tullio threads=false ξ_hats[i] = log1p(-θ_hats[i] * sample[j]) |> _ / len
+    log_like = similar(ξ_hats) # Reuse preallocated array (which is no longer in use)
     # Calculate profile log-likelihood at each estimate:
-    @turbo @. log_like = len * (log(-θ_hats / ξ_hats) - ξ_hats - 1)
+    @tullio threads=false log_like[i] = len * (log(-θ_hats[i] / ξ_hats[i]) - ξ_hats[i] - 1)
     # Calculate weights from log-likelihood:
-    weights = ξ_hats  # Reuse preallocated array (which is no longer in use)
+    weights = ξ_hats  # Reuse preallocated array
     @tullio threads=false weights[y] = exp(log_like[x] - log_like[y]) |> inv
     # Take weighted mean:
     @tullio threads=false θ_hat := weights[x] * θ_hats[x]
@@ -69,7 +69,7 @@ function gpdfit(
 
     # Drag towards .5 to reduce variance for small len
     if wip
-        ξ = (ξ * len + 0.5 * n_0) / (len + n_0)
+        @fastmath ξ = (ξ * len + 0.5 * n_0) / (len + n_0)
     end
 
     return ξ::T, σ::T

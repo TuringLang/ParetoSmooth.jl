@@ -3,7 +3,7 @@
     "activeCommit": 0,
     "commits": [
         {
-            "activePatchIndex": 74,
+            "activePatchIndex": 84,
             "patches": [
                 {
                     "date": 1626309654641,
@@ -304,6 +304,46 @@
                 {
                     "date": 1626635706636,
                     "content": "Index: \n===================================================================\n--- \n+++ \n@@ -145,9 +145,9 @@\n     _def_tail_length(log_ratios::AbstractVector, r_eff::AbstractFloat) -> tail_len::Integer\n \n Define the tail length as in Vehtari et al. (2019).\n \"\"\"\n-function _def_tail_length(length::Integer, r_eff::AbstractFloat)\n+function _def_tail_length(length::I, r_eff::AbstractFloat) where {I<:Integer}\n     return I(ceil(min(length / 5, 3 * sqrt(length / r_eff))))\n end\n \n \n@@ -177,9 +177,9 @@\n \n \"\"\"\n Generate the relative effective sample size if not provided by the user.\n \"\"\"\n-function _generate_r_eff(weights, dims, r_eff, source)\n+function _generate_r_eff(weights::AbstractArray, dims, r_eff::AbstractArray, source::String)\n     if isempty(r_eff)\n         if source == \"mcmc\"\n             @info \"Adjusting for autocorrelation. If the posterior samples are not \" *\n                   \"autocorrelated, specify the source of the posterior sample using the \" *\n"
+                },
+                {
+                    "date": 1626720778058,
+                    "content": "Index: \n===================================================================\n--- \n+++ \n@@ -264,14 +264,14 @@\n \n A struct containing the results of Pareto-smoothed importance sampling.\n \n # Fields\n-- `weights`: A vector of smoothed, truncated, and *normalized* importance sampling weights.\n-- `pareto_k`: Estimates of the shape parameter ``k`` of the generalized Pareto distribution.\n-- `ess`: Estimated effective sample size for each LOO evaluation.\n-- `tail_len`: Vector of tail lengths used for smoothing the generalized Pareto distribution.\n-- `dims`: Named tuple of length 2 containing `s` (posterior sample size) and `n` (number of\n-observations).\n+  - `weights`: A vector of smoothed, truncated, and *normalized* importance sampling weights.\n+  - `pareto_k`: Estimates of the shape parameter ``k`` of the generalized Pareto distribution.\n+  - `ess`: Estimated effective sample size for each LOO evaluation.\n+  - `tail_len`: Vector of tail lengths used for smoothing the generalized Pareto distribution.\n+  - `dims`: Named tuple of length 2 containing `s` (posterior sample size) and `n` (number of\n+    observations).\n \"\"\"\n struct Psis{\n     F<:AbstractFloat,\n     AF<:AbstractArray{F,3},\n"
+                },
+                {
+                    "date": 1626720985172,
+                    "content": "Index: \n===================================================================\n--- \n+++ \n@@ -1,5 +1,6 @@\n using LoopVectorization\n+using SortingLab\n using Tullio\n \n \n const LIKELY_ERROR_CAUSES = \"\"\"\n@@ -119,24 +120,23 @@\n ) where {T<:AbstractFloat}\n     len = length(is_ratios)\n \n     # sort is_ratios and also get results of sortperm() at the same time\n-    ordering = sortperm(is_ratios; alg=QuickSort)\n-    sorted_ratios = is_ratios[ordering]\n+    ordering = SortingLab.sorttwo!(is_ratios, 1:length(is_ratios))\n \n     # Define and check tail\n     tail_start = len - tail_length + 1  # index of smallest tail value\n-    @views tail = sorted_ratios[tail_start:len]\n+    @views tail = is_ratios[tail_start:len]\n     _check_tail(tail)\n \n     # Get value just before the tail starts:\n-    cutoff = sorted_ratios[tail_start - 1]\n+    cutoff = is_ratios[tail_start - 1]\n     ξ = _psis_smooth_tail!(tail, cutoff)\n \n     # truncate at max of raw weights (1 after scaling)\n-    clamp!(sorted_ratios, 0, 1)\n+    clamp!(is_ratios, 0, 1)\n     # unsort the ratios to their original position:\n-    is_ratios .= @views sorted_ratios[invperm(ordering)]\n+    invpermute!(is_ratios, ordering)\n \n     return ξ::T\n end\n \n"
+                },
+                {
+                    "date": 1626721177295,
+                    "content": "Index: \n===================================================================\n--- \n+++ \n@@ -264,14 +264,14 @@\n \n A struct containing the results of Pareto-smoothed importance sampling.\n \n # Fields\n-  - `weights`: A vector of smoothed, truncated, and *normalized* importance sampling weights.\n-  - `pareto_k`: Estimates of the shape parameter ``k`` of the generalized Pareto distribution.\n+  - `weights`: A vector of smoothed, truncated, and normalized importance sampling weights.\n+  - `pareto_k`: Estimates of the shape parameter `k` of the generalized Pareto distribution.\n   - `ess`: Estimated effective sample size for each LOO evaluation.\n-  - `tail_len`: Vector of tail lengths used for smoothing the generalized Pareto distribution.\n-  - `dims`: Named tuple of length 2 containing `s` (posterior sample size) and `n` (number of\n-    observations).\n+  - `tail_len`: Vector indicating how large the \"tail\" is for each observation.\n+  - `dims`: Named tuple of length 2 containing `s` (posterior sample size) and `n` (number\n+    of observations).\n \"\"\"\n struct Psis{\n     F<:AbstractFloat,\n     AF<:AbstractArray{F,3},\n"
+                },
+                {
+                    "date": 1626721223757,
+                    "content": "Index: \n===================================================================\n--- \n+++ \n@@ -120,9 +120,9 @@\n ) where {T<:AbstractFloat}\n     len = length(is_ratios)\n \n     # sort is_ratios and also get results of sortperm() at the same time\n-    ordering = SortingLab.sorttwo!(is_ratios, 1:length(is_ratios))\n+    ordering = SortingLab.sorttwo!(is_ratios, collect(1:length(is_ratios)))\n \n     # Define and check tail\n     tail_start = len - tail_length + 1  # index of smallest tail value\n     @views tail = is_ratios[tail_start:len]\n"
+                },
+                {
+                    "date": 1626725263644,
+                    "content": "Index: \n===================================================================\n--- \n+++ \n@@ -120,9 +120,9 @@\n ) where {T<:AbstractFloat}\n     len = length(is_ratios)\n \n     # sort is_ratios and also get results of sortperm() at the same time\n-    ordering = SortingLab.sorttwo!(is_ratios, collect(1:length(is_ratios)))\n+    ordering = sorttwo!(is_ratios)\n \n     # Define and check tail\n     tail_start = len - tail_length + 1  # index of smallest tail value\n     @views tail = is_ratios[tail_start:len]\n"
+                },
+                {
+                    "date": 1626739389738,
+                    "content": "Index: \n===================================================================\n--- \n+++ \n@@ -120,9 +120,9 @@\n ) where {T<:AbstractFloat}\n     len = length(is_ratios)\n \n     # sort is_ratios and also get results of sortperm() at the same time\n-    ordering = sorttwo!(is_ratios)\n+    is_ratios, ordering = SortingLab.sorttwo!(is_ratios, collect(1:len))\n \n     # Define and check tail\n     tail_start = len - tail_length + 1  # index of smallest tail value\n     @views tail = is_ratios[tail_start:len]\n"
+                },
+                {
+                    "date": 1626745173367,
+                    "content": "Index: \n===================================================================\n--- \n+++ \n@@ -118,9 +118,9 @@\n function _do_psis_i!(\n     is_ratios::AbstractVector{T}, tail_length::Integer\n ) where {T<:AbstractFloat}\n     len = length(is_ratios)\n-\n+    \n     # sort is_ratios and also get results of sortperm() at the same time\n     is_ratios, ordering = SortingLab.sorttwo!(is_ratios, collect(1:len))\n \n     # Define and check tail\n"
+                },
+                {
+                    "date": 1626747801273,
+                    "content": "Index: \n===================================================================\n--- \n+++ \n@@ -1,6 +1,5 @@\n using LoopVectorization\n-using SortingLab\n using Tullio\n \n \n const LIKELY_ERROR_CAUSES = \"\"\"\n"
+                },
+                {
+                    "date": 1626748917856,
+                    "content": "Index: \n===================================================================\n--- \n+++ \n@@ -119,9 +119,10 @@\n ) where {T<:AbstractFloat}\n     len = length(is_ratios)\n     \n     # sort is_ratios and also get results of sortperm() at the same time\n-    is_ratios, ordering = SortingLab.sorttwo!(is_ratios, collect(1:len))\n+    ordering = sortperm(is_ratios)\n+    is_ratios .= is_ratios[ordering]\n \n     # Define and check tail\n     tail_start = len - tail_length + 1  # index of smallest tail value\n     @views tail = is_ratios[tail_start:len]\n"
+                },
+                {
+                    "date": 1626749594403,
+                    "content": "Index: \n===================================================================\n--- \n+++ \n@@ -134,9 +134,9 @@\n \n     # truncate at max of raw weights (1 after scaling)\n     clamp!(sorted_ratios, 0, 1)\n     # unsort the ratios to their original position:\n-    invpermute!(is_ratios, ordering)\n+    is_ratios .= @views sorted_ratios[invperm(ordering)]\n \n     return ξ::T\n end\n \n"
                 }
             ],
             "date": 1626309654640,

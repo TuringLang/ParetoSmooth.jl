@@ -1,4 +1,6 @@
+using FLoops
 using LoopVectorization
+using SortingLab
 using Tullio
 
 
@@ -65,7 +67,7 @@ function psis(
 
     tail_length = similar(log_ratios, Int, data_size)
     ξ = similar(log_ratios, data_size)
-    @inbounds Threads.@threads for i in eachindex(tail_length)
+    @floop for i in eachindex(tail_length)
         tail_length[i] = _def_tail_length(post_sample_size, r_eff[i])
         ξ[i] = @views ParetoSmooth._do_psis_i!(weights[i,:], tail_length[i])
     end
@@ -118,9 +120,9 @@ function _do_psis_i!(
     is_ratios::AbstractVector{T}, tail_length::Integer
 ) where {T<:AbstractFloat}
     len = length(is_ratios)
-
+    
     # sort is_ratios and also get results of sortperm() at the same time
-    ordering = sortperm(is_ratios; alg=QuickSort)
+    ordering = fsortperm(is_ratios)
     sorted_ratios = is_ratios[ordering]
 
     # Define and check tail
@@ -147,7 +149,9 @@ end
 Define the tail length as in Vehtari et al. (2019).
 """
 function _def_tail_length(length::I, r_eff::AbstractFloat) where {I<:Integer}
-    return I(ceil(min(length / 5, 3 * sqrt(length / r_eff))))
+    len = I(ceil(min(length / 5, 3 * sqrt(length / r_eff))))
+    len = 4 * round(len / 4) # multiples of 4 easier to vectorize
+    return I(len)
 end
 
 
@@ -265,12 +269,12 @@ end
 A struct containing the results of Pareto-smoothed importance sampling.
 
 # Fields
-- `weights`: A vector of smoothed, truncated, and *normalized* importance sampling weights.
-- `pareto_k`: Estimates of the shape parameter ``k`` of the generalized Pareto distribution.
-- `ess`: Estimated effective sample size for each LOO evaluation.
-- `tail_len`: Vector of tail lengths used for smoothing the generalized Pareto distribution.
-- `dims`: Named tuple of length 2 containing `s` (posterior sample size) and `n` (number of
-observations).
+  - `weights`: A vector of smoothed, truncated, and normalized importance sampling weights.
+  - `pareto_k`: Estimates of the shape parameter `k` of the generalized Pareto distribution.
+  - `ess`: Estimated effective sample size for each LOO evaluation.
+  - `tail_len`: Vector indicating how large the "tail" is for each observation.
+  - `dims`: Named tuple of length 2 containing `s` (posterior sample size) and `n` (number
+    of observations).
 """
 struct Psis{
     F<:AbstractFloat,

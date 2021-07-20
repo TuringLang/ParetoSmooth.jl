@@ -1,0 +1,30 @@
+{
+    "sourceFile": "src/sorting/src/SortingLab.jl",
+    "activeCommit": 0,
+    "commits": [
+        {
+            "activePatchIndex": 3,
+            "patches": [
+                {
+                    "date": 1626747451547,
+                    "content": "Index: \n===================================================================\n--- \n+++ \n"
+                },
+                {
+                    "date": 1626747652970,
+                    "content": "Index: \n===================================================================\n--- \n+++ \n@@ -7,9 +7,8 @@\n #using InternedStrings, StatsBase, CategoricalArrays\n \n # import InternedStrings\n import StatsBase: countmap\n-import CategoricalArrays: CategoricalArray\n import Base.Threads: @threads\n \n export fsortperm, radixsort, radixsort!, fsort, fsort!\n \n"
+                },
+                {
+                    "date": 1626747726849,
+                    "content": "Index: \n===================================================================\n--- \n+++ \n@@ -7,9 +7,8 @@\n #using InternedStrings, StatsBase, CategoricalArrays\n \n # import InternedStrings\n import StatsBase: countmap\n-import Base.Threads: @threads\n \n export fsortperm, radixsort, radixsort!, fsort, fsort!\n \n \n"
+                },
+                {
+                    "date": 1626747764538,
+                    "content": "Index: \n===================================================================\n--- \n+++ \n@@ -1,21 +1,6 @@\n-__precompile__(true)\n-module SortingLab\n-\n-# export sort, sort!\n-# package code goes here\n-\n-#using InternedStrings, StatsBase, CategoricalArrays\n-\n-# import InternedStrings\n-import StatsBase: countmap\n-\n-export fsortperm, radixsort, radixsort!, fsort, fsort!\n-\n-\n include(\"fsortperm.jl\")\n include(\"sorttwo!.jl\")\n include(\"uint_hist.jl\")\n include(\"uint_mapping.jl\")\n include(\"fsort.jl\")\n-include(\"fsort-missing.jl\")\n-end\n\\ No newline at end of file\n+include(\"fsort-missing.jl\")\n\\ No newline at end of file\n"
+                }
+            ],
+            "date": 1626747451546,
+            "name": "Commit-0",
+            "content": "__precompile__(true)\nmodule SortingLab\n\n# export sort, sort!\n# package code goes here\n\n#using InternedStrings, StatsBase, CategoricalArrays\n\n# import InternedStrings\nimport StatsBase: countmap\nimport CategoricalArrays: CategoricalArray\nimport Base.Threads: @threads\n\nexport fsortperm, radixsort, radixsort!, fsort, fsort!\n\n\ninclude(\"fsortperm.jl\")\ninclude(\"sorttwo!.jl\")\ninclude(\"uint_hist.jl\")\ninclude(\"uint_mapping.jl\")\ninclude(\"fsort.jl\")\ninclude(\"fsort-missing.jl\")\nend"
+        }
+    ]
+}

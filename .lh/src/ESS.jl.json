@@ -3,7 +3,7 @@
     "activeCommit": 0,
     "commits": [
         {
-            "activePatchIndex": 17,
+            "activePatchIndex": 18,
             "patches": [
                 {
                     "date": 1626309971342,
@@ -76,6 +76,10 @@
                 {
                     "date": 1626650524434,
                     "content": "Index: \n===================================================================\n--- \n+++ \n@@ -5,19 +5,20 @@\n \n export relative_eff, psis_ess, psis_n_eff\n \n \"\"\"\n-    relative_eff(sample::AbstractArray{AbstractFloat, 3}; method=MCMCDiagnosticTools.FFTESSMethod())\n+    relative_eff(sample::AbstractArray{AbstractFloat, 3}; \n+        method=MCMCDiagnosticTools.FFTESSMethod()\n+    )\n \n Calculate the relative efficiency of an MCMC chain, i.e. the effective sample size divided\n by the nominal sample size.\n \"\"\"\n function relative_eff(\n     sample::AbstractArray{T,3}; method=MCMCDiagnosticTools.FFTESSMethod()\n-) where {T<:AbstractFloat}\n+) where {T<:Union{AbstractFloat, Missing}}\n     dims = size(sample)\n     post_sample_size = dims[2] * dims[3]\n-    # Only need ESS, not rhat\n     ess_sample = inv.(permutedims(sample, [2, 1, 3]))\n     ess, = MCMCDiagnosticTools.ess_rhat(ess_sample; method=method, maxlag=dims[2])\n     r_eff = ess / post_sample_size\n     return r_eff\n@@ -40,23 +41,23 @@\n     See `?relative_eff` to calculate `r_eff`.\n \"\"\"\n function psis_ess(\n     weights::AbstractVector{T}, r_eff::AbstractVector{T}\n-) where {T <: AbstractFloat}\n+) where {T <: Union{AbstractFloat, Missing}}\n     @tullio sum_of_squares := weights[x]^2\n     return r_eff ./ sum_of_squares\n end\n \n \n function psis_ess(\n     weights::AbstractMatrix{T}, r_eff::AbstractVector{T}\n-) where {T <: AbstractFloat}\n+) where {T <: Union{AbstractFloat, Missing}}\n     @tullio sum_of_squares[x] := weights[x, y]^2\n     return @tturbo r_eff ./ sum_of_squares\n end\n \n \n-function psis_ess(weights::AbstractMatrix{T}) where {T <: AbstractFloat}\n+function psis_ess(weights::AbstractMatrix{T}) where {T <: Union{AbstractFloat, Missing}}\n     @warn \"PSIS ESS not adjusted based on MCMC ESS. MCSE and ESS estimates \" *\n           \"will be overoptimistic if samples are autocorrelated.\"\n     return psis_ess(weights, ones(size(weights)))\n end\n"
+                },
+                {
+                    "date": 1626720594740,
+                    "content": "Index: \n===================================================================\n--- \n+++ \n@@ -1,7 +1,7 @@\n using FFTW\n+using LoopVectorization\n using MCMCDiagnosticTools\n-using LoopVectorization\n using Tullio\n \n export relative_eff, psis_ess, psis_n_eff\n \n"
                 }
             ],
             "date": 1626309971342,

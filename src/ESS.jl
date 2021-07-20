@@ -1,6 +1,6 @@
 using FFTW
-using MCMCDiagnosticTools
 using LoopVectorization
+using MCMCDiagnosticTools
 using Tullio
 
 export relative_eff, psis_ess, psis_n_eff

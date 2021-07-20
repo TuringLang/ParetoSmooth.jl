@@ -3,7 +3,7 @@
     "activeCommit": 0,
     "commits": [
         {
-            "activePatchIndex": 46,
+            "activePatchIndex": 47,
             "patches": [
                 {
                     "date": 1626487596905,
@@ -192,6 +192,10 @@
                 {
                     "date": 1626707529377,
                     "content": "Index: \n===================================================================\n--- \n+++ \n@@ -87,9 +87,9 @@\n         \n         # Test estimates\n         errs = r_ests - jul_loo.estimates(criterion=[:loo_score, :overfit])\n         display(r_ests)\n-        display(jul_loo)\n+        display(jul_loo.estimates(criterion=[:loo_score, :overfit]))\n         display(errs)\n         @test maximum(abs.(errs)) ≤ .01\n         \n         errs = r_ests - r_eff_loo.estimates(criterion=[:loo_score, :overfit])\n"
+                },
+                {
+                    "date": 1626793909851,
+                    "content": "Index: \n===================================================================\n--- \n+++ \n@@ -51,12 +51,12 @@\n \n         @test display(jul_psis) === nothing\n         @test display(jul_loo) === nothing\n         \n-        # max 10% difference in tail length calc between Julia and R\n-        @test maximum(abs.(log.(jul_psis.tail_len ./ r_tail_len))) ≤ .1\n+        # max 20% difference in tail length calc between Julia and R\n+        @test maximum(abs.(log.(jul_psis.tail_len ./ r_tail_len))) ≤ .2\n         @test maximum(abs.(jul_psis.tail_len .- r_tail_len)) ≤ 10\n-        @test maximum(abs.(with_r_eff.tail_len .- r_tail_len)) ≤ 1\n+        @test maximum(abs.(with_r_eff.tail_len .- r_tail_len)) ≤ 2\n         \n         # RMSE from R version is less than .1%\n         @test sqrt(mean((with_r_eff.weights ./ r_weights .- 1).^2)) ≤ .001\n         # RMSE less than .2% when using InferenceDiagnostics' ESS\n"
                 }
             ],
             "date": 1626487596905,
