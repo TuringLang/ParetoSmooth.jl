@@ -1,4 +1,3 @@
-using FLoops
 using LoopVectorization
 using Polyester
 using SortingLab
