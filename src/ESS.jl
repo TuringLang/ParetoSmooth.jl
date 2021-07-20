@@ -6,7 +6,8 @@ using Tullio
 export relative_eff, psis_ess, psis_n_eff
 
 """
-    relative_eff(sample::AbstractArray{AbstractFloat, 3}; 
+    relative_eff(
+        sample::AbstractArray{AbstractFloat, 3}; 
         method=MCMCDiagnosticTools.FFTESSMethod()
     )
 
@@ -38,7 +39,8 @@ Vehtari et al. 2019.
 
   - `weights`: A set of importance sampling weights derived from PSIS.
   - `r_eff`: The relative efficiency of the MCMC chains from which PSIS samples were derived.
-    See `?relative_eff` to calculate `r_eff`.
+
+See `?relative_eff` to calculate `r_eff`.
 """
 function psis_ess(
     weights::AbstractVector{T}, r_eff::AbstractVector{T}
@@ -58,7 +60,7 @@ end
 
 function psis_ess(weights::AbstractMatrix{T}) where {T <: Union{AbstractFloat, Missing}}
     @warn "PSIS ESS not adjusted based on MCMC ESS. MCSE and ESS estimates " *
-          "will be overoptimistic if samples are autocorrelated."
+        "will be overoptimistic if samples are autocorrelated."
     return psis_ess(weights, ones(size(weights)))
 end
 

@@ -3,7 +3,7 @@
     "activeCommit": 0,
     "commits": [
         {
-            "activePatchIndex": 20,
+            "activePatchIndex": 22,
             "patches": [
                 {
                     "date": 1626310029646,
@@ -88,6 +88,14 @@
                 {
                     "date": 1626750148008,
                     "content": "Index: \n===================================================================\n--- \n+++ \n@@ -43,8 +43,9 @@\n     end\n \n \n     grid_size = min_grid_pts + isqrt(len)  # isqrt = floor sqrt\n+    grid_size = grid_size - (grid_size % 4)  # multiples of 4 easier to vectorize\n     n_0 = 10  # determines how strongly to nudge ξ towards .5\n     x_star::T = inv(3 * sample[(len+2)÷4])  # magic number. ¯\\_(ツ)_/¯\n \n \n"
+                },
+                {
+                    "date": 1626807309058,
+                    "content": "Index: \n===================================================================\n--- \n+++ \n@@ -54,9 +54,9 @@\n     ξ_hats = similar(sample, grid_size)\n     invmax = inv(sample[len])\n     @tullio threads=false θ_hats[i] = invmax + (1 - sqrt((grid_size+1) / i)) * x_star\n     @tullio threads=false ξ_hats[i] = log1p(-θ_hats[i] * sample[j]) |> _ / len\n-    log_like = similar(ξ_hats) # Reuse preallocated array (which is no longer in use)\n+    log_like = similar(ξ_hats)  # Reuse preallocated array (which is no longer in use)\n     # Calculate profile log-likelihood at each estimate:\n     @tullio threads=false log_like[i] = len * (log(-θ_hats[i] / ξ_hats[i]) - ξ_hats[i] - 1)\n     # Calculate weights from log-likelihood:\n     weights = ξ_hats  # Reuse preallocated array\n"
+                },
+                {
+                    "date": 1626807324680,
+                    "content": "Index: \n===================================================================\n--- \n+++ \n@@ -90,8 +90,8 @@\n # Returns\n \n A quantile of the Generalized Pareto Distribution.\n \"\"\"\n-function gpd_quantile(p, k::T, sigma::T) where {T <: AbstractFloat}\n+function gpd_quantile(p, k::T, sigma::T) where {T<:AbstractFloat}\n     return sigma * expm1(-k * log1p(-p)) / k\n end\n \n"
                 }
             ],
             "date": 1626310029646,

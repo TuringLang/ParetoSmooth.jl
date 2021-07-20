@@ -55,7 +55,7 @@ function gpdfit(
     invmax = inv(sample[len])
     @tullio threads=false θ_hats[i] = invmax + (1 - sqrt((grid_size+1) / i)) * x_star
     @tullio threads=false ξ_hats[i] = log1p(-θ_hats[i] * sample[j]) |> _ / len
-    log_like = similar(ξ_hats) # Reuse preallocated array (which is no longer in use)
+    log_like = similar(ξ_hats)  # Reuse preallocated array (which is no longer in use)
     # Calculate profile log-likelihood at each estimate:
     @tullio threads=false log_like[i] = len * (log(-θ_hats[i] / ξ_hats[i]) - ξ_hats[i] - 1)
     # Calculate weights from log-likelihood:
@@ -91,7 +91,7 @@ Compute the `p` quantile of the Generalized Pareto Distribution (GPD).
 
 A quantile of the Generalized Pareto Distribution.
 """
-function gpd_quantile(p, k::T, sigma::T) where {T <: AbstractFloat}
+function gpd_quantile(p, k::T, sigma::T) where {T<:AbstractFloat}
     return sigma * expm1(-k * log1p(-p)) / k
 end
 

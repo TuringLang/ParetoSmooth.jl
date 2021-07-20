@@ -1,5 +1,6 @@
 using FLoops
 using LoopVectorization
+using Polyester
 using SortingLab
 using Tullio
 
@@ -67,7 +68,7 @@ function psis(
 
     tail_length = similar(log_ratios, Int, data_size)
     ξ = similar(log_ratios, data_size)
-    @floop for i in eachindex(tail_length)
+    Threads.@threads for i in eachindex(tail_length)
         tail_length[i] = _def_tail_length(post_sample_size, r_eff[i])
         ξ[i] = @views ParetoSmooth._do_psis_i!(weights[i,:], tail_length[i])
     end
