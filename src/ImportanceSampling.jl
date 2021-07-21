@@ -68,7 +68,7 @@ function psis(
     tail_length = similar(log_ratios, Int, data_size)
     ξ = similar(log_ratios, data_size)
     Threads.@threads for i in eachindex(tail_length)
-        tail_length[i] = _def_tail_length(post_sample_size, r_eff[i])
+        tail_length[i] = @views _def_tail_length(post_sample_size, r_eff[i])
         ξ[i] = @views ParetoSmooth._do_psis_i!(weights[i,:], tail_length[i])
     end
     
@@ -122,7 +122,7 @@ function _do_psis_i!(
     len = length(is_ratios)
     
     # sort is_ratios and also get results of sortperm() at the same time
-    ordering = fsortperm(is_ratios)
+    ordering = sortperm(is_ratios)
     sorted_ratios = is_ratios[ordering]
 
     # Define and check tail
