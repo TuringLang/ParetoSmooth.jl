@@ -1,4 +1,3 @@
-using Tables
 using .Turing, .MCMCChains
 export pointwise_log_likelihoods
 
