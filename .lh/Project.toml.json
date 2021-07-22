@@ -3,7 +3,7 @@
     "activeCommit": 0,
     "commits": [
         {
-            "activePatchIndex": 4,
+            "activePatchIndex": 5,
             "patches": [
                 {
                     "date": 1626451797647,
@@ -24,6 +24,10 @@
                 {
                     "date": 1626829648981,
                     "content": "Index: \n===================================================================\n--- \n+++ \n@@ -31,8 +31,9 @@\n MCMCDiagnosticTools = \"0.1.0\"\n Polyester = \"0.3.4\"\n PrettyTables = \"1.1.0\"\n Requires = \"1.1.3\"\n+SortingLab = \"0.2.8\"\n Tullio = \"0.2.14\"\n julia = \"1.6\"\n \n [extras]\n"
+                },
+                {
+                    "date": 1626920588728,
+                    "content": "Index: \n===================================================================\n--- \n+++ \n@@ -1,8 +1,8 @@\n name = \"ParetoSmooth\"\n uuid = \"a68b5a21-f429-434e-8bfa-46b447300aac\"\n authors = [\"Carlos Parada <paradac@carleton.edu>\"]\n-version = \"0.2.3\"\n+version = \"0.2.4\"\n \n [deps]\n AxisKeys = \"94b1ba4f-4ee9-5380-92f1-94cde586c3c5\"\n Distributions = \"31c24e10-a181-5473-b8eb-7969acd0382f\"\n@@ -14,14 +14,9 @@\n Polyester = \"f517fe37-dbe3-4b94-8317-1923a5111588\"\n PrettyTables = \"08abe8d2-0d0c-5749-adfa-8a2ac140af0d\"\n Random = \"9a3f8284-a2c9-5f02-9a11-845980a1fd5c\"\n Requires = \"ae029012-a4dd-5104-9daa-d747884805df\"\n-SortingAlgorithms = \"a2af1166-a08f-5f64-846c-94a0d3cef48c\"\n-SortingLab = \"562c1548-17b8-5b69-83cf-d8aebec229f5\"\n-SpecialFunctions = \"276daf66-3868-5448-9aa4-cd146d93841b\"\n Statistics = \"10745b16-79ce-11e8-11f9-7d13ad32a3b2\"\n-StatsBase = \"2913bbd2-ae8a-5f71-8c99-4fb6c76f3a91\"\n-Tables = \"bd369af6-aec1-5ad0-b16a-f7cc5008161c\"\n Tullio = \"bc48ee85-29a4-5162-ae0b-a64e1601d4bc\"\n \n [compat]\n AxisKeys = \"0.1.18\"\n@@ -31,9 +26,8 @@\n MCMCDiagnosticTools = \"0.1.0\"\n Polyester = \"0.3.4\"\n PrettyTables = \"1.1.0\"\n Requires = \"1.1.3\"\n-SortingLab = \"0.2.8\"\n Tullio = \"0.2.14\"\n julia = \"1.6\"\n \n [extras]\n"
                 }
             ],
             "date": 1626451797647,
