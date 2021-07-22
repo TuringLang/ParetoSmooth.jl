@@ -1,6 +1,4 @@
 using LoopVectorization
-using Polyester
-using SortingLab
 using Tullio
 
 
@@ -58,7 +56,7 @@ function psis(
 
     # Reshape to matrix (easier to deal with)
     log_ratios = reshape(log_ratios, data_size, post_sample_size)
-    weights::AbstractArray{T} = similar(log_ratios)
+    weights = similar(log_ratios)
     # Shift ratios by maximum to prevent overflow
     @tturbo @. weights = exp(log_ratios - $maximum(log_ratios; dims=2))
 
@@ -67,7 +65,7 @@ function psis(
 
     tail_length = similar(log_ratios, Int, data_size)
     ξ = similar(log_ratios, data_size)
-    Threads.@threads for i in eachindex(tail_length)
+    @inbounds Threads.@threads for i in eachindex(tail_length)
         tail_length[i] = @views _def_tail_length(post_sample_size, r_eff[i])
         ξ[i] = @views ParetoSmooth._do_psis_i!(weights[i,:], tail_length[i])
     end
@@ -92,7 +90,6 @@ function psis(
     chain_index::AbstractVector{I}=_assume_one_chain(log_ratios),
     kwargs...,
 ) where {T<:AbstractFloat,I<:Integer}
-    
     new_log_ratios = _convert_to_array(log_ratios, chain_index)
     return psis(new_log_ratios, r_eff; kwargs...)
 end
@@ -119,25 +116,30 @@ Additional information can be found in the LOO package from R.
 function _do_psis_i!(
     is_ratios::AbstractVector{T}, tail_length::Integer
 ) where {T<:AbstractFloat}
+
     len = length(is_ratios)
     
     # sort is_ratios and also get results of sortperm() at the same time
-    ordering = sortperm(is_ratios)
-    sorted_ratios = is_ratios[ordering]
+    ordering = similar(is_ratios, Int)
+    ratio_index = collect(zip(is_ratios, Base.OneTo(len)))
+    tuples = sort!(ratio_index; by=first)
+    is_ratios .= first.(tuples)
+    ordering .= last.(tuples)
+    
 
     # Define and check tail
     tail_start = len - tail_length + 1  # index of smallest tail value
-    @views tail = sorted_ratios[tail_start:len]
+    @views tail = is_ratios[tail_start:len]
     _check_tail(tail)
 
     # Get value just before the tail starts:
-    cutoff = sorted_ratios[tail_start - 1]
+    cutoff = is_ratios[tail_start - 1]
     ξ = _psis_smooth_tail!(tail, cutoff)
 
     # truncate at max of raw weights (1 after scaling)
-    clamp!(sorted_ratios, 0, 1)
+    clamp!(is_ratios, 0, 1)
     # unsort the ratios to their original position:
-    is_ratios .= @views sorted_ratios[invperm(ordering)]
+    is_ratios .= @views is_ratios[invperm(ordering)]
 
     return ξ::T
 end

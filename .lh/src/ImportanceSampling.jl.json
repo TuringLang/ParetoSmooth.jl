@@ -3,7 +3,7 @@
     "activeCommit": 0,
     "commits": [
         {
-            "activePatchIndex": 84,
+            "activePatchIndex": 85,
             "patches": [
                 {
                     "date": 1626309654641,
@@ -344,6 +344,10 @@
                 {
                     "date": 1626749594403,
                     "content": "Index: \n===================================================================\n--- \n+++ \n@@ -134,9 +134,9 @@\n \n     # truncate at max of raw weights (1 after scaling)\n     clamp!(sorted_ratios, 0, 1)\n     # unsort the ratios to their original position:\n-    invpermute!(is_ratios, ordering)\n+    is_ratios .= @views sorted_ratios[invperm(ordering)]\n \n     return ξ::T\n end\n \n"
+                },
+                {
+                    "date": 1626895733415,
+                    "content": "Index: \n===================================================================\n--- \n+++ \n@@ -117,13 +117,13 @@\n function _do_psis_i!(\n     is_ratios::AbstractVector{T}, tail_length::Integer\n ) where {T<:AbstractFloat}\n \n-    len = length(is_ratios)\n+    len::UInt16 = length(is_ratios)\n     \n     # sort is_ratios and also get results of sortperm() at the same time\n-    ordering = similar(is_ratios, typeof(len))\n-    ratio_index = collect(zip(is_ratios, 1:len))\n+    ordering = similar(is_ratios, UInt16)\n+    ratio_index = collect(zip(is_ratios, Base.OneTo(len)))\n     tuples = sort!(ratio_index; by=first)\n     is_ratios .= first.(tuples)\n     ordering .= last.(tuples)\n     \n"
                 }
             ],
             "date": 1626309654640,
