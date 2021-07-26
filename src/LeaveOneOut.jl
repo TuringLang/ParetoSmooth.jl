@@ -148,18 +148,19 @@ function _generate_loo_table(
     # calculate the sample expectation for the total score
     to_sum = pointwise([:loo_est, :naive_est, :overfit])
     @tullio averages[crit] := to_sum[data, crit] / data_size
-    averages = averages'
+    averages = reshape(averages, 3)
     table(:, :mean) .= averages
 
     # calculate the sample expectation for the average score
     table(:, :total) .= table(:, :mean) .* data_size
 
     # calculate the sample expectation for the standard error in the totals
-    @tullio variance := (to_sum[data, crit] - averages[crit])^2
-    table(:, :se_mean) .= sqrt(variance / data_size)
+    se_mean = std(to_sum; mean=averages', dims=1) / sqrt(data_size)
+    se_mean = reshape(se_mean, 3)
+    table(:, :se_mean) .= se_mean
 
     # calculate the sample expectation for the standard error in averages
-    table(:, :se_total) .= table(:, :se_mean) * data_size
+    table(:, :se_total) .= se_mean * data_size
 
     return table
 end
