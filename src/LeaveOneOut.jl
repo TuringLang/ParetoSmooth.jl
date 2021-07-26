@@ -4,7 +4,6 @@ using InteractiveUtils
 using LoopVectorization
 using Statistics
 using Tullio
-using Underscores
 
 export loo, psis_loo
 
