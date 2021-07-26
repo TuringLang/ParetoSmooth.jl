@@ -25,13 +25,13 @@ r_loo = RData.load("Example_Loo.RData")["example_loo"]
 r_pointwise = KeyedArray(
     r_loo["pointwise"][:, Not(4)];
     data = 1:size(r_loo["pointwise"], 1),
-    statistic=[:loo_score, :loo_mcse, :overfit, :pareto_k],
+    statistic=[:loo_est, :mcse, :overfit, :pareto_k],
 )
 
 r_loo["estimates"] = hcat(r_loo["estimates"], r_loo["estimates"] / size(r_pointwise, 1))
 r_ests = KeyedArray(
     r_loo["estimates"][Not(3), :];
-    criterion=[:loo_score, :overfit],
+    criterion=[:loo_est, :overfit],
     statistic=[:total, :se_total, :mean, :se_mean],
 )
 
@@ -68,31 +68,31 @@ r_ests = KeyedArray(
         ## Test difference in loo pointwise results
 
         # Different r_eff
-        jul_pointwise = jul_loo.pointwise([:loo_score, :loo_mcse, :overfit, :pareto_k])
+        jul_pointwise = jul_loo.pointwise([:loo_est, :mcse, :overfit, :pareto_k])
         errs = (r_pointwise - jul_pointwise).^2
-        @test sqrt(mean(errs(:loo_score))) ≤ .01
+        @test sqrt(mean(errs(:loo_est))) ≤ .01
         @test sqrt(mean(errs(:overfit))) ≤ .01
         @test sqrt(mean(errs(:pareto_k))) ≤ .025
-        errs_mcse = log.(r_pointwise(:loo_mcse) ./ jul_loo.pointwise(:loo_mcse)).^2
+        errs_mcse = log.(r_pointwise(:mcse) ./ jul_loo.pointwise(:mcse)).^2
         @test_broken sqrt(mean(errs_mcse)) ≤ .1
 
         # Same r_eff
-        r_eff_pointwise = r_eff_loo.pointwise([:loo_score, :loo_mcse, :overfit, :pareto_k])
+        r_eff_pointwise = r_eff_loo.pointwise([:loo_est, :mcse, :overfit, :pareto_k])
         errs = (r_pointwise - r_eff_pointwise).^2
-        @test sqrt(mean(errs(:loo_score))) ≤ .01
+        @test sqrt(mean(errs(:loo_est))) ≤ .01
         @test sqrt(mean(errs(:overfit))) ≤ .01
         @test sqrt(mean(errs(:pareto_k))) ≤ .025
-        errs_mcse = log.(r_pointwise(:loo_mcse) ./ r_eff_loo.pointwise(:loo_mcse)).^2
+        errs_mcse = log.(r_pointwise(:mcse) ./ r_eff_loo.pointwise(:mcse)).^2
         @test_broken sqrt(mean(errs_mcse)) ≤ .1
         
         # Test estimates
-        errs = r_ests - jul_loo.estimates(criterion=[:loo_score, :overfit])
+        errs = r_ests - jul_loo.estimates(criterion=[:loo_est, :overfit])
         display(r_ests)
-        display(jul_loo.estimates(criterion=[:loo_score, :overfit]))
+        display(jul_loo.estimates(criterion=[:loo_est, :overfit]))
         display(errs)
         @test maximum(abs.(errs)) ≤ .01
         
-        errs = r_ests - r_eff_loo.estimates(criterion=[:loo_score, :overfit])
+        errs = r_ests - r_eff_loo.estimates(criterion=[:loo_est, :overfit])
         display(errs)
         @test maximum(abs.(errs)) ≤ .01
 

@@ -1,7 +1,6 @@
 using LoopVectorization
 using Tullio
 
-
 const LIKELY_ERROR_CAUSES = """
 1. Bugs in the program that generated the sample, or otherwise incorrect input variables. 
 2. Your chains failed to converge. Check diagnostics. 
@@ -10,7 +9,7 @@ const LIKELY_ERROR_CAUSES = """
 const MIN_TAIL_LEN = 5  # Minimum size of a tail for PSIS to give sensible answers
 const SAMPLE_SOURCES = ["mcmc", "vi", "other"]
 
-export Psis, psis
+export psis
 
 """
     psis(
@@ -244,7 +243,7 @@ function _check_tail(tail::AbstractVector{T}) where {T<:AbstractFloat}
     if maximum(tail) ≈ minimum(tail)
         throw(
             ArgumentError(
-                "Unable to fit generalized Pareto distribution: all tail values are the" *
+                "Unable to fit generalized Pareto distribution: all tail values are the " *
                 "same. Likely causes are: \n$LIKELY_ERROR_CAUSES",
             ),
         )
@@ -257,39 +256,4 @@ function _check_tail(tail::AbstractVector{T}) where {T<:AbstractFloat}
         )
     end
     return nothing
-end
-
-
-
-##########################
-#####  PSIS STRUCTS  #####
-##########################
-
-"""
-    Psis{V<:AbstractVector{F},I<:Integer} where {F<:AbstractFloat}
-
-A struct containing the results of Pareto-smoothed importance sampling.
-
-# Fields
-  - `weights`: A vector of smoothed, truncated, and normalized importance sampling weights.
-  - `pareto_k`: Estimates of the shape parameter `k` of the generalized Pareto distribution.
-  - `ess`: Estimated effective sample size for each LOO evaluation.
-  - `tail_len`: Vector indicating how large the "tail" is for each observation.
-  - `dims`: Named tuple of length 2 containing `s` (posterior sample size) and `n` (number
-    of observations).
-"""
-struct Psis{
-    F<:AbstractFloat,
-    AF<:AbstractArray{F,3},
-    VF<:AbstractVector{F},
-    I<:Integer,
-    VI<:AbstractVector{I},
-}
-    weights::AF
-    pareto_k::VF
-    ess::VF
-    r_eff::VF
-    tail_len::VI
-    posterior_sample_size::I
-    data_size::I
 end

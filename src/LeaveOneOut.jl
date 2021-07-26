@@ -4,11 +4,11 @@ using InteractiveUtils
 using LoopVectorization
 using Statistics
 using Tullio
-
+using Underscores
 
 export loo, psis_loo
 
-const LOO_METHODS = subtypes(AbstractLooMethod)
+const LOO_METHODS = subtypes(AbstractCVMethod)
 
 """
     function loo(args...; method=PsisLooMethod(), kwargs...) -> PsisLoo
@@ -33,7 +33,7 @@ end
 """
     function psis_loo(
         log_likelihood::Array{Float} [, args...];
-        source::String="mcmc" [, chain_index::Vector{Int}, kwargs...]
+        [, chain_index::Vector{Int}, kwargs...]
     ) -> PsisLoo
 
 Use Pareto-Smoothed Importance Sampling to calculate the leave-one-out cross validation
@@ -52,9 +52,20 @@ score.
 
 See also: [`psis`](@ref), [`loo`](@ref), [`PsisLoo`](@ref).
 """
+# subsamples::AbstractArray{Bool}="mcmc" 
+#   - `subsamples`: Used for subsampling with large datasets. This can be a vector of Booleans
+#     indicating which values should be used, or an integer denoting how many values to 
+#     subsample. We advise against subsampling the data except with extremely large datasets; 
+#     instead, try thinning your chains until MCSE exceeds the sampling error.
+#   - `rng::AbstractRNG`: A user-provided RNG used in subsampling. By default, this is
+#     `MersenneTwister(1776)`. This default will change in the future, and should not be 
+#     relied on for reproducibility.
 function psis_loo(
-    log_likelihood::T, args...; kwargs...
-) where {F <: AbstractFloat, T <: AbstractArray{F, 3}}
+    log_likelihood::T, args...; 
+    # subsamples::AbstractVector{Bool}=trues(size(log_likelihood, 1)), 
+    kwargs...
+) where {F<:AbstractFloat, T<:AbstractArray{F, 3}}
+    
 
     dims = size(log_likelihood)
     data_size = dims[1]
@@ -81,7 +92,7 @@ function psis_loo(
 
     pointwise = KeyedArray(
         hcat(
-            pointwise_loo, 
+            pointwise_loo,
             pointwise_naive,
             pointwise_overfit,
             pointwise_mcse,
@@ -89,38 +100,15 @@ function psis_loo(
         );
         data=1:length(pointwise_loo),
         statistic=[
-            :loo_score, 
-            :naive_score, 
+            :loo_est,
+            :naive_est,
             :overfit,
-            :loo_mcse,
+            :mcse,
             :pareto_k
         ],
     )
 
-    table = KeyedArray(
-        similar(log_likelihood, 3, 4);
-        criterion=[:loo_score, :naive_score, :overfit],
-        statistic=[:total, :se_total, :mean, :se_mean],
-    )
-    
-
-    table(:, :total) .= reshape(
-        sum(pointwise([:loo_score, :naive_score, :overfit]); dims=1), 
-        3
-    )
-    table(:, :mean) .= table(:, :total) ./ data_size
-
-    table(:, :se_total) .= reshape(
-        sqrt.(
-            data_size * varm(
-                pointwise([:loo_score, :naive_score, :overfit]), 
-                table(:, :mean)'; 
-                dims=1
-            )
-        ), 
-        3
-    )
-    table(:, :se_mean) .= table(:, :se_total) ./ data_size
+    table = _generate_loo_table(log_likelihood, pointwise, data_size)
 
     return PsisLoo(table, pointwise, psis_object)
 
@@ -135,4 +123,43 @@ function psis_loo(
 ) where {F <: AbstractFloat, T <: AbstractMatrix{F}}
     new_log_ratios = _convert_to_array(log_likelihood, chain_index)
     return psis_loo(new_log_ratios, args...; kwargs...)
+end
+
+# function psis_loo(log_likelihood, args...; 
+#     subsamples::Integer, rng::AbstractRNG=MersenneTwister(1776), kwargs...
+# )
+#     return log_likelihood = rand()
+# end
+    
+
+function _generate_loo_table(
+    log_likelihood::AbstractArray, 
+    pointwise::AbstractArray, 
+    data_size::Integer
+)
+
+    # create table with the right labels
+    table = KeyedArray(
+        similar(log_likelihood, 3, 4);
+        criterion=[:loo_est, :naive_est, :overfit],
+        statistic=[:total, :se_total, :mean, :se_mean],
+    )
+
+    # calculate the sample expectation for the total score
+    to_sum = pointwise([:loo_est, :naive_est, :overfit])
+    @tullio averages[crit] := to_sum[data, crit] / data_size
+    averages = averages'
+    table(:, :mean) .= averages
+
+    # calculate the sample expectation for the average score
+    table(:, :total) .= table(:, :mean) .* data_size
+
+    # calculate the sample expectation for the standard error in the totals
+    @tullio variance := (to_sum[data, crit] - averages[crit])^2
+    table(:, :se_mean) .= sqrt(variance / data_size)
+
+    # calculate the sample expectation for the standard error in averages
+    table(:, :se_total) .= table(:, :se_mean) * data_size
+
+    return table
 end

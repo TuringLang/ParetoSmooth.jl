@@ -42,8 +42,7 @@ score from an MCMCChains object.
 
 See also: [`psis_loo`](@ref), [`loo`](@ref), [`PsisLoo`](@ref).
 """
-function psis_loo(
-    ll_fun::Function, chain::Chains, data::AbstractVector, args...; kwargs...)
+function psis_loo(ll_fun::Function, chain::Chains, data::AbstractVector, args...; kwargs...)
     pointwise_log_likes = pointwise_log_likelihoods(ll_fun, chain, data)
     return psis_loo(pointwise_log_likes, args...; kwargs...)
 end
