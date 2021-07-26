@@ -1,31 +1,32 @@
 
 using AxisKeys
 using PrettyTables
-export PsisLoo, AbstractLoo, AbstractLooMethod, PsisLooMethod
+export PsisLoo, PsisLooMethod, Psis, BayesCV
 
-abstract type AbstractLoo end
-
-"""
-    PsisLoo{
-        F <: AbstractFloat,
-        AF <: AbstractArray{F},
-        VF <: AbstractVector{F},
-        I <: Integer,
-        VI <: AbstractVector{I},
-    } <: AbstractLoo
-
-A struct containing the results of leave-one-out cross validation using Pareto smoothed
-importance sampling.
-
+const POINTWISE_LABELS = (:cv_est, :naive_est, :overfit, :ess, :pareto_k)
+const CV_DESC = """
 # Fields
 
-  - `estimates::KeyedArray`: A `KeyedArray` with two columns (`:Estimate`, `:SE`) and three
-    rows (`:total_score`, `:overfit`, `:avg_score`). This contains point estimates and
-    standard errors for the total log score (the sum of all errors); the effective number of 
-    parameters (difference between in-sample and out-of-sample predictive accuracy); and the
-    average log-score (Sometimes referred to as the ELPD). See the extended help for more
-    details.
-  - `pointwise::KeyedArray`: An array of pointwise values
+  - `estimates::KeyedArray`: A KeyedArray with columns `:total, :se_total, :mean, :se_mean`,
+    and rows `:cv_est, :naive_est, :overfit`. See `# Extended help` for more.
+      - `:cv_est` contains estimates for the out-of-sample prediction error, as
+        predicted using the jackknife (LOO-CV).
+      - `:naive_est` contains estimates of the in-sample prediction error.
+      - `:overfit` is the difference between the previous two estimators, and estimates 
+        the amount of overfitting. When using the log probability score, it is equal to 
+        the effective number of parameters -- a model with an overfit of 2 is "about as
+        overfit" as a model with 2 independent parameters that have a flat prior.
+  - `pointwise::KeyedArray`: A `KeyedArray` of pointwise estimates with 5 columns --
+      - `:cv_est` contains the estimated out-of-sample error for this point, as measured
+        using leave-one-out cross validation.
+      - `:naive_est` contains the in-sample estimate of error for this point.
+      - `:overfit` is the difference in the two previous estimates.
+      - `:ess` is the effective sample size, which measures the simulation error caused by 
+        using Monte Carlo estimates. It is *not* related to the actual sample size, and it
+        does not measure how accurate your predictions are.     
+    - `:pareto_k` is the estimated value for the parameter `ξ` of the generalized Pareto
+      distribution. Values above .7 indicate that PSIS has failed to approximate the true
+      distribution.
   - `psis_object::Psis`: A `Psis` object containing the results of Pareto-smoothed 
     importance sampling.
 
@@ -41,7 +42,7 @@ score).
 
 The overfit is equal to the difference between the in-sample and out-of-sample predictive
 accuracy. When using the log probability score, it is equal to the "effective number of
-parameters" -- a model with an overfit of 2 has "about as much overfit" as a model with 2
+parameters" -- a model with an overfit of 2 is "about as overfit" as a model with 2
 free parameters and flat priors.
 
 
@@ -51,27 +52,44 @@ The average score is a relative goodness-of-fit statistic which does not depend 
 size. 
 
 
-Unlike with chi-square goodness of fit tests, models do not have to be nested for PSIS-LOO.
+Unlike for chi-square goodness of fit tests, models do not have to be nested for model
+comparison using cross-validation methods.
+"""
 
 
-See also: [`psis_loo`]@ref, [`Psis`]@ref
+###########################
+### IMPORTANCE SAMPLING ###
+###########################
 
 """
-struct PsisLoo{
-    F <: AbstractFloat,
-    AF <: AbstractArray{F},
-    VF <: AbstractVector{F},
-    I <: Integer,
-    VI <: AbstractVector{I},
-} <: AbstractLoo
-    estimates::KeyedArray
-    pointwise::KeyedArray
-    psis_object::Psis{F, AF, VF, I, VI}
+    Psis{V<:AbstractVector{F},I<:Integer} where {F<:AbstractFloat}
+
+A struct containing the results of Pareto-smoothed importance sampling.
+
+# Fields
+  - `weights`: A vector of smoothed, truncated, and normalized importance sampling weights.
+  - `pareto_k`: Estimates of the shape parameter `k` of the generalized Pareto distribution.
+  - `ess`: Estimated effective sample size for each LOO evaluation.
+  - `tail_len`: Vector indicating how large the "tail" is for each observation.
+  - `dims`: Named tuple of length 2 containing `s` (posterior sample size) and `n` (number
+    of observations).
+"""
+struct Psis{
+    F<:AbstractFloat,
+    AF<:AbstractArray{F,3},
+    VF<:AbstractVector{F},
+    I<:Integer,
+    VI<:AbstractVector{I},
+}
+    weights::AF
+    pareto_k::VF
+    ess::VF
+    r_eff::VF
+    tail_len::VI
+    posterior_sample_size::I
+    data_size::I
 end
 
-abstract type AbstractLooMethod end
-
-struct PsisLooMethod <: AbstractLooMethod end
 
 function _throw_pareto_k_warning(ξ)
     if any(ξ .≥ .7)
@@ -84,9 +102,144 @@ function _throw_pareto_k_warning(ξ)
 end
 
 
+function Base.show(io::IO, ::MIME"text/plain", psis_object::Psis)
+    table = hcat(psis_object.pareto_k, psis_object.ess)
+    post_samples = psis_object.posterior_sample_size
+    data_size = psis_object.data_size
+    println("Results of PSIS with $post_samples Monte Carlo samples and " *
+    "$data_size data points.")
+    _throw_pareto_k_warning(psis_object.pareto_k)
+    return pretty_table(
+        table;
+        compact_printing=false,
+        header=[:pareto_k, :ess],
+        formatters=ft_printf("%5.2f"),
+        alignment=:r,
+    )
+end
+
+
+
+##########################
+#### CROSS VALIDATION ####
+##########################
+
+"""
+    AbstractCV
+An abstract type used in cross-validation.
+"""
+abstract type AbstractCV end
+
+"""
+    AbstractCVMethod
+An abstract type used to dispatch the correct method for cross validation.
+"""
+abstract type AbstractCVMethod end
+
+
+
+##########################
+######## PSIS-LOO ########
+##########################
+
+"""
+    PsisLooMethod
+
+Use Pareto-smoothed importance sampling together with leave-one-out cross validation to
+estimate the out-of-sample predictive accuracy.
+"""
+struct PsisLooMethod <: AbstractCVMethod end
+
+
+"""
+    PsisLoo{
+        F <: AbstractFloat,
+        AF <: AbstractArray{F},
+        VF <: AbstractVector{F},
+        I <: Integer,
+        VI <: AbstractVector{I},
+    } <: AbstractCV
+
+A struct containing the results of jackknife (leave-one-out) cross validation using Pareto 
+smoothed importance sampling.
+
+$CV_DESC
+
+See also: [`loo`]@ref, [`bayes_cv`]@ref, [`psis_loo`]@ref, [`Psis`]@ref
+"""
+struct PsisLoo{
+    F <: AbstractFloat,
+    AF <: AbstractArray{F},
+    VF <: AbstractVector{F},
+    I <: Integer,
+    VI <: AbstractVector{I},
+} <: AbstractCV
+    estimates::KeyedArray
+    pointwise::KeyedArray
+    psis_object::Psis{F, AF, VF, I, VI}
+end
+
+
+
+
 function Base.show(io::IO, ::MIME"text/plain", loo_object::PsisLoo)
     table = loo_object.estimates
     _throw_pareto_k_warning(loo_object.pointwise(:pareto_k))
+    post_samples = loo_object.psis_object.posterior_sample_size
+    data_size = loo_object.psis_object.data_size
+    println("Results of PSIS-LOO-CV with $post_samples Monte Carlo samples and " *
+    "$data_size data points.")
+    return pretty_table(
+        table;
+        compact_printing=false,
+        header=table.statistic,
+        row_names=table.criterion,
+        formatters=ft_printf("%5.2f"),
+        alignment=:r,
+    )
+end
+
+
+
+##########################
+### BAYESIAN BOOTSTRAP ###
+##########################
+
+"""
+    BayesCV{
+        F <: AbstractFloat,
+        AF <: AbstractArray{F},
+        VF <: AbstractVector{F},
+        I <: Integer,
+        VI <: AbstractVector{I},
+    } <: AbstractCV
+
+A struct containing the results of cross-validation using the Bayesian bootstrap.
+
+$CV_DESC
+
+See also: [`bayes_cv`]@ref, [`psis_loo`]@ref, [`psis`]@ref, [`Psis`]@ref
+"""
+struct BayesCV{
+    F <: AbstractFloat,
+    AF <: AbstractArray{F},
+    VF <: AbstractVector{F},
+    I <: Integer,
+    VI <: AbstractVector{I},
+} <: AbstractCV
+    estimates::KeyedArray
+    posteriors::KeyedArray
+    psis_object::Psis{F, AF, VF, I, VI}
+end
+
+
+function Base.show(io::IO, ::MIME"text/plain", cv_object::BayesCV)
+    table = cv_object.estimates
+    post_samples = cv_object.psis_object.posterior_sample_size
+    data_size = cv_object.psis_object.data_size
+    _throw_pareto_k_warning(cv_object.resamples(:pareto_k))
+    println("Results of Bayesian bootstrap CV with $post_samples Monte Carlo samples and " *
+    "$data_size data points.")
     return pretty_table(
         table;
         compact_printing=false,

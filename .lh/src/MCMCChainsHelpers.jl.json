@@ -3,7 +3,7 @@
     "activeCommit": 0,
     "commits": [
         {
-            "activePatchIndex": 11,
+            "activePatchIndex": 12,
             "patches": [
                 {
                     "date": 1626630724221,
@@ -52,6 +52,10 @@
                 {
                     "date": 1626636001504,
                     "content": "Index: \n===================================================================\n--- \n+++ \n@@ -55,9 +55,9 @@\n \n # Arguments\n \n   - $LIKELIHOOD_FUNCTION_ARG\n-  - chain::Chain`: A chain object from MCMCChains.\n+  - `chain::Chain`: A chain object from MCMCChains.\n   - `data`: A vector of data points used to estimate the parameters of the model.\n   - $ARGS [`psis`](@ref).\n   - $KWARGS [`psis`](@ref).\n \n"
+                },
+                {
+                    "date": 1626977130141,
+                    "content": "Index: \n===================================================================\n--- \n+++ \n@@ -41,10 +41,9 @@\n   - $KWARGS [`psis_loo`](@ref).\n \n See also: [`psis_loo`](@ref), [`loo`](@ref), [`PsisLoo`](@ref).\n \"\"\"\n-function psis_loo(\n-    ll_fun::Function, chain::Chains, data::AbstractVector, args...; kwargs...)\n+function psis_loo(ll_fun::Function, chain::Chains, data::AbstractVector, args...; kwargs...)\n     pointwise_log_likes = pointwise_log_likelihoods(ll_fun, chain, data)\n     return psis_loo(pointwise_log_likes, args...; kwargs...)\n end\n \n"
                 }
             ],
             "date": 1626630724221,
