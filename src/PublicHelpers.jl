@@ -35,13 +35,13 @@ function pointwise_log_likelihoods(
     else
         fun = (p, d) -> ll_fun(p, d)
     end
-    _, n_posterior, n_chains = size(samples)
+    n_posterior, _, n_chains = size(samples)
     n_data = length(data)  # First index will represent data, not parameters.
     pointwise_lls = similar(samples, n_data, n_posterior, n_chains)
     for index in CartesianIndices(pointwise_lls)
         datum, iteration, chain = Tuple(index)
         pointwise_lls[datum, iteration, chain] = 
-            fun(samples[:, iteration, chain], data[datum])
+            fun(samples[iteration, :, chain], data[datum])
     end
     return pointwise_lls
 end

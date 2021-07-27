@@ -16,9 +16,9 @@ evaluated at datapoint d, sample s, for chain c.
 # Returns
 - `Array{Float64,3}`: a three dimensional array of pointwise log likelihoods 
 """
-function pointwise_log_likelihoods(ll_fun::Function, chain::Chains, data)
+function pointwise_log_likelihoods(ll_fun::Function, chain::Chains, data; kwargs...)
     samples = Array(Chains(chain, :parameters).value)
-    pointwise_log_likelihoods(ll_fun, samples, data)
+    pointwise_log_likelihoods(ll_fun, samples, data; kwargs...)
 end
 
 """

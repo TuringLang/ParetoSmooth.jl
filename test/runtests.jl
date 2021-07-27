@@ -98,7 +98,7 @@ r_loo["estimates"](criterion=:avg_score) .=
         using Distributions, Random
         Random.seed!(112)
         # simulated samples for μ
-        samples = randn(1, 100, 1)
+        samples = randn(100, 1, 1)
         data = randn(50)
         chain = Chains(samples)
 
@@ -106,6 +106,9 @@ r_loo["estimates"](criterion=:avg_score) .=
             return logpdf(Normal(μ, 1), data)
         end
 
+        function compute_loglike(μ, σ, data)
+            return logpdf(Normal(μ, σ), data)
+        end
         
         pll1 = pointwise_log_likelihoods(compute_loglike, chain, data)
         pll2 = pointwise_log_likelihoods(compute_loglike, samples, data)
@@ -146,11 +149,15 @@ r_loo["estimates"](criterion=:avg_score) .=
         end
 
         chain = sample(model(data), NUTS(1000, .9), MCMCThreads(), 1000, 4)
-        pw_lls = pointwise_log_likelihoods(model(data), chain)
+        pw_lls_turing = pointwise_log_likelihoods(model(data), chain)
+        pw_lls_loglike = pointwise_log_likelihoods(compute_loglike, chain, data)
+
         # test the dimensions: data points, samples, chains
-        @test size(pw_lls) == (50, 1000, 4)
+        @test size(pw_lls_turing) == (50, 1000, 4)
         # test that sum of pointwise log likelihoods equals sum of log likelihoods
-        @test sum(sum(map(s->logpdf.(Normal(s, 1), data), samples))) ≈ sum(pw_lls) atol = 1e6
+        @test sum(sum(map(s->logpdf.(Normal(s, 1), data), samples))) ≈ sum(pw_lls_turing) atol = 1e6
+        # Turing would work the same as compute_loglike
+        @test pw_lls_loglike ≈ pw_lls_turing atol = 1e6
 
         # test that psis_loo works with Turing model and MCMCChains and yields correct type
         psis_loo_output = psis_loo(model(data), chain)
@@ -165,7 +172,7 @@ r_loo["estimates"](criterion=:avg_score) .=
 
         
         # ensure that methods work with r_eff argument
-        r_eff = similar(pw_lls, 0)
+        r_eff = similar(pw_lls_turing, 0)
         # test that psis_loo works with Turin and gives correct type
         psis_loo_output = psis_loo(model(data), chain, r_eff)
         @test isa(psis_loo_output, PsisLoo)
