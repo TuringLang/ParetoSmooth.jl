@@ -15,5 +15,6 @@ module ParetoSmooth
     include("LooStructs.jl")
     include("LeaveOneOut.jl")
     include("PublicHelpers.jl")
+    include("LooCompare.jl")
 
 end
