@@ -1,13 +1,13 @@
 using AxisKeys
+using Distributions
 using InteractiveUtils
 using LoopVectorization
 using Statistics
 using Tullio
 
-
 export loo, psis_loo
 
-const LOO_METHODS = subtypes(AbstractLooMethod)
+const LOO_METHODS = subtypes(AbstractCVMethod)
 
 """
     function loo(args...; method=PsisLooMethod(), kwargs...) -> PsisLoo
@@ -32,7 +32,7 @@ end
 """
     function psis_loo(
         log_likelihood::Array{Float} [, args...];
-        source::String="mcmc" [, chain_index::Vector{Int}, kwargs...]
+        [, chain_index::Vector{Int}, kwargs...]
     ) -> PsisLoo
 
 Use Pareto-Smoothed Importance Sampling to calculate the leave-one-out cross validation
@@ -45,15 +45,26 @@ score.
     or if all posterior samples were drawn from a single chain.
   - `args...`: Positional arguments to be passed to [`psis`](@ref).
   - `chain_index::Vector`: An (optional) vector of integers specifying which chain each
-    iteration belongs to. For instance, `chain_index[iteration]` should return `2` if
-    `log_likelihood[:, step]`belongs to the second chain.
+    step belongs to. For instance, `chain_index[3]` should return `2` if
+    `log_likelihood[:, 3]` belongs to the second chain.
   - `kwargs...`: Keyword arguments to be passed to [`psis`](@ref).
 
 See also: [`psis`](@ref), [`loo`](@ref), [`PsisLoo`](@ref).
 """
+# subsamples::AbstractArray{Bool}="mcmc" 
+#   - `subsamples`: Used for subsampling with large datasets. This can be a vector of Booleans
+#     indicating which values should be used, or an integer denoting how many values to 
+#     subsample. We advise against subsampling the data except with extremely large datasets; 
+#     instead, try thinning your chains until MCSE exceeds the sampling error.
+#   - `rng::AbstractRNG`: A user-provided RNG used in subsampling. By default, this is
+#     `MersenneTwister(1776)`. This default will change in the future, and should not be 
+#     relied on for reproducibility.
 function psis_loo(
-    log_likelihood::T, args...; kwargs...
-) where {F <: AbstractFloat, T <: AbstractArray{F, 3}}
+    log_likelihood::T, args...; 
+    # subsamples::AbstractVector{Bool}=trues(size(log_likelihood, 1)), 
+    kwargs...
+) where {F<:AbstractFloat, T<:AbstractArray{F, 3}}
+    
 
     dims = size(log_likelihood)
     data_size = dims[1]
@@ -70,34 +81,33 @@ function psis_loo(
     ξ = psis_object.pareto_k
     r_eff = psis_object.r_eff
 
-
-    @tullio pointwise_ev[i] := weights[i, j, k] * exp(log_likelihood[i, j, k]) |> log
+    @tullio pointwise_loo[i] := weights[i, j, k] * exp(log_likelihood[i, j, k]) |> log
     @tullio pointwise_naive[i] := exp(log_likelihood[i, j, k] - log_count) |> log
-    @tullio pointwise_mcse[i] :=
-        (weights[i, j, k] * (log_likelihood[i, j, k] - pointwise_ev[i]))^2 |> sqrt
-    @tturbo pointwise_mcse .= pointwise_mcse ./ r_eff
+    pointwise_overfit = pointwise_naive - pointwise_loo
+    @tullio pointwise_mcse[i] := sqrt <|
+        (weights[i, j, k] * (log_likelihood[i, j, k] - pointwise_loo[i]))^2
+    @turbo pointwise_mcse .= pointwise_mcse ./ sqrt.(r_eff)  # autocorrelation adjustment
 
 
-    pointwise_p_eff = pointwise_naive - pointwise_ev
     pointwise = KeyedArray(
-        hcat(pointwise_ev, pointwise_mcse, pointwise_p_eff, ξ);
-        data=1:length(pointwise_ev),
-        statistic=[:est_score, :mcse, :est_overfit, :pareto_k],
+        hcat(
+            pointwise_loo,
+            pointwise_naive,
+            pointwise_overfit,
+            pointwise_mcse,
+            ξ
+        );
+        data=1:length(pointwise_loo),
+        statistic=[
+            :loo_est,
+            :naive_est,
+            :overfit,
+            :mcse,
+            :pareto_k
+        ],
     )
 
-    table = KeyedArray(
-        similar(log_likelihood, 3, 2);
-        criterion=[:total_score, :overfit, :avg_score],
-        estimate=[:Estimate, :SE],
-    )
-
-    table(:total_score, :Estimate, :) .= ev_loo = sum(pointwise_ev)
-    table(:avg_score, :Estimate, :) .= ev_avg = ev_loo / data_size
-    table(:overfit, :Estimate, :) .= p_eff = sum(pointwise_p_eff)
-
-    table(:total_score, :SE, :) .= ev_se = sqrt(varm(pointwise_ev, ev_avg) * data_size)
-    table(:avg_score, :SE, :) .= ev_se / data_size
-    table(:overfit, :SE, :) .= sqrt(varm(pointwise_p_eff, p_eff / data_size) * data_size)
+    table = _generate_loo_table(log_likelihood, pointwise, data_size)
 
     return PsisLoo(table, pointwise, psis_object)
 
@@ -112,4 +122,44 @@ function psis_loo(
 ) where {F <: AbstractFloat, T <: AbstractMatrix{F}}
     new_log_ratios = _convert_to_array(log_likelihood, chain_index)
     return psis_loo(new_log_ratios, args...; kwargs...)
+end
+
+# function psis_loo(log_likelihood, args...; 
+#     subsamples::Integer, rng::AbstractRNG=MersenneTwister(1776), kwargs...
+# )
+#     return log_likelihood = rand()
+# end
+    
+
+function _generate_loo_table(
+    log_likelihood::AbstractArray, 
+    pointwise::AbstractArray, 
+    data_size::Integer
+)
+
+    # create table with the right labels
+    table = KeyedArray(
+        similar(log_likelihood, 3, 4);
+        criterion=[:loo_est, :naive_est, :overfit],
+        statistic=[:total, :se_total, :mean, :se_mean],
+    )
+
+    # calculate the sample expectation for the total score
+    to_sum = pointwise([:loo_est, :naive_est, :overfit])
+    @tullio averages[crit] := to_sum[data, crit] / data_size
+    averages = reshape(averages, 3)
+    table(:, :mean) .= averages
+
+    # calculate the sample expectation for the average score
+    table(:, :total) .= table(:, :mean) .* data_size
+
+    # calculate the sample expectation for the standard error in the totals
+    se_mean = std(to_sum; mean=averages', dims=1) / sqrt(data_size)
+    se_mean = reshape(se_mean, 3)
+    table(:, :se_mean) .= se_mean
+
+    # calculate the sample expectation for the standard error in averages
+    table(:, :se_total) .= se_mean * data_size
+
+    return table
 end

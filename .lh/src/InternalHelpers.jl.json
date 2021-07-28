@@ -3,7 +3,7 @@
     "activeCommit": 0,
     "commits": [
         {
-            "activePatchIndex": 5,
+            "activePatchIndex": 6,
             "patches": [
                 {
                     "date": 1626565928399,
@@ -28,6 +28,10 @@
                 {
                     "date": 1626622639345,
                     "content": "Index: \n===================================================================\n--- \n+++ \n@@ -9,9 +9,16 @@\n in ESS calculations. If left empty, calculated automatically using the FFTESS method \n from InferenceDiagnostics.jl. See `relative_eff` to calculate these values.\n \"\"\"\n \n+const ARGS = \"\"\"\n+`args...`: Positional arguments to be passed to\n+\"\"\"\n+const KWARGS = \"\"\"\n+`kwargs...`: Keyword arguments to be passed to\n+\"\"\"\n \n+\n ###############\n ## FUNCTIONS ##\n ###############\n \n"
+                },
+                {
+                    "date": 1626631378386,
+                    "content": "Index: \n===================================================================\n--- \n+++ \n@@ -3,8 +3,14 @@\n     step belongs to. For instance, `chain_index[step]` should return `2` if\n     `log_likelihood[:, step]` belongs to the second chain.\n \"\"\"\n \n+const LIKELIHOOD_FUNCTION_ARG = \"\"\"\n+`ll_fun::Function`: A function taking a single data point and returning the log-likelihood \n+of that point. This function must take the form `f(θ[1], ..., θ[n], data)`, where `θ` is the\n+parameter vector. See also the `splat` keyword argument.\n+\"\"\"\n+\n const R_EFF_DOC = \"\"\"\n `r_eff::AbstractArray{T}`: An (optional) vector of relative effective sample sizes used \n in ESS calculations. If left empty, calculated automatically using the FFTESS method \n from InferenceDiagnostics.jl. See `relative_eff` to calculate these values.\n@@ -12,8 +18,9 @@\n \n const ARGS = \"\"\"\n `args...`: Positional arguments to be passed to\n \"\"\"\n+\n const KWARGS = \"\"\"\n `kwargs...`: Keyword arguments to be passed to\n \"\"\"\n \n"
                 }
             ],
             "date": 1626565928399,

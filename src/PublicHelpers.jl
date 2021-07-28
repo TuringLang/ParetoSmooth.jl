@@ -9,15 +9,13 @@ array of mcmc samples has the following dimensions: [n_samples,n_parms,n_chains]
         ll_fun::Function, 
         samples::AbstractArray{<:AstractFloat,3}, 
         data;
-        splat::Bool=true,
-        turbo=true
+        splat::Bool=true
     ) 
 
 Compute the pointwise log likelihood.
 
 # Arguments
-  - `ll_fun::Function`: a function of the form `f(θ[1], ..., θ[n], data)`, where `θ` is the
-    parameter vector. See also the `splat` keyword argument.
+  - $LIKELIHOOD_FUNCTION_ARG
   - `samples::AbstractArray`: A three dimensional array of MCMC samples. Here, the first
     dimension should indicate the iteration of the MCMC ; the second dimension should
     indicate the parameter ; and the third dimension represents the chains. 
@@ -26,11 +24,11 @@ Compute the pointwise log likelihood.
     Otherwise, `f` is assumed to be a function of a single parameter vector.
 
 # Returns
-  - `Array`: a three dimensional array of pointwise log-likelihoods.
+  - `Array`: A three dimensional array of pointwise log-likelihoods.
 """
 function pointwise_log_likelihoods(
     ll_fun::Function, 
-    samples::AbstractArray{<:AbstractFloat, 3}, 
+    samples::AbstractArray{<:Union{AbstractFloat, Missing}, 3}, 
     data;
     splat::Bool=true
 )
@@ -57,12 +55,12 @@ end
 
 function pointwise_log_likelihoods(
     ll_fun::Function, 
-    samples::AbstractMatrix{<:AbstractFloat}, 
+    samples::AbstractMatrix{<:Union{AbstractFloat, Missing}}, 
     data;
     chain_index::AbstractVector{<:Integer}=_assume_one_chain(samples),
     kwargs...
 )
     samples = _convert_to_array(samples, chain_index)
-    return pointwise_log_likelihoods(ll_fun, samples, data; kwargs...)
+    return pointwise_log_likelihoods(ll_fun, samples, data)
 end
 

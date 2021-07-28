@@ -1,7 +1,6 @@
 using LoopVectorization
 using Tullio
 
-
 const LIKELY_ERROR_CAUSES = """
 1. Bugs in the program that generated the sample, or otherwise incorrect input variables. 
 2. Your chains failed to converge. Check diagnostics. 
@@ -10,7 +9,7 @@ const LIKELY_ERROR_CAUSES = """
 const MIN_TAIL_LEN = 5  # Minimum size of a tail for PSIS to give sensible answers
 const SAMPLE_SOURCES = ["mcmc", "vi", "other"]
 
-export Psis, psis
+export psis
 
 """
     psis(
@@ -56,7 +55,7 @@ function psis(
 
     # Reshape to matrix (easier to deal with)
     log_ratios = reshape(log_ratios, data_size, post_sample_size)
-    weights::AbstractArray{T} = similar(log_ratios)
+    weights = similar(log_ratios)
     # Shift ratios by maximum to prevent overflow
     @tturbo @. weights = exp(log_ratios - $maximum(log_ratios; dims=2))
 
@@ -66,7 +65,7 @@ function psis(
     tail_length = similar(log_ratios, Int, data_size)
     ξ = similar(log_ratios, data_size)
     @inbounds Threads.@threads for i in eachindex(tail_length)
-        tail_length[i] = _def_tail_length(post_sample_size, r_eff[i])
+        tail_length[i] = @views _def_tail_length(post_sample_size, r_eff[i])
         ξ[i] = @views ParetoSmooth._do_psis_i!(weights[i,:], tail_length[i])
     end
     
@@ -90,7 +89,6 @@ function psis(
     chain_index::AbstractVector{I}=_assume_one_chain(log_ratios),
     kwargs...,
 ) where {T<:AbstractFloat,I<:Integer}
-    
     new_log_ratios = _convert_to_array(log_ratios, chain_index)
     return psis(new_log_ratios, r_eff; kwargs...)
 end
@@ -117,25 +115,30 @@ Additional information can be found in the LOO package from R.
 function _do_psis_i!(
     is_ratios::AbstractVector{T}, tail_length::Integer
 ) where {T<:AbstractFloat}
-    len = length(is_ratios)
 
+    len = length(is_ratios)
+    
     # sort is_ratios and also get results of sortperm() at the same time
-    ordering = sortperm(is_ratios; alg=QuickSort)
-    sorted_ratios = is_ratios[ordering]
+    ordering = similar(is_ratios, Int)
+    ratio_index = collect(zip(is_ratios, Base.OneTo(len)))
+    tuples = sort!(ratio_index; by=first)
+    is_ratios .= first.(tuples)
+    ordering .= last.(tuples)
+    
 
     # Define and check tail
     tail_start = len - tail_length + 1  # index of smallest tail value
-    @views tail = sorted_ratios[tail_start:len]
+    @views tail = is_ratios[tail_start:len]
     _check_tail(tail)
 
     # Get value just before the tail starts:
-    cutoff = sorted_ratios[tail_start - 1]
+    cutoff = is_ratios[tail_start - 1]
     ξ = _psis_smooth_tail!(tail, cutoff)
 
     # truncate at max of raw weights (1 after scaling)
-    clamp!(sorted_ratios, 0, 1)
+    clamp!(is_ratios, 0, 1)
     # unsort the ratios to their original position:
-    is_ratios .= @views sorted_ratios[invperm(ordering)]
+    is_ratios .= @views is_ratios[invperm(ordering)]
 
     return ξ::T
 end
@@ -146,8 +149,10 @@ end
 
 Define the tail length as in Vehtari et al. (2019).
 """
-function _def_tail_length(length::I, r_eff) where {I<:Integer}
-    return I(ceil(min(length / 5, 3 * sqrt(length / r_eff))))
+function _def_tail_length(length::I, r_eff::AbstractFloat) where {I<:Integer}
+    len = I(ceil(min(length / 5, 3 * sqrt(length / r_eff))))
+    len = 4 * round(len / 4) # multiples of 4 easier to vectorize
+    return I(len)
 end
 
 
@@ -178,7 +183,7 @@ end
 """
 Generate the relative effective sample size if not provided by the user.
 """
-function _generate_r_eff(weights, dims, r_eff, source)
+function _generate_r_eff(weights::AbstractArray, dims, r_eff::AbstractArray, source::String)
     if isempty(r_eff)
         if source == "mcmc"
             @info "Adjusting for autocorrelation. If the posterior samples are not " *
@@ -238,7 +243,7 @@ function _check_tail(tail::AbstractVector{T}) where {T<:AbstractFloat}
     if maximum(tail) ≈ minimum(tail)
         throw(
             ArgumentError(
-                "Unable to fit generalized Pareto distribution: all tail values are the" *
+                "Unable to fit generalized Pareto distribution: all tail values are the " *
                 "same. Likely causes are: \n$LIKELY_ERROR_CAUSES",
             ),
         )
@@ -251,39 +256,4 @@ function _check_tail(tail::AbstractVector{T}) where {T<:AbstractFloat}
         )
     end
     return nothing
-end
-
-
-
-##########################
-#####  PSIS STRUCTS  #####
-##########################
-
-"""
-    Psis{V<:AbstractVector{F},I<:Integer} where {F<:AbstractFloat}
-
-A struct containing the results of Pareto-smoothed importance sampling.
-
-# Fields
-- `weights`: A vector of smoothed, truncated, and *normalized* importance sampling weights.
-- `pareto_k`: Estimates of the shape parameter ``k`` of the generalized Pareto distribution.
-- `ess`: Estimated effective sample size for each LOO evaluation.
-- `tail_len`: Vector of tail lengths used for smoothing the generalized Pareto distribution.
-- `dims`: Named tuple of length 2 containing `s` (posterior sample size) and `n` (number of
-observations).
-"""
-struct Psis{
-    F<:AbstractFloat,
-    AF<:AbstractArray{F,3},
-    VF<:AbstractVector{F},
-    I<:Integer,
-    VI<:AbstractVector{I},
-}
-    weights::AF
-    pareto_k::VF
-    ess::VF
-    r_eff::VF
-    tail_len::VI
-    posterior_sample_size::I
-    data_size::I
 end

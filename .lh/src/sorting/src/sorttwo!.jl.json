@@ -1,0 +1,26 @@
+{
+    "sourceFile": "src/sorting/src/sorttwo!.jl",
+    "activeCommit": 0,
+    "commits": [
+        {
+            "activePatchIndex": 2,
+            "patches": [
+                {
+                    "date": 1626747933720,
+                    "content": "Index: \n===================================================================\n--- \n+++ \n"
+                },
+                {
+                    "date": 1626748106117,
+                    "content": "Index: \n===================================================================\n--- \n+++ \n@@ -1,6 +1,6 @@\n import StatsBase: BaseRadixSortSafeTypes\n-import Base.Order.ForwardOrdering\n+import Base.Forward\n \n \"\"\"\n     sorttwo!(vs, index)\n \n"
+                },
+                {
+                    "date": 1626748159445,
+                    "content": "Index: \n===================================================================\n--- \n+++ \n@@ -1,7 +1,7 @@\n import StatsBase: BaseRadixSortSafeTypes\n-import Base.Forward\n \n+\n \"\"\"\n     sorttwo!(vs, index)\n \n Sort both the `vs` and reorder `index` at the same. This allows for faster sortperm\n@@ -10,9 +10,9 @@\n function sorttwo!(vs::AbstractVector{T}, index=1:length(vs), lo::Int = 1, hi::Int=length(vs), RADIX_SIZE = 16, RADIX_MASK = 0xffff) where T # <:Union{BaseRadixSortSafeTypes}\n     # Input checking\n     if lo >= hi;  return (vs, index);  end\n     #println(vs)\n-    o = Forward\n+    o = Base.Forward\n \n     # Init\n     iters = ceil(Integer, sizeof(T)*8/RADIX_SIZE)\n     # number of buckets in the counting steuint_histp\n"
+                }
+            ],
+            "date": 1626747933720,
+            "name": "Commit-0",
+            "content": "import StatsBase: BaseRadixSortSafeTypes\nimport Base.Order.ForwardOrdering\n\n\"\"\"\n    sorttwo!(vs, index)\n\nSort both the `vs` and reorder `index` at the same. This allows for faster sortperm\nfor radix sort.\n\"\"\"\nfunction sorttwo!(vs::AbstractVector{T}, index=1:length(vs), lo::Int = 1, hi::Int=length(vs), RADIX_SIZE = 16, RADIX_MASK = 0xffff) where T # <:Union{BaseRadixSortSafeTypes}\n    # Input checking\n    if lo >= hi;  return (vs, index);  end\n    #println(vs)\n    o = Forward\n\n    # Init\n    iters = ceil(Integer, sizeof(T)*8/RADIX_SIZE)\n    # number of buckets in the counting steuint_histp\n    nbuckets = 2^RADIX_SIZE\n\n    # Histogram for each element, radix\n    bin = uint_hist(vs, RADIX_SIZE, RADIX_MASK)\n\n    # bin = zeros(UInt32, nbuckets, iters)\n    # if lo > 1;  bin[1,:] = lo-1;  end\n\n    # Sort!\n    swaps = 0\n    len = hi-lo+1\n\n    index1 = similar(index)\n    ts=similar(vs)\n    for j = 1:iters\n        # Unroll first data iteration, check for degenerate case\n        v = uint_mapping(o, vs[hi])\n        idx = Int((v >> ((j-1)*RADIX_SIZE)) & RADIX_MASK) + 1\n\n        # are all values the same at this radix?\n        if bin[idx,j] == len;  continue;  end\n\n        # cbin = cumsum(bin[:,j])\n        # tries to achieve the above one-liner with more efficiency\n        cbin = zeros(UInt32, nbuckets)\n        cbin[1] = bin[1,j]\n        @inbounds for i in 2:nbuckets\n            cbin[i] = cbin[i-1] + bin[i,j]\n        end\n\n        ci = cbin[idx]\n        #println((ci, hi))\n        ts[ci] = vs[hi]\n        index1[ci] = index[hi]\n        # println(cbin[idx])\n        cbin[idx] -= 1\n\n        # Finish the loop...        \n        @inbounds for i in hi-1:-1:lo\n            v = uint_mapping(o, vs[i])\n            idx = Int((v >> ((j-1)*RADIX_SIZE)) & RADIX_MASK) + 1\n            ci = cbin[idx]\n            #println(ci)\n            ts[ci] = vs[i]\n            index1[ci] = index[i]\n            cbin[idx] -= 1\n        end\n        vs,ts = ts,vs\n        index, index1 = index1, index\n        swaps += 1\n    end\n\n    if isodd(swaps)\n        vs,ts = ts,vs\n        index, index1 = index1, index\n        for i = lo:hi\n            @inbounds vs[i] = ts[i]\n            @inbounds index[i] = index1[i]\n        end\n    end\n    (vs, index)\nend\n"
+        }
+    ]
+}
