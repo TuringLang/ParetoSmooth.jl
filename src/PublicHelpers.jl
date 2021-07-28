@@ -1,5 +1,9 @@
 export pointwise_log_likelihoods
 
+const ARRAY_DIMS_WARNING = "The supplied array of mcmc samples indicates you have more 
+parameters than mcmc samples.This is possible, but highly unusual. Please check that your
+array of mcmc samples has the following dimensions: [n_samples,n_parms,n_chains]."
+
 """
     pointwise_log_likelihoods(
         ll_fun::Function, 
@@ -15,8 +19,8 @@ Compute the pointwise log likelihood.
   - `ll_fun::Function`: a function of the form `f(θ[1], ..., θ[n], data)`, where `θ` is the
     parameter vector. See also the `splat` keyword argument.
   - `samples::AbstractArray`: A three dimensional array of MCMC samples. Here, the first
-    dimension should indicate the parameter being sampled; the second dimension should
-    indicate the iteration of the MCMC ; and the third dimension represents the chains. 
+    dimension should indicate the iteration of the MCMC ; the second dimension should
+    indicate the parameter ; and the third dimension represents the chains. 
   - `data`: A vector of data used to estimate the parameters of the model.
   - `splat`: If `true` (default), `f` must be a function of `n` different parameters. 
     Otherwise, `f` is assumed to be a function of a single parameter vector.
@@ -30,6 +34,10 @@ function pointwise_log_likelihoods(
     data;
     splat::Bool=true
 )
+    n_posterior, n_parms, n_chains = size(samples)
+    if n_parms > n_posterior
+        @info ARRAY_DIMS_WARNING
+    end
     if splat 
         fun = (p, d) -> ll_fun(p..., d)
     else

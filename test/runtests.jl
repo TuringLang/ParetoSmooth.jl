@@ -102,13 +102,8 @@ r_loo["estimates"](criterion=:avg_score) .=
         data = randn(50)
         chain = Chains(samples)
 
-        function compute_loglike(μ, data)
-            return logpdf(Normal(μ, 1), data)
-        end
-
-        function compute_loglike(μ, σ, data)
-            return logpdf(Normal(μ, σ), data)
-        end
+        compute_loglike(μ, data) = logpdf(Normal(μ, 1), data)
+        compute_loglike(μ, σ, data) = logpdf(Normal(μ, σ), data)
         
         pll1 = pointwise_log_likelihoods(compute_loglike, chain, data)
         pll2 = pointwise_log_likelihoods(compute_loglike, samples, data)
