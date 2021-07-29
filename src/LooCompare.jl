@@ -1,10 +1,52 @@
 import Base.show
 
+
+"""
+
+# LooCompare
+
+A struct containing the results of PsisLoo model comparisom.
+
+$(FIELDS)
+
+# Extended help
+
+# Fields
+  - `psis::Vector{PsisLoo}`                      : A vector of PsisLoo objects.
+  - `table::KeyedArray`                          : Comparison table.
+
+"""
 struct LooCompare
     psis::Vector{PsisLoo}
     table::KeyedArray
 end
 
+"""
+
+# loo_compare
+
+Construct the comparison table.
+
+$(SIGNATURES)
+
+# Extended help
+
+### Required arguments
+```julia
+* `loglikelihoods::Vector{Array{Float64, 3}}`    : Vector of loglikelihood matrices
+```
+
+### Optional arguments
+```julia
+* `sort_models=true`                             : Sort models
+```
+
+### Return values
+```julia
+* `result::LooCompare`                           : LooCompare object
+```
+
+"""
 function loo_compare(loglikelihoods::Vector{Array{Float64, 3}};
     model_names=nothing, sort_models=true)
 
