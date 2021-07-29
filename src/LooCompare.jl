@@ -25,7 +25,7 @@ end
 
 # loo_compare
 
-Construct the comparison table.
+Construct a PsisLoo comparison table for loglikelihood matrices.
 
 $(SIGNATURES)
 
@@ -38,6 +38,7 @@ $(SIGNATURES)
 
 ### Optional arguments
 ```julia
+* `model_names=nothing`                          : Optional specify models
 * `sort_models=true`                             : Sort models
 ```
 
@@ -47,8 +48,10 @@ $(SIGNATURES)
 ```
 
 """
-function loo_compare(loglikelihoods::Vector{Array{Float64, 3}};
-    model_names=nothing, sort_models=true)
+function loo_compare(
+    loglikelihoods::Vector{Array{Float64, 3}};
+    model_names=Union{Nothing, Vector{AbstractString}}, 
+    sort_models=true)
 
     nmodels = length(loglikelihoods)
 
