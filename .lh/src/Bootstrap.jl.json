@@ -3,7 +3,7 @@
     "activeCommit": 0,
     "commits": [
         {
-            "activePatchIndex": 91,
+            "activePatchIndex": 92,
             "patches": [
                 {
                     "date": 1627341840659,
@@ -372,6 +372,10 @@
                 {
                     "date": 1627620400015,
                     "content": "Index: \n===================================================================\n--- \n+++ \n@@ -13,9 +13,9 @@\n         source::String=\"mcmc\" [, chain_index::Vector{Int}, kwargs...]\n     ) -> PsisBB\n \n Use the Bayesian bootstrap (Bayes cross-validation) and PSIS to calculate an approximate\n-posterior for the out-of-sample score.\n+posterior distribution for the out-of-sample score.\n \n \n # Arguments\n \n"
+                },
+                {
+                    "date": 1627620983341,
+                    "content": "Index: \n===================================================================\n--- \n+++ \n@@ -129,21 +129,21 @@\n     )\n \n     # calculate the sample expectation for the total score\n     to_sum = pointwise([:loo_est, :naive_est, :overfit])\n-    @tullio averages[crit] := to_sum[re, crit] / resamples / data_size\n-    averages = reshape(averages, 3)\n-    table(:, :mean) .= averages\n+    @tullio totals[crit] := to_sum[re, crit] / resamples\n+    totals = reshape(totals, 3)\n+    table(:, :total) .= totals\n \n     # calculate the sample expectation for the average score\n-    table(:, :total) .= table(:, :mean) * data_size\n+    table(:, :mean) .= table(:, :mean) / data_size\n \n     # calculate the sample expectation for the standard error in the totals\n-    se_mean = std(to_sum; dims=1) / sqrt(data_size)\n-    se_mean = reshape(se_mean, 3)\n-    table(:, :se_mean) .= se_mean\n+    se_total = std(to_sum; dims=1) * sqrt(data_size)\n+    se_total = reshape(se_total, 3)\n+    table(:, :se_total) .= se_total\n \n     # calculate the sample expectation for the standard error in averages\n-    table(:, :se_total) .= se_mean * data_size\n+    table(:, :se_mean) .= se_total / data_size\n \n     return table\n end\n"
                 }
             ],
             "date": 1627341840659,

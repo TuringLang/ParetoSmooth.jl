@@ -130,20 +130,20 @@ function _generate_bayes_table(
 
     # calculate the sample expectation for the total score
     to_sum = pointwise([:loo_est, :naive_est, :overfit])
-    @tullio averages[crit] := to_sum[re, crit] / resamples / data_size
-    averages = reshape(averages, 3)
-    table(:, :mean) .= averages
+    @tullio totals[crit] := to_sum[re, crit] / resamples
+    totals = reshape(totals, 3)
+    table(:, :total) .= totals
 
     # calculate the sample expectation for the average score
-    table(:, :total) .= table(:, :mean) * data_size
+    table(:, :mean) .= table(:, :mean) / data_size
 
     # calculate the sample expectation for the standard error in the totals
-    se_mean = std(to_sum; dims=1) / sqrt(data_size)
-    se_mean = reshape(se_mean, 3)
-    table(:, :se_mean) .= se_mean
+    se_total = std(to_sum; dims=1) * sqrt(data_size)
+    se_total = reshape(se_total, 3)
+    table(:, :se_total) .= se_total
 
     # calculate the sample expectation for the standard error in averages
-    table(:, :se_total) .= se_mean * data_size
+    table(:, :se_mean) .= se_total / data_size
 
     return table
 end
