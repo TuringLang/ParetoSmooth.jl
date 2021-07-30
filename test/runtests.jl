@@ -271,19 +271,9 @@ r_ests = KeyedArray(
             model_names=[:m5_1t, :m5_2t, :m5_3t])
         loo |> display
 
-
         @test loo.table(:m5_3t, :d_PSIS) ≈ -0.69 atol = 0.05
         @test loo.table(:m5_1t, :weight) ≈ 0.67 atol = 0.05
         @test loo.table(:m5_2t, :d_SE) ≈ 4.74 atol = 0.05
-
-        # To do:
-
-        # Test single model
-        # Test single model vector
-        #
-        # Update docs
-        # Section for README?
-
 
     end
     

@@ -75,43 +75,44 @@ function loo_compare(
 
     if sort_models
         ind = sortperm([psis_values[i][1] for i in 1:nmodels]; rev=true)
-        lls = loglikelihoods[ind]
         psis_values = psis_values[ind]
         se_values = se_values[ind]
         loos = loos[ind]
         mnames = mnames[ind]
     end
 
-    #data = psis_values
-    #data = hcat(data, se_values)
-    
+    # Setup comparison vectors
+
     dpsis = zeros(nmodels)
+    dse = zeros(nmodels)
+    weights = ones(nmodels)
+
+    # Compute comparison values
+
     for i in 2:nmodels
         dpsis[i] = psis_values[i] - psis_values[1]
-    end
-    #data = hcat(data, dpsis)
-    data=dpsis
-
-    dse = zeros(nmodels)
-    for i in 2:nmodels
         diff = loos[1] - loos[i]
         dse[i] = √(length(loos[i]) * var(diff; corrected=false))
     end
+    data=dpsis
     data = hcat(data, dse)
 
-    weights = ones(nmodels)
     sumval = sum([exp(psis_values[i]) for i in 1:nmodels])
     for i in 1:nmodels
         weights[i] = exp(psis_values[i])/sumval
     end
     data = hcat(data, weights)
     
+    # Create KeyedArray object
+
     table = KeyedArray(
         data,
         model = mnames,
-        #statistic = [:PSIS, :SE, :d_PSIS, :d_SE, :weight],
         statistic = [:d_PSIS, :d_SE, :weight],
     )
+
+    # Return LooCompare object
+    
     LooCompare(psis, table)
 
 end
