@@ -3,7 +3,7 @@
     "activeCommit": 0,
     "commits": [
         {
-            "activePatchIndex": 45,
+            "activePatchIndex": 50,
             "patches": [
                 {
                     "date": 1626484301733,
@@ -188,6 +188,26 @@
                 {
                     "date": 1627270219412,
                     "content": "Index: \n===================================================================\n--- \n+++ \n@@ -184,8 +184,10 @@\n \n function Base.show(io::IO, ::MIME\"text/plain\", loo_object::PsisLoo)\n     table = loo_object.estimates\n     _throw_pareto_k_warning(loo_object.pointwise(:pareto_k))\n+    post_samples = loo_object.psis_object.posterior_sample_size\n+    data_size = loo_object.psis_object.data_size\n     println(\"Results of PSIS-LOO-CV with $post_samples Monte Carlo samples and \" *\n     \"$data_size data points.\")\n     return pretty_table(\n         table;\n@@ -232,8 +234,10 @@\n \n \n function Base.show(io::IO, ::MIME\"text/plain\", cv_object::BayesCV)\n     table = cv_object.estimates\n+    post_samples = cv_object.psis_object.posterior_sample_size\n+    data_size = cv_object.psis_object.data_size\n     _throw_pareto_k_warning(cv_object.resamples(:pareto_k))\n     println(\"Results of Bayesian bootstrap CV with $post_samples Monte Carlo samples and \" *\n     \"$data_size data points.\")\n     return pretty_table(\n"
+                },
+                {
+                    "date": 1627342318514,
+                    "content": "Index: \n===================================================================\n--- \n+++ \n@@ -22,9 +22,9 @@\n       - `:naive_est` contains the in-sample estimate of error for this point.\n       - `:overfit` is the difference in the two previous estimates.\n       - `:ess` is the effective sample size, which measures the simulation error caused by \n         using Monte Carlo estimates. It is *not* related to the actual sample size, and it\n-        does not measure how accurate your predictions are.     \n+        does not measure how accurate your predictions are.\n     - `:pareto_k` is the estimated value for the parameter `ξ` of the generalized Pareto\n       distribution. Values above .7 indicate that PSIS has failed to approximate the true\n       distribution.\n   - `psis_object::Psis`: A `Psis` object containing the results of Pareto-smoothed \n"
+                },
+                {
+                    "date": 1627342393680,
+                    "content": "Index: \n===================================================================\n--- \n+++ \n@@ -20,11 +20,11 @@\n       - `:cv_est` contains the estimated out-of-sample error for this point, as measured\n         using leave-one-out cross validation.\n       - `:naive_est` contains the in-sample estimate of error for this point.\n       - `:overfit` is the difference in the two previous estimates.\n-      - `:ess` is the effective sample size, which measures the simulation error caused by \n-        using Monte Carlo estimates. It is *not* related to the actual sample size, and it\n-        does not measure how accurate your predictions are.\n+      - `:ess` is the effective sample size, which measures the simulation error introduced\n+        by the computer program. It is *not* related to the number of data points collected,\n+        and it does *not* measure how accurate your predictions are.\n     - `:pareto_k` is the estimated value for the parameter `ξ` of the generalized Pareto\n       distribution. Values above .7 indicate that PSIS has failed to approximate the true\n       distribution.\n   - `psis_object::Psis`: A `Psis` object containing the results of Pareto-smoothed \n"
+                },
+                {
+                    "date": 1627495089072,
+                    "content": "Index: \n===================================================================\n--- \n+++ \n@@ -236,10 +236,11 @@\n function Base.show(io::IO, ::MIME\"text/plain\", cv_object::BayesCV)\n     table = cv_object.estimates\n     post_samples = cv_object.psis_object.posterior_sample_size\n     data_size = cv_object.psis_object.data_size\n-    _throw_pareto_k_warning(cv_object.resamples(:pareto_k))\n-    println(\"Results of Bayesian bootstrap CV with $post_samples Monte Carlo samples and \" *\n+\n+    _throw_pareto_k_warning(cv_object.psis_object.pareto_k)\n+    println(\"Results of Bayesian bootstrap CV with $post_samples Monte Carlo samples, and \" *\n     \"$data_size data points.\")\n     return pretty_table(\n         table;\n         compact_printing=false,\n"
+                },
+                {
+                    "date": 1627497134944,
+                    "content": "Index: \n===================================================================\n--- \n+++ \n@@ -235,13 +235,14 @@\n \n function Base.show(io::IO, ::MIME\"text/plain\", cv_object::BayesCV)\n     table = cv_object.estimates\n     post_samples = cv_object.psis_object.posterior_sample_size\n-    data_size = cv_object.psis_object.data_size\n+    resamples = cv_object.psis_object.data_size\n+    data_size = length(cv_object.posteriors)\n \n     _throw_pareto_k_warning(cv_object.psis_object.pareto_k)\n-    println(\"Results of Bayesian bootstrap CV with $post_samples Monte Carlo samples, and \" *\n-    \"$data_size data points.\")\n+    println(\"Results of Bayesian bootstrap CV with $post_samples Monte Carlo samples, \" *\n+    \"$resamples bootstrap samples, and $data_size data points.\")\n     return pretty_table(\n         table;\n         compact_printing=false,\n         header=table.statistic,\n"
+                },
+                {
+                    "date": 1627497747933,
+                    "content": "Index: \n===================================================================\n--- \n+++ \n@@ -229,16 +229,17 @@\n } <: AbstractCV\n     estimates::KeyedArray\n     posteriors::KeyedArray\n     psis_object::Psis{F, AF, VF, I, VI}\n+    data_size::I\n end\n \n \n function Base.show(io::IO, ::MIME\"text/plain\", cv_object::BayesCV)\n     table = cv_object.estimates\n     post_samples = cv_object.psis_object.posterior_sample_size\n     resamples = cv_object.psis_object.data_size\n-    data_size = length(cv_object.posteriors)\n+    data_size = cv_object.data_size\n \n     _throw_pareto_k_warning(cv_object.psis_object.pareto_k)\n     println(\"Results of Bayesian bootstrap CV with $post_samples Monte Carlo samples, \" *\n     \"$resamples bootstrap samples, and $data_size data points.\")\n"
                 }
             ],
             "date": 1626484301733,

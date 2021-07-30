@@ -68,3 +68,40 @@ function _convert_to_array(matrix::AbstractMatrix, chain_index::AbstractVector)
     end
     return new_ratios
 end
+
+"""
+    _generate_cv_table
+Generate a table containing the results of cross-validation.
+"""
+function _generate_cv_table(
+    log_likelihood::AbstractArray, 
+    pointwise::AbstractArray, 
+    data_size::Integer
+)
+
+    # create table with the right labels
+    table = KeyedArray(
+        similar(log_likelihood, 3, 4);
+        criterion=[:loo_est, :naive_est, :overfit],
+        statistic=[:total, :se_total, :mean, :se_mean],
+    )
+
+    # calculate the sample expectation for the total score
+    to_sum = pointwise([:loo_est, :naive_est, :overfit])
+    @tullio averages[crit] := to_sum[data, crit] / data_size
+    averages = reshape(averages, 3)
+    table(:, :mean) .= averages
+
+    # calculate the sample expectation for the average score
+    table(:, :total) .= table(:, :mean) .* data_size
+
+    # calculate the sample expectation for the standard error in the totals
+    se_mean = std(to_sum; mean=averages', dims=1) / sqrt(data_size)
+    se_mean = reshape(se_mean, 3)
+    table(:, :se_mean) .= se_mean
+
+    # calculate the sample expectation for the standard error in averages
+    table(:, :se_total) .= se_mean * data_size
+
+    return table
+end

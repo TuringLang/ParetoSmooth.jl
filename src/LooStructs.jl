@@ -21,9 +21,9 @@ const CV_DESC = """
         using leave-one-out cross validation.
       - `:naive_est` contains the in-sample estimate of error for this point.
       - `:overfit` is the difference in the two previous estimates.
-      - `:ess` is the effective sample size, which measures the simulation error caused by 
-        using Monte Carlo estimates. It is *not* related to the actual sample size, and it
-        does not measure how accurate your predictions are.     
+      - `:ess` is the effective sample size, which measures the simulation error introduced
+        by the computer program. It is *not* related to the number of data points collected,
+        and it does *not* measure how accurate your predictions are.
     - `:pareto_k` is the estimated value for the parameter `ξ` of the generalized Pareto
       distribution. Values above .7 indicate that PSIS has failed to approximate the true
       distribution.
@@ -230,16 +230,19 @@ struct BayesCV{
     estimates::KeyedArray
     posteriors::KeyedArray
     psis_object::Psis{F, AF, VF, I, VI}
+    data_size::I
 end
 
 
 function Base.show(io::IO, ::MIME"text/plain", cv_object::BayesCV)
     table = cv_object.estimates
     post_samples = cv_object.psis_object.posterior_sample_size
-    data_size = cv_object.psis_object.data_size
-    _throw_pareto_k_warning(cv_object.resamples(:pareto_k))
-    println("Results of Bayesian bootstrap CV with $post_samples Monte Carlo samples and " *
-    "$data_size data points.")
+    resamples = cv_object.psis_object.data_size
+    data_size = cv_object.data_size
+
+    _throw_pareto_k_warning(cv_object.psis_object.pareto_k)
+    println("Results of Bayesian bootstrap CV with $post_samples Monte Carlo samples, " *
+    "$resamples bootstrap samples, and $data_size data points.")
     return pretty_table(
         table;
         compact_printing=false,

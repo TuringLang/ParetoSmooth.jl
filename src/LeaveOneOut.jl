@@ -51,17 +51,8 @@ score.
 
 See also: [`psis`](@ref), [`loo`](@ref), [`PsisLoo`](@ref).
 """
-# subsamples::AbstractArray{Bool}="mcmc" 
-#   - `subsamples`: Used for subsampling with large datasets. This can be a vector of Booleans
-#     indicating which values should be used, or an integer denoting how many values to 
-#     subsample. We advise against subsampling the data except with extremely large datasets; 
-#     instead, try thinning your chains until MCSE exceeds the sampling error.
-#   - `rng::AbstractRNG`: A user-provided RNG used in subsampling. By default, this is
-#     `MersenneTwister(1776)`. This default will change in the future, and should not be 
-#     relied on for reproducibility.
 function psis_loo(
     log_likelihood::T, args...; 
-    # subsamples::AbstractVector{Bool}=trues(size(log_likelihood, 1)), 
     kwargs...
 ) where {F<:AbstractFloat, T<:AbstractArray{F, 3}}
     
@@ -86,7 +77,7 @@ function psis_loo(
     pointwise_overfit = pointwise_naive - pointwise_loo
     @tullio pointwise_mcse[i] := sqrt <|
         (weights[i, j, k] * (log_likelihood[i, j, k] - pointwise_loo[i]))^2
-    @turbo pointwise_mcse .= pointwise_mcse ./ sqrt.(r_eff)  # autocorrelation adjustment
+    @turbo @. pointwise_mcse = pointwise_mcse / sqrt(r_eff)  # autocorrelation adjustment
 
 
     pointwise = KeyedArray(
@@ -107,7 +98,7 @@ function psis_loo(
         ],
     )
 
-    table = _generate_loo_table(log_likelihood, pointwise, data_size)
+    table = _generate_cv_table(log_likelihood, pointwise, data_size)
 
     return PsisLoo(table, pointwise, psis_object)
 
@@ -122,44 +113,4 @@ function psis_loo(
 ) where {F <: AbstractFloat, T <: AbstractMatrix{F}}
     new_log_ratios = _convert_to_array(log_likelihood, chain_index)
     return psis_loo(new_log_ratios, args...; kwargs...)
-end
-
-# function psis_loo(log_likelihood, args...; 
-#     subsamples::Integer, rng::AbstractRNG=MersenneTwister(1776), kwargs...
-# )
-#     return log_likelihood = rand()
-# end
-    
-
-function _generate_loo_table(
-    log_likelihood::AbstractArray, 
-    pointwise::AbstractArray, 
-    data_size::Integer
-)
-
-    # create table with the right labels
-    table = KeyedArray(
-        similar(log_likelihood, 3, 4);
-        criterion=[:loo_est, :naive_est, :overfit],
-        statistic=[:total, :se_total, :mean, :se_mean],
-    )
-
-    # calculate the sample expectation for the total score
-    to_sum = pointwise([:loo_est, :naive_est, :overfit])
-    @tullio averages[crit] := to_sum[data, crit] / data_size
-    averages = reshape(averages, 3)
-    table(:, :mean) .= averages
-
-    # calculate the sample expectation for the average score
-    table(:, :total) .= table(:, :mean) .* data_size
-
-    # calculate the sample expectation for the standard error in the totals
-    se_mean = std(to_sum; mean=averages', dims=1) / sqrt(data_size)
-    se_mean = reshape(se_mean, 3)
-    table(:, :se_mean) .= se_mean
-
-    # calculate the sample expectation for the standard error in averages
-    table(:, :se_total) .= se_mean * data_size
-
-    return table
 end

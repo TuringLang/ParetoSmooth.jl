@@ -14,6 +14,7 @@ module ParetoSmooth
     include("ImportanceSampling.jl")
     include("LooStructs.jl")
     include("LeaveOneOut.jl")
+    include("Bootstrap.jl")
     include("PublicHelpers.jl")
 
 end

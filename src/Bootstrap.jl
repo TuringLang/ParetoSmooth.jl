@@ -1,11 +1,11 @@
 using AxisKeys
-using MeasureTheory
 using InteractiveUtils
 using LoopVectorization
+using Random
 using Statistics
 using Tullio
 
-export bayes_val
+export bayes_cv
 
 """
     function bayes_cv(
@@ -14,7 +14,7 @@ export bayes_val
     ) -> PsisBB
 
 Use the Bayesian bootstrap (Bayes cross-validation) and PSIS to calculate an approximate
-posterior for the out-of-sample score.
+posterior distribution for the out-of-sample score.
 
 
 # Arguments
@@ -43,7 +43,7 @@ function bayes_cv(
     log_likelihood::T, 
     args...;
     resamples::Integer=2^10, 
-    rng=MersenneTwister(1776),
+    rng=MersenneTwister(1865),
     kwargs...
 ) where {F<:AbstractFloat, T<:AbstractArray{F, 3}}
 
@@ -55,34 +55,33 @@ function bayes_cv(
 
     # TODO: Add a way of using score functions other than ELPD
     bb_weights = data_size * rand(rng, Dirichlet(ones(data_size)), resamples)
-    bb_samples = similar(log_likelihood, (resamples, data_size))
-    psis_object = psis(bb_samples, args...; kwargs...)
+    @tullio bb_samples[re, step, chain] := 
+        bb_weights[datum, re] * log_likelihood[datum, step, chain]
+    @tullio log_is_ratios[re, step, chain] := 
+        (bb_weights[datum, re] - 1) * log_likelihood[datum, step, chain]
+    psis_object = psis(log_is_ratios, args...; kwargs...)
+    psis_weights = psis_object.weights
 
-    # "Pointwise" used here to refer to "per resample"
-    @tullio pointwise_naive[i] := log <|
-        psis_object.weights[i, j, k] * exp(bb_samples[i, j, k])
-    @tullio sample_est := exp(log_likelihood[i, j, k] - log_count)
-    sample_est = log(sample_est)
-    
-    @tturbo bb_ests .= (2 * sample_est) .- pointwise_naive
-    @tullio pointwise_mcse[i] :=  # I'll take sqrt later in-place
-        (weights[i, j, k] * (log_likelihood[i, j, k] - pointwise_loo[i]))^2
-    # Apply law of total variance
-    bootstrap_se = var(naive_ests) / bb_samples
-    mcse = sqrt(mean(pointwise_mcse) + bootstrap_se)
-    @tturbo @. pointwise_mcse = sqrt(pointwise_mcse)
-        
+    @tullio re_naive[re] := log <| # calculate the naive estimate in many resamples
+        psis_weights[re, step, chain] * exp(bb_samples[re, step, chain])
+    @tullio sample_est[i] := exp(log_likelihood[i, j, k] - log_count) |> log
+    @tullio naive_est := sample_est[i]
+
+    bb_ests = (2 * naive_est) .- re_naive
+    @tullio mcse[re] := sqrt <|
+        (psis_weights[re, step, chain] * (bb_samples[re, step, chain] - re_naive[re]))^2
+    bootstrap_se = std(re_naive) / sqrt(resamples)
+
     # Posterior for the *average score*, not the mean of the posterior distribution:
-    posterior_avg = bb_ests / data_size
     resample_calcs = KeyedArray(
         hcat(
             bb_ests,
-            pointwise_naive,
-            pointwise_overfit,
-            pointwise_mcse,
+            re_naive,
+            re_naive - bb_ests,
+            mcse,
             psis_object.pareto_k
         );
-        data=1:length(pointwise_loo),
+        data=Base.OneTo(resamples),
         statistic=[
             :loo_est,
             :naive_est,
@@ -92,12 +91,13 @@ function bayes_cv(
         ],
     )
 
-    estimates = _generate_bayes_table(log_likelihood, resample_calcs, data_size)
+    estimates = _generate_bayes_table(log_likelihood, resample_calcs, resamples, data_size)
 
     return BayesCV(
         estimates,
         resample_calcs,
-        psis_object
+        psis_object,
+        data_size
     )
 
 end
@@ -108,7 +108,7 @@ function bayes_cv(
     args...;
     chain_index::AbstractVector=ones(size(log_likelihood, 1)),
     kwargs...,
-) where {F <: AbstractFloat, T <: AbstractMatrix{F}}
+) where {F<:AbstractFloat, T<:AbstractMatrix{F}}
     new_log_ratios = _convert_to_array(log_likelihood, chain_index)
     return psis_loo(new_log_ratios, args...; kwargs...)
 end
@@ -117,32 +117,33 @@ end
 function _generate_bayes_table(
     log_likelihood::AbstractArray, 
     pointwise::AbstractArray, 
+    resamples::Integer,
     data_size::Integer
 )
 
     # create table with the right labels
     table = KeyedArray(
         similar(log_likelihood, 3, 4);
-        criterion=[:cv_est, :naive_est, :overfit],
-        statistic=[:ev_total, :se_total, :ev_mean, :se_mean, :sd_mean],
+        criterion=[:loo_est, :naive_est, :overfit],
+        statistic=[:total, :se_total, :mean, :se_mean],
     )
-    
+
     # calculate the sample expectation for the total score
-    to_sum = pointwise([:loo_est, :naive_est])
-    @tullio total[crit] := to_sum[data, crit]
-    table(:, :total) .= reshape(total, 3)
+    to_sum = pointwise([:loo_est, :naive_est, :overfit])
+    @tullio averages[crit] := to_sum[re, crit] / resamples / data_size
+    averages = reshape(averages, 3)
+    table(:, :mean) .= averages
 
     # calculate the sample expectation for the average score
-    table(:, :mean) .= table(:, :total) ./ data_size
+    table(:, :total) .= table(:, :mean) * data_size
 
     # calculate the sample expectation for the standard error in the totals
-    @_ table(:, :se_total) .= pointwise([:loo_est, :naive_est, :overfit]) |> 
-        varm(_, table(:, :mean); dims=1) |>
-        sqrt.(data_size * _) |>
-        reshape(_, 3)
+    se_mean = std(to_sum; dims=1) / sqrt(data_size)
+    se_mean = reshape(se_mean, 3)
+    table(:, :se_mean) .= se_mean
 
     # calculate the sample expectation for the standard error in averages
-    table(:, :se_mean) .= table(:, :se_total) ./ data_size
+    table(:, :se_total) .= se_mean * data_size
 
     return table
 end
