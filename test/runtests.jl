@@ -109,14 +109,12 @@ r_ests = KeyedArray(
         using Distributions, Random
         Random.seed!(112)
         # simulated samples for μ
-        samples = randn(1, 100, 1)
+        samples = randn(100, 1, 1)
         data = randn(50)
         chain = Chains(samples)
 
-        function compute_loglike(μ, data)
-            return logpdf(Normal(μ, 1), data)
-        end
-
+        compute_loglike(μ, data) = logpdf(Normal(μ, 1), data)
+        compute_loglike(μ, σ, data) = logpdf(Normal(μ, σ), data)
         
         pll1 = pointwise_log_likelihoods(compute_loglike, chain, data)
         pll2 = pointwise_log_likelihoods(compute_loglike, samples, data)
@@ -125,7 +123,7 @@ r_ests = KeyedArray(
         # test the dimensions: data points, samples, chains
         @test size(pll1) == (50, 100, 1)
         # test that sum of pointwise log likelihoods equals sum of log likelihoods
-        @test sum(sum(map(s->logpdf.(Normal(s, 1), data), samples))) ≈ sum(pll1) atol = 1e6
+        @test sum(sum(map(s->logpdf.(Normal(s, 1), data), samples))) ≈ sum(pll1) atol = 1e-6
         # test that psis_loo works with MCMCChains and yields correct type
         psis_loo_output = psis_loo(compute_loglike, chain, data)
         @test isa(psis_loo_output, PsisLoo)
@@ -157,11 +155,24 @@ r_ests = KeyedArray(
         end
 
         chain = sample(model(data), NUTS(1000, .9), MCMCThreads(), 1000, 4)
-        pw_lls = pointwise_log_likelihoods(model(data), chain)
+        pw_lls_turing = pointwise_log_likelihoods(model(data), chain)
+        pw_lls_loglike = pointwise_log_likelihoods(compute_loglike, chain, data)
+
         # test the dimensions: data points, samples, chains
-        @test size(pw_lls) == (50, 1000, 4)
+        @test size(pw_lls_turing) == (50, 1000, 4)
         # test that sum of pointwise log likelihoods equals sum of log likelihoods
-        @test sum(sum(map(s->logpdf.(Normal(s, 1), data), samples))) ≈ sum(pw_lls) atol = 1e6
+        turing_samples = Array(Chains(chain, :parameters).value)
+        # make this more terse with @tullio or other method later
+        LL = 0.0
+        n_samples,n_parms,n_chains = size(turing_samples)
+        for s in 1:n_samples
+            for c in 1:n_chains
+                LL += sum(logpdf.(Normal(turing_samples[s,:,c]...), data))
+            end
+        end
+        @test LL ≈ sum(pw_lls_turing) atol = 1e-6
+        # Turing should work the same as compute_loglike
+        @test pw_lls_loglike ≈ pw_lls_turing atol = 1e-6
 
         # test that psis_loo works with Turing model and MCMCChains and yields correct type
         psis_loo_output = psis_loo(model(data), chain)
@@ -176,7 +187,7 @@ r_ests = KeyedArray(
 
         
         # ensure that methods work with r_eff argument
-        r_eff = similar(pw_lls, 0)
+        r_eff = similar(pw_lls_turing, 0)
         # test that psis_loo works with Turin and gives correct type
         psis_loo_output = psis_loo(model(data), chain, r_eff)
         @test isa(psis_loo_output, PsisLoo)
