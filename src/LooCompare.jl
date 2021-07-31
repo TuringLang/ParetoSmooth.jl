@@ -12,9 +12,29 @@ $(FIELDS)
 # Extended help
 
 # Fields
-  - `psis::Vector{PsisLoo}`                      : A vector of PsisLoo objects.
-  - `table::KeyedArray`                          : Comparison table.
+  - `psis::Vector{PsisLoo}` : Vector of PsisLoo objects.
+  - `table::KeyedArray` : Comparison table.
 
+# Example of a comparison table
+```
+┌───────┬────────┬───────┬────────┐
+│       │  dPSIS │  dSE  │ weight │
+├───────┼────────┼───────┼────────┤
+│ m5_1t │   0.00 │  0.00 │   0.67 │
+│ m5_3t │  -0.69 │  0.42 │   0.33 │
+│ m5_2t │  -6.68 │  4.74 │   0.00 │
+└───────┴────────┴───────┴────────┘
+```
+
+where:
+
+1. dPsis      : Difference between total loo_est values between models.
+2. dSE        : Standard error of the difference in total l00_est values.
+3. weight     : Relative support for each model.
+
+In this example table the models have been sorted in ascending total loo_est values.
+
+See also: [`PsisLoo`](@ref).
 """
 struct LooCompare
     psis::Vector{PsisLoo}
@@ -32,25 +52,20 @@ $(SIGNATURES)
 # Extended help
 
 ### Required arguments
-```julia
-* `loglikelihoods::Vector{Array{Float64, 3}}`    : Vector of loglikelihood matrices
-```
+    - `loglikelihoods::Vector{Array{Float64, 3}}` : Vector of loglikelihood matrices
 
 ### Optional arguments
-```julia
-* `model_names=nothing`                          : Optional specify models
-* `sort_models=true`                             : Sort models
-```
+    - `model_names=nothing` : Optional specify models
+    - `sort_models=true` : Sort models according to ascending total loo_est
 
 ### Return values
-```julia
-* `result::LooCompare`                           : LooCompare object
-```
+    - `result::LooCompare` : LooCompare object
 
+See also: [`LooCompare`](@ref).
 """
 function loo_compare(
     loglikelihoods::Vector{Array{Float64, 3}};
-    model_names=Union{Nothing, Vector{AbstractString}}, 
+    model_names=nothing, 
     sort_models=true)
 
     nmodels = length(loglikelihoods)
@@ -94,13 +109,11 @@ function loo_compare(
         diff = loos[1] - loos[i]
         dse[i] = √(length(loos[i]) * var(diff; corrected=false))
     end
-    data=dpsis
+    data = dpsis
     data = hcat(data, dse)
 
     sumval = sum([exp(psis_values[i]) for i in 1:nmodels])
-    for i in 1:nmodels
-        weights[i] = exp(psis_values[i])/sumval
-    end
+    @. weights = exp(psis_values) / sumval
     data = hcat(data, weights)
     
     # Create KeyedArray object
@@ -108,7 +121,7 @@ function loo_compare(
     table = KeyedArray(
         data,
         model = mnames,
-        statistic = [:d_PSIS, :d_SE, :weight],
+        statistic = [:dPSIS, :dSE, :weight],
     )
 
     # Return LooCompare object
