@@ -6,7 +6,7 @@ using Tullio
 
 """
     gpdfit(
-        sample::AbstractVector{T<:AbstractFloat}; 
+        sample::AbstractVector{T<:Real}; 
         wip::Bool=true, 
         min_grid_pts::Integer=30, 
         sort_sample::Bool=false
@@ -34,7 +34,7 @@ function gpdfit(
     wip::Bool=true,
     min_grid_pts::Integer=30,
     sort_sample::Bool=false,
-) where {T <: AbstractFloat}
+) where {T <: Real}
 
     len = length(sample)
     # sample must be sorted, but we can skip if sample is already sorted
@@ -77,7 +77,7 @@ function gpdfit(
 end
 
 """
-    gpd_quantile(p::T, k::T, sigma::T) where {T<:AbstractFloat} -> T
+    gpd_quantile(p::T, k::T, sigma::T) where {T<:Real} -> T
 
 Compute the `p` quantile of the Generalized Pareto Distribution (GPD).
 
@@ -91,7 +91,7 @@ Compute the `p` quantile of the Generalized Pareto Distribution (GPD).
 
 A quantile of the Generalized Pareto Distribution.
 """
-function gpd_quantile(p, k::T, sigma::T) where {T<:AbstractFloat}
+function gpd_quantile(p, k::T, sigma::T) where {T<:Real}
     return sigma * expm1(-k * log1p(-p)) / k
 end
 

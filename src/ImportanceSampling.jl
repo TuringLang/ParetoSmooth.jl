@@ -13,7 +13,7 @@ export psis
 
 """
     psis(
-        log_ratios::AbstractArray{T:>AbstractFloat}, 
+        log_ratios::AbstractArray{T<:Real}, 
         r_eff::AbstractVector; 
         source::String="mcmc", 
         log_weights::Bool=false
@@ -45,7 +45,7 @@ function psis(
     r_eff::AbstractVector{T}=similar(log_ratios, 0);
     source::Union{AbstractString,Symbol}="mcmc",
     log_weights::Bool=false,
-) where {T<:AbstractFloat}
+) where {T<:Real}
 
     source = lowercase(String(source))
     dims = size(log_ratios)
@@ -88,25 +88,25 @@ function psis(
     r_eff::AbstractVector{T}=similar(log_ratios, 0);
     chain_index::AbstractVector{I}=_assume_one_chain(log_ratios),
     kwargs...,
-) where {T<:AbstractFloat,I<:Integer}
+) where {T<:Real,I<:Integer}
     new_log_ratios = _convert_to_array(log_ratios, chain_index)
     return psis(new_log_ratios, r_eff; kwargs...)
 end
 
 
 """
-    _do_psis_i!(is_ratios::AbstractVector{AbstractFloat}, tail_length::Integer) -> T
+    _do_psis_i!(is_ratios::AbstractVector{Real}, tail_length::Integer) -> T
 
 Do PSIS on a single vector, smoothing its tail values.
 
 # Arguments
 
-- `is_ratios::AbstractVector{AbstractFloat}`: A vector of importance sampling ratios, 
+- `is_ratios::AbstractVector{Real}`: A vector of importance sampling ratios, 
 scaled to have a maximum of 1.
 
 # Returns
 
-- `T<:AbstractFloat`: ξ, the shape parameter for the GPD; big numbers indicate thick tails.
+- `T<:Real`: ξ, the shape parameter for the GPD; big numbers indicate thick tails.
 
 # Extended help
 
@@ -114,7 +114,7 @@ Additional information can be found in the LOO package from R.
 """
 function _do_psis_i!(
     is_ratios::AbstractVector{T}, tail_length::Integer
-) where {T<:AbstractFloat}
+) where {T<:Real}
 
     len = length(is_ratios)
     
@@ -145,11 +145,11 @@ end
 
 
 """
-    _def_tail_length(log_ratios::AbstractVector, r_eff::AbstractFloat) -> tail_len::Integer
+    _def_tail_length(log_ratios::AbstractVector, r_eff::Real) -> tail_len::Integer
 
 Define the tail length as in Vehtari et al. (2019).
 """
-function _def_tail_length(length::I, r_eff::AbstractFloat) where {I<:Integer}
+function _def_tail_length(length::I, r_eff::Real) where {I<:Integer}
     len = I(ceil(min(length / 5, 3 * sqrt(length / r_eff))))
     len = 4 * round(len / 4) # multiples of 4 easier to vectorize
     return I(len)
@@ -157,12 +157,12 @@ end
 
 
 """
-    _psis_smooth_tail!(tail::AbstractVector{T}, cutoff::T) where {T<:AbstractFloat} -> ξ::T
+    _psis_smooth_tail!(tail::AbstractVector{T}, cutoff::T) where {T<:Real} -> ξ::T
 
 Takes an *already sorted* vector of observations from the tail and smooths it *in place*  
 with PSIS before returning shape parameter `ξ`.
 """
-function _psis_smooth_tail!(tail::AbstractVector{T}, cutoff::T) where {T<:AbstractFloat}
+function _psis_smooth_tail!(tail::AbstractVector{T}, cutoff::T) where {T<:Real}
     len = length(tail)
     @turbo @. tail = tail - cutoff
 
@@ -216,7 +216,7 @@ Make sure all inputs to `psis` are valid.
 """
 function _check_input_validity_psis(
     log_ratios::AbstractArray{T,3}, r_eff::AbstractVector{T}
-) where {T<:AbstractFloat}
+) where {T<:Real}
     if any(isnan, log_ratios)
         throw(DomainError("Invalid input for `log_ratios` (contains NaN values)."))
     elseif any(isinf, log_ratios)
@@ -239,7 +239,7 @@ end
 """
 Check the tail to make sure a GPD fit is possible.
 """
-function _check_tail(tail::AbstractVector{T}) where {T<:AbstractFloat}
+function _check_tail(tail::AbstractVector{T}) where {T<:Real}
     if maximum(tail) ≈ minimum(tail)
         throw(
             ArgumentError(

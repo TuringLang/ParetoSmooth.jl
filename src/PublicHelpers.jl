@@ -7,7 +7,7 @@ array of mcmc samples has the following dimensions: [n_samples,n_parms,n_chains]
 """
     pointwise_log_likelihoods(
         ll_fun::Function, 
-        samples::AbstractArray{<:AstractFloat,3}, 
+        samples::AbstractArray{<:Real,3}, 
         data;
         splat::Bool=true
     ) 
@@ -28,7 +28,7 @@ Compute the pointwise log likelihood.
 """
 function pointwise_log_likelihoods(
     ll_fun::Function, 
-    samples::AbstractArray{<:Union{AbstractFloat, Missing}, 3}, 
+    samples::AbstractArray{<:Union{Real, Missing}, 3}, 
     data;
     splat::Bool=true
 )
@@ -55,7 +55,7 @@ end
 
 function pointwise_log_likelihoods(
     ll_fun::Function, 
-    samples::AbstractMatrix{<:Union{AbstractFloat, Missing}}, 
+    samples::AbstractMatrix{<:Union{Real, Missing}}, 
     data;
     chain_index::AbstractVector{<:Integer}=_assume_one_chain(samples),
     kwargs...

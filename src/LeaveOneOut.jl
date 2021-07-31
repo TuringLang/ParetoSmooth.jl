@@ -31,8 +31,8 @@ end
 
 """
     function psis_loo(
-        log_likelihood::Array{Float} [, args...];
-        [, chain_index::Vector{Int}, kwargs...]
+        log_likelihood::Array{Real} [, args...];
+        [, chain_index::Vector{Integer}, kwargs...]
     ) -> PsisLoo
 
 Use Pareto-Smoothed Importance Sampling to calculate the leave-one-out cross validation
@@ -51,19 +51,10 @@ score.
 
 See also: [`psis`](@ref), [`loo`](@ref), [`PsisLoo`](@ref).
 """
-# subsamples::AbstractArray{Bool}="mcmc" 
-#   - `subsamples`: Used for subsampling with large datasets. This can be a vector of Booleans
-#     indicating which values should be used, or an integer denoting how many values to 
-#     subsample. We advise against subsampling the data except with extremely large datasets; 
-#     instead, try thinning your chains until MCSE exceeds the sampling error.
-#   - `rng::AbstractRNG`: A user-provided RNG used in subsampling. By default, this is
-#     `MersenneTwister(1776)`. This default will change in the future, and should not be 
-#     relied on for reproducibility.
 function psis_loo(
     log_likelihood::T, args...; 
-    # subsamples::AbstractVector{Bool}=trues(size(log_likelihood, 1)), 
     kwargs...
-) where {F<:AbstractFloat, T<:AbstractArray{F, 3}}
+) where {F<:Real, T<:AbstractArray{F, 3}}
     
 
     dims = size(log_likelihood)
@@ -119,7 +110,7 @@ function psis_loo(
     args...;
     chain_index::AbstractVector=ones(size(log_likelihood, 1)),
     kwargs...,
-) where {F <: AbstractFloat, T <: AbstractMatrix{F}}
+) where {F <: Real, T <: AbstractMatrix{F}}
     new_log_ratios = _convert_to_array(log_likelihood, chain_index)
     return psis_loo(new_log_ratios, args...; kwargs...)
 end

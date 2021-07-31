@@ -62,7 +62,7 @@ comparison using cross-validation methods.
 ###########################
 
 """
-    Psis{V<:AbstractVector{F},I<:Integer} where {F<:AbstractFloat}
+    Psis{V<:AbstractVector{F},I<:Integer} where {F<:Real}
 
 A struct containing the results of Pareto-smoothed importance sampling.
 
@@ -75,7 +75,7 @@ A struct containing the results of Pareto-smoothed importance sampling.
     of observations).
 """
 struct Psis{
-    F<:AbstractFloat,
+    F<:Real,
     AF<:AbstractArray{F,3},
     VF<:AbstractVector{F},
     I<:Integer,
@@ -153,7 +153,7 @@ struct PsisLooMethod <: AbstractCVMethod end
 
 """
     PsisLoo{
-        F <: AbstractFloat,
+        F <: Real,
         AF <: AbstractArray{F},
         VF <: AbstractVector{F},
         I <: Integer,
@@ -168,7 +168,7 @@ $CV_DESC
 See also: [`loo`]@ref, [`bayes_cv`]@ref, [`psis_loo`]@ref, [`Psis`]@ref
 """
 struct PsisLoo{
-    F <: AbstractFloat,
+    F <: Real,
     AF <: AbstractArray{F},
     VF <: AbstractVector{F},
     I <: Integer,
@@ -207,7 +207,7 @@ end
 
 """
     BayesCV{
-        F <: AbstractFloat,
+        F <: Real,
         AF <: AbstractArray{F},
         VF <: AbstractVector{F},
         I <: Integer,
@@ -221,7 +221,7 @@ $CV_DESC
 See also: [`bayes_cv`]@ref, [`psis_loo`]@ref, [`psis`]@ref, [`Psis`]@ref
 """
 struct BayesCV{
-    F <: AbstractFloat,
+    F <: Real,
     AF <: AbstractArray{F},
     VF <: AbstractVector{F},
     I <: Integer,
