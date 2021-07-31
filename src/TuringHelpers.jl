@@ -1,4 +1,3 @@
-#using .Turing, .MCMCChains
 using .Turing
 export pointwise_log_likelihoods
 
