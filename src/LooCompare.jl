@@ -28,9 +28,9 @@ $(FIELDS)
 
 where:
 
-1. elpd_diff  : Difference between total loo_est values between models.
-2. se_diff    : Standard error of the difference in total l00_est values.
-3. weight     : Relative support for each model.
+1. `elpd_diff`  : Difference between total loo_est values between models.
+2. `se_diff`    : Standard error of the difference in total l00_est values.
+3. `weight`     : Relative support for each model.
 
 In this example table the models have been sorted in ascending total loo_est values.
 The PsisLoo objects in the field `psis` is sorted as listed in `table`.
@@ -57,7 +57,7 @@ $(SIGNATURES)
 
 ### Optional arguments
     - `model_names=nothing` : Optional specify models
-    - `sort_models=true` : Sort models according to ascending total loo_est
+    - `sort_models=true` : Sort models according to ascending elpd values
 
 ### Return values
     - `result::LooCompare` : LooCompare object
