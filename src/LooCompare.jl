@@ -17,22 +17,23 @@ $(FIELDS)
 
 # Example of a comparison table
 ```
-┌───────┬────────┬───────┬────────┐
-│       │  dPSIS │  dSE  │ weight │
-├───────┼────────┼───────┼────────┤
-│ m5_1t │   0.00 │  0.00 │   0.67 │
-│ m5_3t │  -0.69 │  0.42 │   0.33 │
-│ m5_2t │  -6.68 │  4.74 │   0.00 │
-└───────┴────────┴───────┴────────┘
+┌───────┬───────────┬─────────┬────────┐
+│       │ elpd_diff │ se_diff │ weight │
+├───────┼───────────┼─────────┼────────┤
+│ m5_1t │      0.00 │    0.00 │   0.67 │
+│ m5_3t │     -0.69 │    0.42 │   0.33 │
+│ m5_2t │     -6.68 │    4.74 │   0.00 │
+└───────┴───────────┴─────────┴────────┘
 ```
 
 where:
 
-1. dPsis      : Difference between total loo_est values between models.
-2. dSE        : Standard error of the difference in total l00_est values.
+1. elpd_diff  : Difference between total loo_est values between models.
+2. se_diff    : Standard error of the difference in total l00_est values.
 3. weight     : Relative support for each model.
 
 In this example table the models have been sorted in ascending total loo_est values.
+The PsisLoo objects in the field `psis` is sorted as listed in `table`.
 
 See also: [`PsisLoo`](@ref).
 """
@@ -76,13 +77,13 @@ function loo_compare(
         mnames = model_names
     end
 
-    psis = Vector{PsisLoo}(undef, nmodels)
+    psis = psis_loo.(loglikelihoods)
+
     psis_values = Vector{Float64}(undef, nmodels)
     se_values = Vector{Float64}(undef, nmodels)
     loos = Vector{Vector{Float64}}(undef, nmodels)
 
     for i in 1:nmodels
-        psis[i] = psis_loo(loglikelihoods[i])
         psis_values[i] = psis[i].estimates(:loo_est, :total)
         se_values[i] = psis[i].estimates(:loo_est, :se_total)
         loos[i] = psis[i].pointwise(:loo_est)
@@ -90,6 +91,7 @@ function loo_compare(
 
     if sort_models
         ind = sortperm([psis_values[i][1] for i in 1:nmodels]; rev=true)
+        psis = psis[ind]
         psis_values = psis_values[ind]
         se_values = se_values[ind]
         loos = loos[ind]
@@ -98,30 +100,30 @@ function loo_compare(
 
     # Setup comparison vectors
 
-    dpsis = zeros(nmodels)
-    dse = zeros(nmodels)
-    weights = ones(nmodels)
+    elpd_diff = zeros(nmodels)
+    se_diff = zeros(nmodels)
+    weight = ones(nmodels)
 
     # Compute comparison values
 
     for i in 2:nmodels
-        dpsis[i] = psis_values[i] - psis_values[1]
+        elpd_diff[i] = psis_values[i] - psis_values[1]
         diff = loos[1] - loos[i]
-        dse[i] = √(length(loos[i]) * var(diff; corrected=false))
+        se_diff[i] = √(length(loos[i]) * var(diff; corrected=false))
     end
-    data = dpsis
-    data = hcat(data, dse)
+    data = elpd_diff
+    data = hcat(data, se_diff)
 
     sumval = sum([exp(psis_values[i]) for i in 1:nmodels])
-    @. weights = exp(psis_values) / sumval
-    data = hcat(data, weights)
+    @. weight = exp(psis_values) / sumval
+    data = hcat(data, weight)
     
     # Create KeyedArray object
 
     table = KeyedArray(
         data,
         model = mnames,
-        statistic = [:dPSIS, :dSE, :weight],
+        statistic = [:elpd_diff, :se_diff, :weight],
     )
 
     # Return LooCompare object

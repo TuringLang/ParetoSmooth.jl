@@ -271,14 +271,14 @@ r_ests = KeyedArray(
             model_names=[:m5_1t, :m5_2t, :m5_3t])
         loo |> display
 
-        @test loo.table(:m5_1t, :dPSIS) ≈ 0.00 atol = 0.05
-        @test loo.table(:m5_1t, :dSE) ≈ 0.00 atol = 0.05
+        @test loo.table(:m5_1t, :elpd_diff) ≈ 0.00 atol = 0.05
+        @test loo.table(:m5_1t, :se_diff) ≈ 0.00 atol = 0.05
         @test loo.table(:m5_1t, :weight) ≈ 0.67 atol = 0.05
-        @test loo.table(:m5_2t, :dPSIS) ≈ -6.68 atol = 0.05
-        @test loo.table(:m5_2t, :dSE) ≈ 4.74 atol = 0.05
+        @test loo.table(:m5_2t, :elpd_diff) ≈ -6.68 atol = 0.05
+        @test loo.table(:m5_2t, :se_diff) ≈ 4.74 atol = 0.05
         @test loo.table(:m5_2t, :weight) ≈ 0.00 atol = 0.05
-        @test loo.table(:m5_3t, :dPSIS) ≈ -0.69 atol = 0.05
-        @test loo.table(:m5_3t, :dSE) ≈ 0.42 atol = 0.05
+        @test loo.table(:m5_3t, :elpd_diff) ≈ -0.69 atol = 0.05
+        @test loo.table(:m5_3t, :se_diff) ≈ 0.42 atol = 0.05
         @test loo.table(:m5_3t, :weight) ≈ 0.33 atol = 0.05
 
     end
