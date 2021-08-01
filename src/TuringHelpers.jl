@@ -1,4 +1,4 @@
-using .Turing, .MCMCChains
+using .Turing
 export pointwise_log_likelihoods
 
 const TURING_LOOP_WARN = """
