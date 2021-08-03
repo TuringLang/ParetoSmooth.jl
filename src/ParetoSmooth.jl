@@ -1,5 +1,6 @@
 module ParetoSmooth
     using Requires
+    using DocStringExtensions
 
     function __init__()
         @require Turing = 
@@ -15,5 +16,6 @@ module ParetoSmooth
     include("LooStructs.jl")
     include("LeaveOneOut.jl")
     include("PublicHelpers.jl")
+    include("LooCompare.jl")
 
 end
