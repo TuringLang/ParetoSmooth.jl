@@ -52,7 +52,7 @@ score.
 See also: [`psis`](@ref), [`loo`](@ref), [`PsisLoo`](@ref).
 """
 function psis_loo(
-    log_likelihood::T, args...; 
+    log_likelihood::AbstractArray, args...; 
     kwargs...
 ) where {F<:Real, T<:AbstractArray{F, 3}}
     
@@ -114,12 +114,6 @@ function psis_loo(
     new_log_ratios = _convert_to_array(log_likelihood, chain_index)
     return psis_loo(new_log_ratios, args...; kwargs...)
 end
-
-# function psis_loo(log_likelihood, args...; 
-#     subsamples::Integer, rng::AbstractRNG=MersenneTwister(1776), kwargs...
-# )
-#     return log_likelihood = rand()
-# end
     
 
 function _generate_loo_table(

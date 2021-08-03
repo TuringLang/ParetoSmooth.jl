@@ -40,6 +40,14 @@ end
 
 
 """
+Safely exponentiate a vector for a scale-invariant operation (exponentiate x - maximum(x))
+"""
+function _safe_exp(x::AbstractVector)
+    return exp.(x .- maximum(x))
+end
+
+
+"""
 Convert a matrix+chain_index representation to a 3d array representation.
 """
 function _convert_to_array(matrix::AbstractMatrix, chain_index::AbstractVector)
