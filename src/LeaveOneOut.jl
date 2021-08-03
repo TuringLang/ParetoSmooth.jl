@@ -35,8 +35,8 @@ end
         [, chain_index::Vector{Integer}, kwargs...]
     ) -> PsisLoo
 
-Use Pareto-Smoothed Importance Sampling to calculate the leave-one-out cross validation
-score.
+Use Pareto-Smoothed Importance Sampling to calculate the leave-one-out cross-validation
+estimate.
 
 # Arguments
 
