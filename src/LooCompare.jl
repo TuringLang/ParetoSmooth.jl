@@ -5,7 +5,7 @@ import Base.show
 
 # LooCompare
 
-A struct containing the results of PsisLoo model comparisom.
+A struct containing the results of a PsisLoo model comparison.
 
 $(FIELDS)
 
@@ -77,11 +77,21 @@ function loo_compare(
         mnames = model_names
     end
 
-    psis = psis_loo.(loglikelihoods)
+    psis_array = psis_loo.(loglikelihoods)
+    println(typeof(psis_array))
+    loo_compare(psis_array; model_names, sort_models)
+end
+
+function loo_compare(
+    psis::Vector{PsisLoo};
+    model_names=nothing, 
+    sort_models=true)
 
     psis_values = Vector{Float64}(undef, nmodels)
     se_values = Vector{Float64}(undef, nmodels)
     loos = Vector{Vector{Float64}}(undef, nmodels)
+
+    nmodels = length(psis)
 
     for i in 1:nmodels
         psis_values[i] = psis[i].estimates(:loo_est, :total)
