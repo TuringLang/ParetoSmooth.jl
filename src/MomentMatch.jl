@@ -25,7 +25,8 @@ to more closely match the target distribution.
 """
 function adapt_cv(
     log_target::Function,
-    psis_object::AbstractCV,
+    log_p::AbstractArray,
+    cv_object::AbstractCV,
     samples::AbstractArray,
     data;
     hard_thresh::Real = 2/3,
@@ -39,15 +40,15 @@ function adapt_cv(
     log_count = mcmc_count
 
     weights = psis_object.weights
+    original_weights = deepcopy(psis_object.weights)
     ξ = psis_object.pareto_k
     resample_count = size(weights, 1)
     
     Threads.@threads @inbounds for resample in 1:resample_count
-        log_proposal = log_proposal
-        _match!(
+        @views _match!(
             log_target,
-            log_proposal,
-            view(weights, resample, :, :),
+            log_p[resample, :, :],
+            weights[resample, :, :],
             samples,
             ξ[resample],
             log_count,
