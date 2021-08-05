@@ -11,31 +11,33 @@ $(FIELDS)
 
 # Extended help
 
-# Fields
+### Fields
   - `psis::Vector{PsisLoo}` : Vector of PsisLoo objects.
   - `table::KeyedArray` : Comparison table.
 
-# Example of a comparison table
+#### Example of a comparison table
 ```
-┌───────┬───────────┬─────────┬────────┐
-│       │ elpd_diff │ se_diff │ weight │
-├───────┼───────────┼─────────┼────────┤
-│ m5_1t │      0.00 │    0.00 │   0.67 │
-│ m5_3t │     -0.69 │    0.42 │   0.33 │
-│ m5_2t │     -6.68 │    4.74 │   0.00 │
-└───────┴───────────┴─────────┴────────┘
+┌───────┬────────────────┬───────────────────┬────────┐
+│       │ loo_score_diff │ se_loo_score_diff │ weight │
+├───────┼────────────────┼───────────────────┼────────┤
+│ m5_1t │           0.00 │              0.00 │   0.67 │
+│ m5_3t │          -0.69 │              0.42 │   0.33 │
+│ m5_2t │          -6.68 │              4.74 │   0.00 │
+└───────┴────────────────┴───────────────────┴────────┘
 ```
 
 where:
 
-1. `elpd_diff`  : Difference between total loo_est values between models.
-2. `se_diff`    : Standard error of the difference in total l00_est values.
-3. `weight`     : Relative support for each model.
+1. `loo_score_diff` : Difference in loo_scores between models.
+2. `se_loo_score_diff` : Standard error of the difference in loo_scores between models.
+3. `weight` : Relative support for each model.
 
-In this example table the models have been sorted in ascending total loo_est values.
-The PsisLoo objects in the field `psis` is sorted as listed in `table`.
+The `loo_score` is the sum (`total`) of the `loo_est` values in the PsisLoo object.
 
-See also: [`PsisLoo`](@ref).
+In this example table the models have been sorted in ascending loo_score values.
+The PsisLoo objects in the field `psis` are sorted as listed in `table`.
+
+See also: [`PsisLoo`}(@ref) 
 """
 struct LooCompare
     psis::Vector{PsisLoo}
@@ -43,10 +45,8 @@ struct LooCompare
 end
 
 """
-
-# loo_compare
-
-Construct a PsisLoo comparison table for loglikelihood matrices.
+Construct a PsisLoo comparison table from a vector of loglikelihood matrices.
+Return a LooCompare object.
 
 $(SIGNATURES)
 
@@ -56,8 +56,8 @@ $(SIGNATURES)
     - `loglikelihoods::Vector{Array{AF, 3}} where {AF <: AbstractFloat}` : Vector of loglikelihood matrices
 
 ### Optional arguments
-    - `model_names=nothing` : Optional specify model names
-    - `sort_models=true` : Sort models according to ascending elpd values
+    - `model_names=nothing` : A vector of model names
+    - `sort_models=true` : Sort models according to ascending loo_score values
 
 ### Return values
     - `result::LooCompare` : LooCompare object
@@ -65,11 +65,11 @@ $(SIGNATURES)
 See also: [`LooCompare`](@ref).
 """
 function loo_compare(
-    loglikelihoods::Vector{Array{AF, 3}} where {AF <: AbstractFloat};
+    loglikelihood_vector::Vector{Array{AF, 3}} where {AF <: Real};
     model_names=nothing, 
     sort_models=true)
 
-    nmodels = length(loglikelihoods)
+    nmodels = length(loglikelihood_vector)
 
     if isnothing(model_names)
         mnames = ["model_$i" for i in 1:nmodels]
@@ -77,28 +77,30 @@ function loo_compare(
         mnames = model_names
     end
 
-    psis_array = psis_loo.(loglikelihoods)
-    loo_compare(psis_array; model_names, sort_models)
+    psis_array = psis_loo.(loglikelihood_vector)
+    return loo_compare(psis_array; model_names, sort_models)
 end
 
 """
+Construct a PsisLoo comparison table from a NamedTuple.
+The keys of the NamedTuple are used as model names,
+the values must be a subtype of PsisLoo.
+Return a LooCompare object.
 
-# loo_compare
-
-Construct a PsisLoo comparison table for PsisLoo NamedTuple.
 
 $(SIGNATURES)
 
 # Extended help
 
 ### Required arguments
-    - `nt::NamedTuple` : NamedTuple with PsisLoo values
+    - `nt::NamedTuple` : NamedTuple
 
 ### Optional arguments
-    - `sort_models=true` : Sort models according to ascending elpd values
+    - `sort_models=true` : Sort models according to ascending loo_score values
 
 ### Return values
     - `result::LooCompare` : LooCompare object
+
 
 See also: [`LooCompare`](@ref).
 """
@@ -110,31 +112,29 @@ function loo_compare(
     nmodels = length(keys(nt))
 
     if !(eltype(nt) <: PsisLoo) 
-        @error "Not a NamedTuple with PsisLoo type values."
-        return
+        throw(ArgumentError("Not a NamedTuple with PsisLoo type values."))
     end
 
     mnames = [Symbol(keys(nt)[i]) for i in 1:length(values(nt))]
     psis_array = [values(nt)[i] for i in 1:length(values(nt))]
-    loo_compare(psis_array; model_names=mnames, sort_models)
+    
+    return loo_compare(psis_array; model_names=mnames, sort_models)
 end
 
 """
-
-# loo_compare
-
-Construct a PsisLoo comparison table for loglikelihood matrices.
+Construct a PsisLoo comparison table from a vector of PsisLoo objects.
+Return a LooCompare object.
 
 $(SIGNATURES)
 
 # Extended help
 
 ### Required arguments
-    - `psis::Vector{PsisLoo{AF, Array{AF, 3}, Vector{AF}, I, Vector{I}}} where {AF <: AbstractFloat, I <: Integer}` : Vector of loglikelihood matrices
+    - `psis_vector::Vector{PsisLoo{AF, Array{AF, 3}, Vector{AF}, I, Vector{I}}} where {AF <: AbstractFloat, I <: Integer}` : Vector of loglikelihood matrices
 
 ### Optional arguments
-    - `model_names=nothing` : Optional specify models
-    - `sort_models=true` : Sort models according to ascending elpd values
+    - `model_names=nothing` : A vector of model names
+    - `sort_models=true` : Sort models according to ascending loo_score values
 
 ### Return values
     - `result::LooCompare` : LooCompare object
@@ -142,11 +142,14 @@ $(SIGNATURES)
 See also: [`LooCompare`](@ref).
 """
 function loo_compare(
-    psis::Vector{PsisLoo{AF, Array{AF, 3}, Vector{AF}, I, Vector{I}}}
-        where {AF <: AbstractFloat, I <: Integer};
+    psis_vector::Vector{PsisLoo{AF, Array{AF, 3}, Vector{AF}, I, Vector{I}}}
+        where {AF <: Real, I <: Integer};
     model_names=nothing, 
     sort_models=true)
 
+    # Deepcopy because we might reorder psis_vector.
+
+    psis = deepcopy(psis_vector)
     nmodels = length(psis)
 
     if isnothing(model_names)
@@ -155,15 +158,11 @@ function loo_compare(
         mnames = model_names
     end
 
-    psis_values = Vector{Float64}(undef, nmodels)
-    se_values = Vector{Float64}(undef, nmodels)
-    loos = Vector{Vector{Float64}}(undef, nmodels)
+    # Extract relevant values from PsisLoo objects.
 
-    for i in 1:nmodels
-        psis_values[i] = psis[i].estimates(:loo_est, :total)
-        se_values[i] = psis[i].estimates(:loo_est, :se_total)
-        loos[i] = psis[i].pointwise(:loo_est)
-    end
+    psis_values = [psis[i].estimates(:loo_est, :total) for i in 1:nmodels]
+    se_values = [psis[i].estimates(:loo_est, :se_total) for i in 1:nmodels]
+    loos = [psis[i].pointwise(:loo_est) for i in 1:nmodels]
 
     if sort_models
         ind = sortperm([psis_values[i][1] for i in 1:nmodels]; rev=true)
@@ -174,24 +173,18 @@ function loo_compare(
         mnames = mnames[ind]
     end
 
-    # Setup comparison vectors
+    # Compute differences between models.
 
-    elpd_diff = zeros(nmodels)
-    se_diff = zeros(nmodels)
-    weight = ones(nmodels)
+    loo_score_diff = [psis_values[i] - psis_values[1] for i in 1:nmodels]
+    se_loo_score_diff = 
+        [√(length(loos[i]) * var(loos[1] - loos[i]; corrected=false)) 
+            for i in 1:nmodels]
 
-    # Compute comparison values
-
-    for i in 2:nmodels
-        elpd_diff[i] = psis_values[i] - psis_values[1]
-        diff = loos[1] - loos[i]
-        se_diff[i] = √(length(loos[i]) * var(diff; corrected=false))
-    end
-    data = elpd_diff
-    data = hcat(data, se_diff)
+    data = loo_score_diff
+    data = hcat(data, se_loo_score_diff)
 
     sumval = sum([exp(psis_values[i]) for i in 1:nmodels])
-    @. weight = exp(psis_values) / sumval
+    weight = [exp(psis_values[i]) / sumval for i in 1:nmodels]
     data = hcat(data, weight)
     
     # Create KeyedArray object
@@ -204,7 +197,7 @@ function loo_compare(
 
     # Return LooCompare object
     
-    LooCompare(psis, table)
+    return LooCompare(psis, table)
 
 end
 
