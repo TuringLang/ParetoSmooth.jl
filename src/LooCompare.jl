@@ -53,7 +53,7 @@ $(SIGNATURES)
 # Extended help
 
 ### Required arguments
-    - `loglikelihoods::Vector{Array{AF, 3}} where {AF <: AbstractFloat}` : Vector of loglikelihood matrices
+    - `loglikelihoods::AbstractVector{Array{AF, 3}} where {AF <: AbstractFloat}` : Vector of loglikelihood matrices
 
 ### Optional arguments
     - `model_names=nothing` : A vector of model names
@@ -65,7 +65,7 @@ $(SIGNATURES)
 See also: [`LooCompare`](@ref).
 """
 function loo_compare(
-    loglikelihood_vector::Vector{Array{AF, 3}} where {AF <: Real};
+    loglikelihood_vector::AbstractVector{Array{AF, 3}} where {AF <: Real};
     model_names=nothing, 
     sort_models=true)
 
@@ -130,7 +130,7 @@ $(SIGNATURES)
 # Extended help
 
 ### Required arguments
-    - `psis_vector::Vector{PsisLoo{AF, Array{AF, 3}, Vector{AF}, I, Vector{I}}} where {AF <: AbstractFloat, I <: Integer}` : Vector of loglikelihood matrices
+    - `psis_vector::AbstractVector{PsisLoo{AF, Array{AF, 3}, Vector{AF}, I, Vector{I}}} where {AF <: AbstractFloat, I <: Integer}` : Vector of loglikelihood matrices
 
 ### Optional arguments
     - `model_names=nothing` : A vector of model names
@@ -142,7 +142,7 @@ $(SIGNATURES)
 See also: [`LooCompare`](@ref).
 """
 function loo_compare(
-    psis_vector::Vector{PsisLoo{AF, Array{AF, 3}, Vector{AF}, I, Vector{I}}}
+    psis_vector::AbstractVector{PsisLoo{AF, Array{AF, 3}, Vector{AF}, I, Vector{I}}}
         where {AF <: Real, I <: Integer};
     model_names=nothing, 
     sort_models=true)

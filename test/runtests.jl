@@ -282,7 +282,6 @@ r_ests = KeyedArray(
         @test loo.table(:m5_3t, :weight) ≈ 0.33 atol = 0.05
 
         nt = (m5_1t=loo.psis[1], m5_3t=loo.psis[2], m5_2t=loo.psis[3])
-        println(eltype(nt))
         loo2 = loo_compare(nt)
         loo2 |> display
 
