@@ -53,10 +53,10 @@ $(SIGNATURES)
 # Extended help
 
 ### Required arguments
-    - `loglikelihoods::Vector{Array{Float64, 3}}` : Vector of loglikelihood matrices
+    - `loglikelihoods::Vector{Array{AF, 3}} where {AF <: AbstractFloat}` : Vector of loglikelihood matrices
 
 ### Optional arguments
-    - `model_names=nothing` : Optional specify models
+    - `model_names=nothing` : Optional specify model names
     - `sort_models=true` : Sort models according to ascending elpd values
 
 ### Return values
@@ -65,7 +65,7 @@ $(SIGNATURES)
 See also: [`LooCompare`](@ref).
 """
 function loo_compare(
-    loglikelihoods::Vector{Array{Float64, 3}};
+    loglikelihoods::Vector{Array{AF, 3}} where {AF <: AbstractFloat};
     model_names=nothing, 
     sort_models=true)
 
@@ -78,20 +78,86 @@ function loo_compare(
     end
 
     psis_array = psis_loo.(loglikelihoods)
-    println(typeof(psis_array))
     loo_compare(psis_array; model_names, sort_models)
 end
 
+"""
+
+# loo_compare
+
+Construct a PsisLoo comparison table for PsisLoo NamedTuple.
+
+$(SIGNATURES)
+
+# Extended help
+
+### Required arguments
+    - `nt::NamedTuple` : NamedTuple with PsisLoo values
+
+### Optional arguments
+    - `sort_models=true` : Sort models according to ascending elpd values
+
+### Return values
+    - `result::LooCompare` : LooCompare object
+
+See also: [`LooCompare`](@ref).
+"""
 function loo_compare(
-    psis::Vector{PsisLoo};
+    nt::NamedTuple;
     model_names=nothing, 
     sort_models=true)
+
+    nmodels = length(keys(nt))
+
+    if !(eltype(nt) <: PsisLoo) 
+        @error "Not a NamedTuple with PsisLoo type values."
+        return
+    end
+
+    mnames = [Symbol(keys(nt)[i]) for i in 1:length(values(nt))]
+    psis_array = [values(nt)[i] for i in 1:length(values(nt))]
+    loo_compare(psis_array; model_names=mnames, sort_models)
+end
+
+"""
+
+# loo_compare
+
+Construct a PsisLoo comparison table for loglikelihood matrices.
+
+$(SIGNATURES)
+
+# Extended help
+
+### Required arguments
+    - `psis::Vector{PsisLoo{AF, Array{AF, 3}, Vector{AF}, I, Vector{I}}} where {AF <: AbstractFloat, I <: Integer}` : Vector of loglikelihood matrices
+
+### Optional arguments
+    - `model_names=nothing` : Optional specify models
+    - `sort_models=true` : Sort models according to ascending elpd values
+
+### Return values
+    - `result::LooCompare` : LooCompare object
+
+See also: [`LooCompare`](@ref).
+"""
+function loo_compare(
+    psis::Vector{PsisLoo{AF, Array{AF, 3}, Vector{AF}, I, Vector{I}}}
+        where {AF <: AbstractFloat, I <: Integer};
+    model_names=nothing, 
+    sort_models=true)
+
+    nmodels = length(psis)
+
+    if isnothing(model_names)
+        mnames = ["model_$i" for i in 1:nmodels]
+    else
+        mnames = model_names
+    end
 
     psis_values = Vector{Float64}(undef, nmodels)
     se_values = Vector{Float64}(undef, nmodels)
     loos = Vector{Vector{Float64}}(undef, nmodels)
-
-    nmodels = length(psis)
 
     for i in 1:nmodels
         psis_values[i] = psis[i].estimates(:loo_est, :total)
@@ -133,7 +199,7 @@ function loo_compare(
     table = KeyedArray(
         data,
         model = mnames,
-        statistic = [:elpd_diff, :se_diff, :weight],
+        statistic = [:loo_score_diff, :se_loo_score_diff, :weight],
     )
 
     # Return LooCompare object

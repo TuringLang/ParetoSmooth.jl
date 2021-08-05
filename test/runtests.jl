@@ -271,15 +271,30 @@ r_ests = KeyedArray(
             model_names=[:m5_1t, :m5_2t, :m5_3t])
         loo |> display
 
-        @test loo.table(:m5_1t, :elpd_diff) ≈ 0.00 atol = 0.05
-        @test loo.table(:m5_1t, :se_diff) ≈ 0.00 atol = 0.05
+        @test loo.table(:m5_1t, :loo_score_diff) ≈ 0.00 atol = 0.05
+        @test loo.table(:m5_1t, :se_loo_score_diff) ≈ 0.00 atol = 0.05
         @test loo.table(:m5_1t, :weight) ≈ 0.67 atol = 0.05
-        @test loo.table(:m5_2t, :elpd_diff) ≈ -6.68 atol = 0.05
-        @test loo.table(:m5_2t, :se_diff) ≈ 4.74 atol = 0.05
+        @test loo.table(:m5_2t, :loo_score_diff) ≈ -6.68 atol = 0.05
+        @test loo.table(:m5_2t, :se_loo_score_diff) ≈ 4.74 atol = 0.05
         @test loo.table(:m5_2t, :weight) ≈ 0.00 atol = 0.05
-        @test loo.table(:m5_3t, :elpd_diff) ≈ -0.69 atol = 0.05
-        @test loo.table(:m5_3t, :se_diff) ≈ 0.42 atol = 0.05
+        @test loo.table(:m5_3t, :loo_score_diff) ≈ -0.69 atol = 0.05
+        @test loo.table(:m5_3t, :se_loo_score_diff) ≈ 0.42 atol = 0.05
         @test loo.table(:m5_3t, :weight) ≈ 0.33 atol = 0.05
+
+        nt = (m5_1t=loo.psis[1], m5_3t=loo.psis[2], m5_2t=loo.psis[3])
+        println(eltype(nt))
+        loo2 = loo_compare(nt)
+        loo2 |> display
+
+        @test loo2.table(:m5_1t, :loo_score_diff) ≈ 0.00 atol = 0.05
+        @test loo2.table(:m5_1t, :se_loo_score_diff) ≈ 0.00 atol = 0.05
+        @test loo2.table(:m5_1t, :weight) ≈ 0.67 atol = 0.05
+        @test loo2.table(:m5_2t, :loo_score_diff) ≈ -6.68 atol = 0.05
+        @test loo2.table(:m5_2t, :se_loo_score_diff) ≈ 4.74 atol = 0.05
+        @test loo2.table(:m5_2t, :weight) ≈ 0.00 atol = 0.05
+        @test loo2.table(:m5_3t, :loo_score_diff) ≈ -0.69 atol = 0.05
+        @test loo2.table(:m5_3t, :se_loo_score_diff) ≈ 0.42 atol = 0.05
+        @test loo2.table(:m5_3t, :weight) ≈ 0.33 atol = 0.05
 
     end
     
