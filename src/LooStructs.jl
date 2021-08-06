@@ -24,9 +24,9 @@ const CV_DESC = """
       - `:ess` is the effective sample size, which measures the simulation error caused by 
         using Monte Carlo estimates. It is *not* related to the actual sample size, and it
         does not measure how accurate your predictions are.     
-    - `:pareto_k` is the estimated value for the parameter `ξ` of the generalized Pareto
-      distribution. Values above .7 indicate that PSIS has failed to approximate the true
-      distribution.
+  - `:pareto_k` is the estimated value for the parameter `ξ` of the generalized Pareto
+    distribution. Values above .7 indicate that PSIS has failed to approximate the true
+    distribution.
   - `psis_object::Psis`: A `Psis` object containing the results of Pareto-smoothed 
     importance sampling.
 

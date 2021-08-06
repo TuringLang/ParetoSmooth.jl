@@ -51,13 +51,14 @@ function psis(
     dims = size(log_ratios)
 
     data_size = dims[1]
-    post_sample_size = dims[2] * dims[3]
+    mcmc_count = dims[2] * dims[3]
+
 
     # Reshape to matrix (easier to deal with)
-    log_ratios = reshape(log_ratios, data_size, post_sample_size)
+    log_ratios = reshape(log_ratios, data_size, mcmc_count)
     weights = similar(log_ratios)
-    # Shift ratios by maximum to prevent overflow
-    @tturbo @. weights = exp(log_ratios - $maximum(log_ratios; dims=2))
+    # Shift ratios by maximum to avoid overflow, and log(mcmc_count) to avoid subnormals
+    @tturbo @. weights = exp(log_ratios - $maximum(log_ratios; dims=2) + log(mcmc_count))
 
     r_eff = _generate_r_eff(weights, dims, r_eff, source)
     _check_input_validity_psis(reshape(log_ratios, dims), r_eff)
@@ -65,21 +66,20 @@ function psis(
     tail_length = similar(log_ratios, Int, data_size)
     ξ = similar(log_ratios, data_size)
     @inbounds Threads.@threads for i in eachindex(tail_length)
-        tail_length[i] = @views _def_tail_length(post_sample_size, r_eff[i])
-        ξ[i] = @views ParetoSmooth._do_psis_i!(weights[i,:], tail_length[i])
+        tail_length[i] = @views _def_tail_length(mcmc_count, r_eff[i])
+        ξ[i] = @views ParetoSmooth._psis_smooth!(weights[i,:], tail_length[i])
     end
-    
-    @tullio norm_const[i] := weights[i, j]
-    @turbo weights .= weights ./ norm_const
-    ess = psis_ess(weights, r_eff)
 
+    _normalize!(weights)
+
+    ess = psis_ess(weights, r_eff)
     weights = reshape(weights, dims)
 
     if log_weights
         @tturbo @. weights = log(weights)
     end
 
-    return Psis(weights, ξ, ess, r_eff, tail_length, post_sample_size, data_size)
+    return Psis(weights, ξ, ess, r_eff, tail_length, mcmc_count, data_size)
 end
 
 
@@ -95,24 +95,25 @@ end
 
 
 """
-    _do_psis_i!(is_ratios::AbstractVector{Real}, tail_length::Integer) -> T
+    _psis_smooth!(is_ratios::AbstractVector{AbstractFloat}, tail_length::Integer) -> T
 
-Do PSIS on a single vector, smoothing its tail values.
+Do PSIS on a single vector, smoothing its tail values in place before returning ξ.
 
 # Arguments
 
-- `is_ratios::AbstractVector{Real}`: A vector of importance sampling ratios, 
-scaled to have a maximum of 1.
+  - `is_ratios::AbstractVector{AbstractFloat}`: A vector of importance sampling ratios, 
+  scaled to have a maximum of 1.
 
 # Returns
 
-- `T<:Real`: ξ, the shape parameter for the GPD; big numbers indicate thick tails.
+  - `T<:AbstractFloat`: ξ, the estimated shape parameter for the GPD. Bigger numbers 
+  indicate thicker tails.
 
 # Extended help
 
 Additional information can be found in the LOO package from R.
 """
-function _do_psis_i!(
+function _psis_smooth!(
     is_ratios::AbstractVector{T}, tail_length::Integer
 ) where {T<:Real}
 
@@ -135,8 +136,8 @@ function _do_psis_i!(
     cutoff = is_ratios[tail_start - 1]
     ξ = _psis_smooth_tail!(tail, cutoff)
 
-    # truncate at max of raw weights (1 after scaling)
-    clamp!(is_ratios, 0, 1)
+    # truncate at max of raw weights (equal to len after scaling)
+    clamp!(is_ratios, 0, len)
     # unsort the ratios to their original position:
     is_ratios .= @views is_ratios[invperm(ordering)]
 
@@ -174,6 +175,11 @@ function _psis_smooth_tail!(tail::AbstractVector{T}, cutoff::T) where {T<:Real}
     return ξ
 end
 
+
+function _normalize!(weights::AbstractArray)
+    @tullio norm_const[i] := weights[i, j]
+    @turbo @. weights /= norm_const
+end
 
 
 ##########################
@@ -251,7 +257,7 @@ function _check_tail(tail::AbstractVector{T}) where {T<:Real}
         throw(
             ArgumentError(
                 "Unable to fit generalized Pareto distribution: tail length was too " *
-                "short. Likely causese are: \n$LIKELY_ERROR_CAUSES"
+                "short. Likely causes are: \n$LIKELY_ERROR_CAUSES"
             ),
         )
     end

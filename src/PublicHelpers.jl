@@ -1,8 +1,8 @@
 export pointwise_log_likelihoods
 
-const ARRAY_DIMS_WARNING = "The supplied array of mcmc samples indicates you have more 
-parameters than mcmc samples.This is possible, but highly unusual. Please check that your
-array of mcmc samples has the following dimensions: [n_samples,n_parms,n_chains]."
+const ARRAY_DIMS_WARNING = "The supplied array of MCMC samples indicates you have more " *
+"parameters than samples. This is possible, but unusual. Please check your array of MCMC " *
+"samples has dimensions `[iter, var, chain]`."
 
 """
     pointwise_log_likelihoods(
