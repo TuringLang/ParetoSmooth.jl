@@ -11,17 +11,17 @@ using Turing
 import RData
 
 
-let og_array = RData.load("Example_Log_Likelihood_Array.RData")["x"]
+let og_array = RData.load("data/Example_Log_Likelihood_Array.RData")["x"]
     global log_lik_arr = copy(permutedims(og_array, [3, 1, 2]))
 end
-let og_weights = RData.load("Weight_Matrix.RData")["weightMatrix"]
+let og_weights = RData.load("data/Weight_Matrix.RData")["weightMatrix"]
     global r_weights = exp.(permutedims(reshape(og_weights, 500, 2, 32), [3, 1, 2]))
 end
-r_eff = RData.load("Rel_Eff.RData")["rel_eff"]
-r_psis = RData.load("Psis_Object.RData")["x"]
-r_tail_len = Int.(RData.load("Tail_Vector.RData")["tail"])
-pareto_k = RData.load("Pareto_K.RData")["pareto_k"]
-r_loo = RData.load("Example_Loo.RData")["example_loo"]
+r_eff = RData.load("data/Rel_Eff.RData")["rel_eff"]
+r_psis = RData.load("data/Psis_Object.RData")["x"]
+r_tail_len = Int.(RData.load("data/Tail_Vector.RData")["tail"])
+pareto_k = RData.load("data/Pareto_K.RData")["pareto_k"]
+r_loo = RData.load("data/Example_Loo.RData")["example_loo"]
 
 
 # Add labels, reformat
