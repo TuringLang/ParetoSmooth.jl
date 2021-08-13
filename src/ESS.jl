@@ -15,8 +15,8 @@ Calculate the relative efficiency of an MCMC chain, i.e. the effective sample si
 by the nominal sample size.
 """
 function relative_eff(
-    sample::AbstractArray{T,3}; method=MCMCDiagnosticTools.FFTESSMethod()
-) where {T<:Union{Real, Missing}}
+    sample::AbstractArray{T, 3}; method=MCMCDiagnosticTools.FFTESSMethod()
+) where {T <: Union{Real, Missing}}
     dims = size(sample)
     post_sample_size = dims[2] * dims[3]
     ess_sample = inv.(permutedims(sample, [2, 1, 3]))
@@ -60,7 +60,7 @@ end
 
 function psis_ess(weights::AbstractMatrix{T}) where {T <: Union{Real, Missing}}
     @warn "PSIS ESS not adjusted based on MCMC ESS. MCSE and ESS estimates " *
-        "will be overoptimistic if samples are autocorrelated."
+          "will be overoptimistic if samples are autocorrelated."
     return psis_ess(weights, ones(size(weights)))
 end
 

@@ -30,6 +30,54 @@ const KWARGS = """
 ###############
 
 """
+Generate the relative effective sample size if not provided by the user.
+"""
+function _generate_r_eff(weights::AbstractArray, dims, r_eff::AbstractArray, source::String)
+    if isempty(r_eff)
+        if source == "mcmc"
+            @info "Adjusting for autocorrelation. If the posterior samples are not " *
+                  "autocorrelated, specify the source of the posterior sample using the " *
+                  "keyword argument `source`. MCMC samples are always autocorrelated; VI " *
+                  "samples are not."
+            return relative_eff(reshape(weights, dims))
+        elseif source ∈ SAMPLE_SOURCES
+            @info "Samples have not been adjusted for autocorrelation. If the posterior " *
+                  "samples are autocorrelated, as in MCMC methods, ESS estimates will be " *
+                  "upward-biased, and standard error estimates will be downward-biased. " *
+                  "MCMC samples are always autocorrelated; VI samples are not."
+            return ones(size(weights, 1))
+        else
+            throw(
+                ArgumentError(
+                    "$source is not a valid source. Valid sources are $SAMPLE_SOURCES."
+                ),
+            )
+            return ones(size(weights, 1))
+        end
+    else
+        return r_eff
+    end
+end
+
+
+"""
+Throw a warning if any `pareto_k` values exceed 0.7.
+"""
+function _throw_pareto_k_warning(ξ)
+    if any(ξ .≥ 1)
+        @warn "Some Pareto k values are extremely high (>1). PSIS will not produce " *
+              "consistent estimates."
+    elseif any(ξ .≥ 0.7)
+        @warn "Some Pareto k values are high (>.7), indicating that PSIS has failed to " *
+              "approximate the true distribution."
+    elseif any(ξ .≥ 0.5)
+        @info "Some Pareto k values are slightly high (>.5); some pointwise estimates " *
+              "may be slow to converge or have high variance."
+    end
+end
+
+
+"""
 Assume that all objects belong to a single chain if chain index is missing. Inform user.
 """
 function _assume_one_chain(matrix)

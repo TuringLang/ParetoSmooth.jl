@@ -38,7 +38,7 @@ function pointwise_log_likelihoods(model::DynamicPPL.Model, chain::Chains)
     # compute the pointwise log likelihoods
     log_like_dict = DynamicPPL.pointwise_loglikelihoods(model, chain_params)
     # Size of array (n_steps, n_chains) using first parameter
-    dims = size(last(first(log_like_dict)))  
+    dims = size(last(first(log_like_dict)))
     # parse "var[i]" -> i
     ind_from_string(x) = parse(Int, split(split(x, "[")[2], "]")[1])
     # collect variable names
