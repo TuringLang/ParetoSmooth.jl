@@ -103,8 +103,8 @@ Implements Pareto-smoothed importance sampling (PSIS).
 See also: [`relative_eff`]@ref, [`psis_loo`]@ref, [`psis_ess`]@ref.
 """
 function psis(
-    log_ratios::AbstractArray{T, 3},
-    r_eff::AbstractVector{T}=similar(log_ratios, 0);
+    log_ratios::AbstractArray{T, 3};
+    r_eff::AbstractVector{<:AbstractFloat}=similar(log_ratios, 0),
     source::Union{AbstractString, Symbol}="mcmc",
     log_weights::Bool=false,
 ) where {T <: Real}
@@ -146,13 +146,12 @@ end
 
 
 function psis(
-    log_ratios::AbstractMatrix{T},
-    r_eff::AbstractVector{T}=similar(log_ratios, 0);
+    log_ratios::AbstractMatrix{T};
     chain_index::AbstractVector{I}=_assume_one_chain(log_ratios),
     kwargs...,
 ) where {T <: Real, I <: Integer}
     new_log_ratios = _convert_to_array(log_ratios, chain_index)
-    return psis(new_log_ratios, r_eff; kwargs...)
+    return psis(new_log_ratios; kwargs...)
 end
 
 

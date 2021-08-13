@@ -198,7 +198,7 @@ end
 
 function _calc_mcse(weights, log_likelihood, pointwise_loo, r_eff)
     @tullio pointwise_var_log[i] :=
-        sqrt <| (weights[i, j, k] * (log_likelihood[i, j, k] - pointwise_loo[i]))^2
+        sqrt <| (weights[i, j, k] * exp(log_likelihood[i, j, k] - pointwise_loo[i]))^2
     # apply autocorrelation adjustment:
     @turbo pointwise_var_log .= pointwise_var_log ./ sqrt.(r_eff)
     pointwise_mcse = pointwise_var_log  # reuse preallocated array
@@ -206,7 +206,7 @@ function _calc_mcse(weights, log_likelihood, pointwise_loo, r_eff)
     # Then, we can fit a log-normal using method of moments, 
     # and use that fit to estimate the variance in the logarithm.
     @turbo @. pointwise_mcse = _mom_var_log_n(pointwise_loo, pointwise_var_log)
-
+    return pointwise_mcse
 end
 
 
