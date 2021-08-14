@@ -9,7 +9,69 @@ const LIKELY_ERROR_CAUSES = """
 const MIN_TAIL_LEN = 5  # Minimum size of a tail for PSIS to give sensible answers
 const SAMPLE_SOURCES = ["mcmc", "vi", "other"]
 
-export psis
+export psis, PsisLoo, PsisLooMethod, Psis
+
+
+###########################
+###### RESULT STRUCT ######
+###########################
+
+
+"""
+    Psis{V<:AbstractVector{F},I<:Integer} where {F<:Real}
+
+A struct containing the results of Pareto-smoothed importance sampling.
+
+# Fields
+
+  - `weights`: A vector of smoothed, truncated, and normalized importance sampling weights.
+  - `pareto_k`: Estimates of the shape parameter `k` of the generalized Pareto distribution.
+  - `ess`: Estimated effective sample size for each LOO evaluation.
+  - `tail_len`: Vector indicating how large the "tail" is for each observation.
+  - `dims`: Named tuple of length 2 containing `s` (posterior sample size) and `n` (number
+    of observations).
+"""
+struct Psis{
+    F <: Real,
+    AF <: AbstractArray{F, 3},
+    VF <: AbstractVector{F},
+    I <: Integer,
+    VI <: AbstractVector{I},
+}
+    weights::AF
+    pareto_k::VF
+    ess::VF
+    r_eff::VF
+    tail_len::VI
+    posterior_sample_size::I
+    data_size::I
+end
+
+
+function Base.show(io::IO, ::MIME"text/plain", psis_object::Psis)
+    table = hcat(psis_object.pareto_k, psis_object.ess)
+    post_samples = psis_object.posterior_sample_size
+    data_size = psis_object.data_size
+    println(
+        "Results of PSIS with $post_samples Monte Carlo samples and " *
+        "$data_size data points.",
+    )
+    _throw_pareto_k_warning(psis_object.pareto_k)
+    return pretty_table(
+        table;
+        compact_printing=false,
+        header=[:pareto_k, :ess],
+        formatters=ft_printf("%5.2f"),
+        alignment=:r,
+    )
+end
+
+
+
+###########################
+####### PSIS FNCTNS #######
+###########################
+
 
 """
     psis(
@@ -41,11 +103,11 @@ Implements Pareto-smoothed importance sampling (PSIS).
 See also: [`relative_eff`]@ref, [`psis_loo`]@ref, [`psis_ess`]@ref.
 """
 function psis(
-    log_ratios::AbstractArray{T, 3},
-    r_eff::AbstractVector{T}=similar(log_ratios, 0);
-    source::Union{AbstractString,Symbol}="mcmc",
+    log_ratios::AbstractArray{T, 3};
+    r_eff::AbstractVector{<:AbstractFloat}=similar(log_ratios, 0),
+    source::Union{AbstractString, Symbol}="mcmc",
     log_weights::Bool=false,
-) where {T<:Real}
+) where {T <: Real}
 
     source = lowercase(String(source))
     dims = size(log_ratios)
@@ -66,9 +128,9 @@ function psis(
     ξ = similar(log_ratios, data_size)
     @inbounds Threads.@threads for i in eachindex(tail_length)
         tail_length[i] = @views _def_tail_length(post_sample_size, r_eff[i])
-        ξ[i] = @views ParetoSmooth._do_psis_i!(weights[i,:], tail_length[i])
+        ξ[i] = @views ParetoSmooth._do_psis_i!(weights[i, :], tail_length[i])
     end
-    
+
     @tullio norm_const[i] := weights[i, j]
     @turbo weights .= weights ./ norm_const
     ess = psis_ess(weights, r_eff)
@@ -84,13 +146,12 @@ end
 
 
 function psis(
-    log_ratios::AbstractMatrix{T},
-    r_eff::AbstractVector{T}=similar(log_ratios, 0);
+    log_ratios::AbstractMatrix{T};
     chain_index::AbstractVector{I}=_assume_one_chain(log_ratios),
     kwargs...,
-) where {T<:Real,I<:Integer}
+) where {T <: Real, I <: Integer}
     new_log_ratios = _convert_to_array(log_ratios, chain_index)
-    return psis(new_log_ratios, r_eff; kwargs...)
+    return psis(new_log_ratios; kwargs...)
 end
 
 
@@ -101,30 +162,28 @@ Do PSIS on a single vector, smoothing its tail values.
 
 # Arguments
 
-- `is_ratios::AbstractVector{Real}`: A vector of importance sampling ratios, 
-scaled to have a maximum of 1.
+  - `is_ratios::AbstractVector{Real}`: A vector of importance sampling ratios,
+    scaled to have a maximum of 1.
 
 # Returns
 
-- `T<:Real`: ξ, the shape parameter for the GPD; big numbers indicate thick tails.
+  - `T<:Real`: ξ, the shape parameter for the GPD; big numbers indicate thick tails.
 
 # Extended help
 
 Additional information can be found in the LOO package from R.
 """
-function _do_psis_i!(
-    is_ratios::AbstractVector{T}, tail_length::Integer
-) where {T<:Real}
+function _do_psis_i!(is_ratios::AbstractVector{T}, tail_length::Integer) where {T <: Real}
 
     len = length(is_ratios)
-    
+
     # sort is_ratios and also get results of sortperm() at the same time
     ordering = similar(is_ratios, Int)
     ratio_index = collect(zip(is_ratios, Base.OneTo(len)))
     tuples = sort!(ratio_index; by=first)
     is_ratios .= first.(tuples)
     ordering .= last.(tuples)
-    
+
 
     # Define and check tail
     tail_start = len - tail_length + 1  # index of smallest tail value
@@ -138,7 +197,7 @@ function _do_psis_i!(
     # truncate at max of raw weights (1 after scaling)
     clamp!(is_ratios, 0, 1)
     # unsort the ratios to their original position:
-    is_ratios .= @views is_ratios[invperm(ordering)]
+    invpermute!(is_ratios, ordering)
 
     return ξ::T
 end
@@ -149,7 +208,7 @@ end
 
 Define the tail length as in Vehtari et al. (2019).
 """
-function _def_tail_length(length::I, r_eff::Real) where {I<:Integer}
+function _def_tail_length(length::I, r_eff::Real) where {I <: Integer}
     len = I(ceil(min(length / 5, 3 * sqrt(length / r_eff))))
     len = 4 * round(len / 4) # multiples of 4 easier to vectorize
     return I(len)
@@ -159,10 +218,10 @@ end
 """
     _psis_smooth_tail!(tail::AbstractVector{T}, cutoff::T) where {T<:Real} -> ξ::T
 
-Takes an *already sorted* vector of observations from the tail and smooths it *in place*  
+Takes an *already sorted* vector of observations from the tail and smooths it *in place*
 with PSIS before returning shape parameter `ξ`.
 """
-function _psis_smooth_tail!(tail::AbstractVector{T}, cutoff::T) where {T<:Real}
+function _psis_smooth_tail!(tail::AbstractVector{T}, cutoff::T) where {T <: Real}
     len = length(tail)
     @turbo @. tail = tail - cutoff
 
@@ -181,42 +240,11 @@ end
 ##########################
 
 """
-Generate the relative effective sample size if not provided by the user.
-"""
-function _generate_r_eff(weights::AbstractArray, dims, r_eff::AbstractArray, source::String)
-    if isempty(r_eff)
-        if source == "mcmc"
-            @info "Adjusting for autocorrelation. If the posterior samples are not " *
-                  "autocorrelated, specify the source of the posterior sample using the " *
-                  "keyword argument `source`. MCMC samples are always autocorrelated; VI " *
-                  "samples are not."
-            return relative_eff(reshape(weights, dims))
-        elseif source ∈ SAMPLE_SOURCES
-            @info "Samples have not been adjusted for autocorrelation. If the posterior " *
-                  "samples are autocorrelated, as in MCMC methods, ESS estimates will be " *
-                  "upward-biased, and standard error estimates will be downward-biased. " *
-                  "MCMC samples are always autocorrelated; VI samples are not."
-            return ones(size(weights, 1))
-        else
-            throw(
-                ArgumentError(
-                    "$source is not a valid source. Valid sources are $SAMPLE_SOURCES."
-                ),
-            )
-            return ones(size(weights, 1))
-        end
-    else
-        return r_eff
-    end
-end
-
-    
-"""
 Make sure all inputs to `psis` are valid.
 """
 function _check_input_validity_psis(
-    log_ratios::AbstractArray{T,3}, r_eff::AbstractVector{T}
-) where {T<:Real}
+    log_ratios::AbstractArray{T, 3}, r_eff::AbstractVector{T}
+) where {T <: Real}
     if any(isnan, log_ratios)
         throw(DomainError("Invalid input for `log_ratios` (contains NaN values)."))
     elseif any(isinf, log_ratios)
@@ -239,7 +267,7 @@ end
 """
 Check the tail to make sure a GPD fit is possible.
 """
-function _check_tail(tail::AbstractVector{T}) where {T<:Real}
+function _check_tail(tail::AbstractVector{T}) where {T <: Real}
     if maximum(tail) ≈ minimum(tail)
         throw(
             ArgumentError(
@@ -251,7 +279,7 @@ function _check_tail(tail::AbstractVector{T}) where {T<:Real}
         throw(
             ArgumentError(
                 "Unable to fit generalized Pareto distribution: tail length was too " *
-                "short. Likely causese are: \n$LIKELY_ERROR_CAUSES"
+                "short. Likely causese are: \n$LIKELY_ERROR_CAUSES",
             ),
         )
     end

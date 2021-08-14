@@ -46,18 +46,19 @@ function gpdfit(
     grid_size = min_grid_pts + isqrt(len)  # isqrt = floor sqrt
     grid_size = grid_size - (grid_size % 4)  # multiples of 4 easier to vectorize
     n_0 = 10  # determines how strongly to nudge ξ towards .5
-    x_star::T = inv(3 * sample[(len+2)÷4])  # magic number. ¯\_(ツ)_/¯
+    x_star::T = inv(3 * sample[(len + 2) ÷ 4])  # magic number. ¯\_(ツ)_/¯
 
 
     # build pointwise estimates of ξ and θ at each grid point
     θ_hats = similar(sample, grid_size)
     ξ_hats = similar(sample, grid_size)
     invmax = inv(sample[len])
-    @tullio threads=false θ_hats[i] = invmax + (1 - sqrt((grid_size+1) / i)) * x_star
+    @tullio threads=false θ_hats[i] = invmax + (1 - sqrt((grid_size + 1) / i)) * x_star
     @tullio threads=false ξ_hats[i] = log1p(-θ_hats[i] * sample[j]) |> _ / len
-    log_like = similar(ξ_hats)  # Reuse preallocated array (which is no longer in use)
+    log_like = similar(ξ_hats)
     # Calculate profile log-likelihood at each estimate:
-    @tullio threads=false log_like[i] = len * (log(-θ_hats[i] / ξ_hats[i]) - ξ_hats[i] - 1)
+    @tullio threads=false log_like[i] =
+        len * (log(-θ_hats[i] / ξ_hats[i]) - ξ_hats[i] - 1)
     # Calculate weights from log-likelihood:
     weights = ξ_hats  # Reuse preallocated array
     @tullio threads=false weights[y] = exp(log_like[x] - log_like[y]) |> inv
@@ -91,7 +92,7 @@ Compute the `p` quantile of the Generalized Pareto Distribution (GPD).
 
 A quantile of the Generalized Pareto Distribution.
 """
-function gpd_quantile(p, k::T, sigma::T) where {T<:Real}
-    return sigma * expm1(-k * log1p(-p)) / k
+function gpd_quantile(p, ξ::T, sigma::T) where {T <: Real}
+    return sigma * expm1(-ξ * log1p(-p)) / ξ
 end
 
