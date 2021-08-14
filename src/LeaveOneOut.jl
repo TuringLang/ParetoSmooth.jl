@@ -197,8 +197,8 @@ end
 
 
 function _calc_mcse(weights, log_likelihood, pointwise_loo, r_eff)
-    @tullio pointwise_var_log[i] :=
-        sqrt <| (weights[i, j, k] * exp(log_likelihood[i, j, k] - pointwise_loo[i]))^2
+    @tullio pointwise_var_log[i] := sqrt <| 
+        (weights[i, j, k] * (exp(log_likelihood[i, j, k]) - exp(pointwise_loo[i])))^2
     # apply autocorrelation adjustment:
     @turbo pointwise_var_log .= pointwise_var_log ./ sqrt.(r_eff)
     pointwise_mcse = pointwise_var_log  # reuse preallocated array

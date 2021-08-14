@@ -62,8 +62,11 @@
     @test sqrt(mean(errs(:cv_est))) ≤ 0.01
     @test sqrt(mean(errs(:overfit))) ≤ 0.01
     @test sqrt(mean(errs(:pareto_k))) ≤ 0.025
-    errs_mcse = log.(r_pointwise(:mcse) ./ jul_loo.pointwise(:mcse)) .^ 2
-    @test_broken sqrt(mean(errs_mcse)) ≤ 0.1
+    display(r_pointwise(:mcse))
+    display(jul_loo.pointwise(:mcse))
+    errs_mcse = log.(r_pointwise(:mcse) ./ jul_loo.pointwise(:mcse))
+    display(errs_mcse)
+    @test_broken sqrt(mean(errs_mcse.^2)) ≤ 0.1
 
     # Same r_eff
     r_eff_pointwise = r_eff_loo.pointwise([:cv_est, :mcse, :overfit, :pareto_k])
@@ -71,8 +74,11 @@
     @test sqrt(mean(errs(:cv_est))) ≤ 0.01
     @test sqrt(mean(errs(:overfit))) ≤ 0.01
     @test sqrt(mean(errs(:pareto_k))) ≤ 0.025
-    errs_mcse = log.(r_pointwise(:mcse) ./ r_eff_loo.pointwise(:mcse)) .^ 2
-    @test_broken sqrt(mean(errs_mcse)) ≤ 0.1
+    errs_mcse = log.(r_pointwise(:mcse) ./ r_eff_loo.pointwise(:mcse))
+    display(r_pointwise(:mcse))
+    display(r_eff_loo.pointwise(:mcse))
+    display(errs_mcse)
+    @test_broken sqrt(mean(errs_mcse.^2)) ≤ 0.1
 
     # Test estimates
     errs = r_ests - jul_loo.estimates(; criterion=[:cv_est, :overfit])
