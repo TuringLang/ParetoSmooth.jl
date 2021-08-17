@@ -147,7 +147,7 @@ function psis_loo(
         statistic=[:cv_est, :naive_est, :overfit, :mcse, :pareto_k],
     )
 
-    table = _generate_loo_table(pointwise)
+    table = _generate_cv_table(log_likelihood, pointwise, data_size)
 
     return PsisLoo(table, pointwise, psis_object)
 
@@ -165,7 +165,7 @@ function psis_loo(
 end
 
 
-function _generate_loo_table(pointwise::AbstractArray)
+function _generate_cv_table(pointwise::AbstractArray)
 
     data_size = size(pointwise, :data)
     # create table with the right labels
