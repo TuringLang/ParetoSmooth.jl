@@ -7,7 +7,7 @@ array of mcmc samples has the following dimensions: [n_samples,n_parms,n_chains]
 """
     pointwise_log_likelihoods(
         ll_fun::Function, 
-        samples::AbstractArray{<:AstractFloat,3}, 
+        samples::AbstractArray{<:Real,3}, 
         data;
         splat::Bool=true
     ) 
@@ -27,16 +27,16 @@ Compute the pointwise log likelihood.
   - `Array`: A three dimensional array of pointwise log-likelihoods.
 """
 function pointwise_log_likelihoods(
-    ll_fun::Function, 
-    samples::AbstractArray{<:Union{AbstractFloat, Missing}, 3}, 
+    ll_fun::Function,
+    samples::AbstractArray{<:Union{Real, Missing}, 3},
     data;
-    splat::Bool=true
+    splat::Bool=true,
 )
     n_posterior, n_parms, n_chains = size(samples)
     if n_parms > n_posterior
         @info ARRAY_DIMS_WARNING
     end
-    if splat 
+    if splat
         fun = (p, d) -> ll_fun(p..., d)
     else
         fun = (p, d) -> ll_fun(p, d)
@@ -46,19 +46,20 @@ function pointwise_log_likelihoods(
     pointwise_lls = similar(samples, n_data, n_posterior, n_chains)
     for index in CartesianIndices(pointwise_lls)
         datum, iteration, chain = Tuple(index)
-        pointwise_lls[datum, iteration, chain] = 
-            fun(samples[iteration, :, chain], data[datum])
+        pointwise_lls[datum, iteration, chain] = fun(
+            samples[iteration, :, chain], data[datum]
+        )
     end
     return pointwise_lls
 end
 
 
 function pointwise_log_likelihoods(
-    ll_fun::Function, 
-    samples::AbstractMatrix{<:Union{AbstractFloat, Missing}}, 
+    ll_fun::Function,
+    samples::AbstractMatrix{<:Union{Real, Missing}},
     data;
     chain_index::AbstractVector{<:Integer}=_assume_one_chain(samples),
-    kwargs...
+    kwargs...,
 )
     samples = _convert_to_array(samples, chain_index)
     return pointwise_log_likelihoods(ll_fun, samples, data)
