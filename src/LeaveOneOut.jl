@@ -195,21 +195,14 @@ function _generate_loo_table(pointwise::AbstractArray)
     return table
 end
 
-
 function _calc_mcse(weights, log_likelihood, pointwise_loo, r_eff)
-    @tullio pointwise_var_log[i] := sqrt <| 
-        (weights[i, j, k] * (exp(log_likelihood[i, j, k]) - exp(pointwise_loo[i])))^2
+    E_epd = exp.(pointwise_loo)
+    @tullio pointwise_var[i] := 
+        (weights[i, j, k] * (exp(log_likelihood[i, j, k]) - E_epd[i]))^2
     # apply autocorrelation adjustment:
-    @turbo pointwise_var_log .= pointwise_var_log ./ sqrt.(r_eff)
-    pointwise_mcse = pointwise_var_log  # reuse preallocated array
-    # Assume the MCMC draws follow a log-normal distribution.
-    # Then, we can fit a log-normal using method of moments, 
-    # and use that fit to estimate the variance in the logarithm.
-    @turbo @. pointwise_mcse = _mom_var_log_n(pointwise_loo, pointwise_var_log)
-    return pointwise_mcse
-end
-
-
-function _mom_var_log_n(mean, variance)
-    return sqrt(log1p(variance / mean^2))  # MOM estimate for σ
+    # If MCMC draws follow a log-normal distribution, then their log has this std. error:
+    @turbo @. pointwise_var = log1p(pointwise_var / E_epd^2)
+    # (google "log-normal method of moments" for a proof)
+    # apply MCMC correlation correction:
+    return @turbo @. sqrt(pointwise_var / r_eff)
 end
