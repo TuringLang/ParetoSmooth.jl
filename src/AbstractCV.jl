@@ -4,24 +4,24 @@ using PrettyTables
 
 export AbstractCVMethod, AbstractCV
 
-const POINTWISE_LABELS = (:cv_est, :naive_est, :overfit, :ess, :pareto_k)
+const POINTWISE_LABELS = (:cv_est, :naive_est, :p_eff, :ess, :pareto_k)
 const CV_DESC = """
 # Fields
 
   - `estimates::KeyedArray`: A KeyedArray with columns `:total, :se_total, :mean, :se_mean`,
-    and rows `:cv_est, :naive_est, :overfit`. See `# Extended help` for more.
+    and rows `:cv_est, :naive_est, :p_eff`. See `# Extended help` for more.
       - `:cv_est` contains estimates for the out-of-sample prediction error, as
-        predicted using the jackknife (LOO-CV).
+        estimated using leave-one-out cross validation.
       - `:naive_est` contains estimates of the in-sample prediction error.
-      - `:overfit` is the difference between the previous two estimators, and estimates 
-        the amount of overfitting. When using the log probability score, it is equal to 
-        the effective number of parameters -- a model with an overfit of 2 is "about as
-        overfit" as a model with 2 independent parameters that have a flat prior.
+      - `:p_eff` is the effective number of parameters -- a model with a `p_eff` of 2 is 
+        "about as overfit" as a model with 2 parameters and no regularization. It equals the 
+        difference between the previous two estimators, and measures how much your model
+        tends to overfit the data.
   - `pointwise::KeyedArray`: A `KeyedArray` of pointwise estimates with 5 columns --
       - `:cv_est` contains the estimated out-of-sample error for this point, as measured
       using leave-one-out cross validation.
       - `:naive_est` contains the in-sample estimate of error for this point.
-      - `:overfit` is the difference in the two previous estimates.
+      - `:p_eff` is the difference in the two previous estimates.
       - `:ess` is the effective sample size, which estimates the simulation error caused by 
         using Monte Carlo estimates. It does not measure the accuracy of predictions.  
       - `:pareto_k` is the estimated value for the parameter `ξ` of the generalized Pareto
@@ -38,14 +38,7 @@ const CV_DESC = """
 The total score depends on the sample size, and summarizes the weight of evidence for or
 against a model. Total scores are on an interval scale, meaning that only differences of
 scores are meaningful. *It is not possible to interpret a total score by looking at it.*
-The total score is not a relative goodness-of-fit statistic (for this, see the average
-score).
-
-
-The overfit is equal to the difference between the in-sample and out-of-sample predictive
-accuracy. When using the log probability score, it is equal to the "effective number of
-parameters" -- a model with an overfit of 2 is "about as overfit" as a model with 2
-free parameters and flat priors.
+The total score is not a goodness-of-fit statistic (for this, see the average score).
 
 
 The average score is the total score, divided by the sample size. It estimates the expected

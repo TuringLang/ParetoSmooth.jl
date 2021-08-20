@@ -131,7 +131,7 @@ function loo_compare(cv_results::NamedTuple; kwargs...)
 end
 
 
-function loo_compare(cv_results::Tuple; kwargs...)
+function loo_compare(cv_results::Base.AbstractVecOrTuple{<:PsisLoo}; kwargs...)
     return loo_compare(cv_results...; kwargs...)
 end
 
