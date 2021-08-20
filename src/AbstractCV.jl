@@ -29,6 +29,8 @@ const CV_DESC = """
         distribution.
   - `psis_object::Psis`: A `Psis` object containing the results of Pareto-smoothed 
     importance sampling.
+  - `mcse`: A float containing the estimated Monte Carlo standard error for the total 
+    cross-validation estimate.
 
 
 # Extended help

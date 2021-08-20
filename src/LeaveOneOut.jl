@@ -4,6 +4,7 @@ using InteractiveUtils
 using LoopVectorization
 using NamedDims
 using Statistics
+using Printf
 using Tullio
 
 export loo, psis_loo
@@ -49,6 +50,7 @@ struct PsisLoo{
     estimates::KeyedArray
     pointwise::KeyedArray
     psis_object::Psis{F, AF, VF, I, VI}
+    mcse::F
 end
 
 
@@ -58,8 +60,8 @@ function Base.show(io::IO, ::MIME"text/plain", loo_object::PsisLoo)
     post_samples = loo_object.psis_object.posterior_sample_size
     data_size = loo_object.psis_object.data_size
     println(
-        "Results of PSIS-LOO-CV with $post_samples Monte Carlo samples and " *
-        "$data_size data points.",
+        "Results of PSIS-LOO-CV with $post_samples Monte Carlo samples and $data_size " *
+        Printf.@sprintf("data points. Total Monte Carlo SE of %.2g.", loo_object.mcse),
     )
     return pretty_table(
         table;
@@ -104,7 +106,7 @@ score.
 
 # Arguments
 
-  - `log_likelihood::Array`: An array or matrix of log-likelihood values indexed as
+  - `log_likelihood::Array`: A matrix or 3d array of log-likelihood values indexed as
     `[data, step, chain]`. The chain argument can be left off if `chain_index` is provided
     or if all posterior samples were drawn from a single chain.
   - `args...`: Positional arguments to be passed to [`psis`](@ref).
@@ -149,7 +151,10 @@ function psis_loo(
 
     table = _generate_loo_table(pointwise)
 
-    return PsisLoo(table, pointwise, psis_object)
+    @tullio mcse := pointwise_mcse[i]^2
+    mcse = sqrt(mcse)
+
+    return PsisLoo(table, pointwise, psis_object, mcse)
 
 end
 
@@ -194,6 +199,7 @@ function _generate_loo_table(pointwise::AbstractArray)
 
     return table
 end
+
 
 function _calc_mcse(weights, log_likelihood, pointwise_loo, r_eff)
     E_epd = exp.(pointwise_loo)
