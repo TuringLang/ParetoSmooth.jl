@@ -1,7 +1,6 @@
-using Turing
+using Distributions, Random, MCMCChains, Turing
 
 @testset "MCMCChains and Turing utilities" begin
-    using Distributions, Random
     Random.seed!(112)
     # simulated samples for μ
     samples = randn(100, 1, 1)

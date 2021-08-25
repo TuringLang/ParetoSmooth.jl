@@ -1,14 +1,6 @@
 using .Turing
-export pointwise_log_likelihoods
+export pointwise_log_likelihoods, psis_loo, psis
 
-const TURING_LOOP_WARN = """
-**Important Note:** The posterior log-likelihood must be computed with a `for` loop inside a
-Turing model; broadcasting will result in all observations being treated as if they are a
-single point. 
-"""
-const CHAINS_ARG = """
-`chains::Chains`: A chain object from MCMCChains.
-"""
 const TURING_MODEL_ARG = """
 `model`: A Turing model with data in the form of `model(data)`.
 """
@@ -17,9 +9,7 @@ const TURING_MODEL_ARG = """
 """
     pointwise_log_likelihoods(model::DynamicPPL.Model, chain::Chains)
 
-Compute the pointwise log-likelihoods from a Turing model. 
-
-$TURING_LOOP_WARN 
+Compute the pointwise log-likelihoods from a Turing model.  
 
 # Arguments
   - $TURING_MODEL_ARG
@@ -30,9 +20,6 @@ $TURING_LOOP_WARN
     indexed using `array[data, sample, chain]`.
 """
 function pointwise_log_likelihoods(model::DynamicPPL.Model, chain::Chains)
-
-    @info TURING_LOOP_WARN
-
     # subset of chain for mcmc samples
     chain_params = MCMCChains.get_sections(chain, :parameters)
     # compute the pointwise log likelihoods
@@ -57,9 +44,7 @@ end
     ) -> PsisLoo
 
 Use Pareto-Smoothed Importance Sampling to calculate the leave-one-out cross validation
-score from an MCMCChain object and a Turing model. 
-
-$TURING_LOOP_WARN
+score from a `chains` object and a Turing model. 
 
 # Arguments
 
@@ -71,7 +56,6 @@ $TURING_LOOP_WARN
 See also: [`psis`](@ref), [`loo`](@ref), [`PsisLoo`](@ref).
 """
 function psis_loo(model::DynamicPPL.Model, chain::Chains, args...; kwargs...)
-    @info TURING_LOOP_WARN
     pointwise_log_likes = pointwise_log_likelihoods(model, chain)
     return psis_loo(pointwise_log_likes, args...; kwargs...)
 end
@@ -87,8 +71,6 @@ end
 
 Generate samples using Pareto smoothed importance sampling (PSIS).
 
-$TURING_LOOP_WARN
-
 # Arguments
   - $TURING_MODEL_ARG
   - $CHAINS_ARG
@@ -98,7 +80,6 @@ $TURING_LOOP_WARN
 See also: [`psis`](@ref), [`loo`](@ref), [`PsisLoo`](@ref).
 """
 function psis(model::DynamicPPL.Model, chain::Chains, args...; kwargs...)
-    @info TURING_LOOP_WARN
     log_ratios = pointwise_log_likelihoods(model, chain)
     return psis(-log_ratios, args...; kwargs...)
 end

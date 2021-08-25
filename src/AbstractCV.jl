@@ -14,9 +14,7 @@ const CV_DESC = """
         estimated using leave-one-out cross validation.
       - `:naive_est` contains estimates of the in-sample prediction error.
       - `:p_eff` is the effective number of parameters -- a model with a `p_eff` of 2 is 
-        "about as overfit" as a model with 2 parameters and no regularization. It equals the 
-        difference between the previous two estimators, and measures how much your model
-        tends to overfit the data.
+        "about as overfit" as a model with 2 parameters and no regularization.
   - `pointwise::KeyedArray`: A `KeyedArray` of pointwise estimates with 5 columns --
       - `:cv_est` contains the estimated out-of-sample error for this point, as measured
       using leave-one-out cross validation.

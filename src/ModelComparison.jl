@@ -110,15 +110,14 @@ function loo_compare(
     pointwise = KeyedArray(
         pointwise;
         data=1:size(pointwise, :data),
-        statistic=[:cv_est, :naive_est, :overfit, :mcse, :pareto_k],
+        statistic=[:cv_est, :naive_est, :p_eff, :mcse, :pareto_k],
         model=model_names,
     )
 
     # Subtract the effective number of params and elpd ests; leave mcse+pareto_k the same
     base_case = pointwise[data=:, statistic=1:3, model=1]
     @inbounds @simd for model_number in axes(pointwise, :model)
-        @. pointwise[:, 1:3, model_number] = 
-            pointwise[:, 1:3, model_number] - base_case
+        @. pointwise[:, 1:3, model_number] = pointwise[:, 1:3, model_number] - base_case
     end
 
     return ModelComparison(pointwise, table)

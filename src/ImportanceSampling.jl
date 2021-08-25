@@ -85,11 +85,9 @@ Implements Pareto-smoothed importance sampling (PSIS).
 
 # Arguments
 ## Positional Arguments
-  - `log_ratios::AbstractArray`: A 2d or 3d array of importance ratios on the log scale (for 
-    PSIS-LOO these are *negative* log-likelihood values). Indices must be ordered as 
-    `[data, step, chain]`: `log_ratios[1, 2, 3]` should be the log-likelihood of the first 
-    data point, evaluated at the second step in the third chain. Chain indices can be
-    left off if there is only one chain, or if keyword argument `chain_index` is provided.
+  - `log_ratios::AbstractArray`: A 2d or 3d array of (unnormalized) importance ratios on the
+    log scale. Indices must be ordered as `[data, step, chain]`. The chain index can be left 
+    off if there is only one chain, or if keyword argument `chain_index` is provided.
   - $R_EFF_DOC
 
 ## Keyword Arguments

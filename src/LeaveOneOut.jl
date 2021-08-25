@@ -109,18 +109,15 @@ score.
   - `log_likelihood::Array`: A matrix or 3d array of log-likelihood values indexed as
     `[data, step, chain]`. The chain argument can be left off if `chain_index` is provided
     or if all posterior samples were drawn from a single chain.
-  - `args...`: Positional arguments to be passed to [`psis`](@ref).
-  - `chain_index::Vector`: An optional vector of integers specifying which chain each
-    step belongs to. For instance, `chain_index[3]` should return `2` if
-    `log_likelihood[:, 3]` belongs to the second chain.
-  - `kwargs...`: Keyword arguments to be passed to [`psis`](@ref).
+  - $ARGS [`psis`](@ref).
+  - $CHAIN_INDEX_DOC
+  - $KWARGS [`psis`](@ref).
 
 See also: [`psis`](@ref), [`loo`](@ref), [`PsisLoo`](@ref).
 """
 function psis_loo(
-    log_likelihood::T, args...; kwargs...
-) where {F <: Real, T <: AbstractArray{F, 3}}
-
+    log_likelihood::AbstractArray{<:Real, 3}, args...; kwargs...
+)
 
     dims = size(log_likelihood)
     data_size = dims[1]
@@ -139,14 +136,14 @@ function psis_loo(
 
     @tullio pointwise_loo[i] := weights[i, j, k] * exp(log_likelihood[i, j, k]) |> log
     @tullio pointwise_naive[i] := exp(log_likelihood[i, j, k] - log_count) |> log
-    pointwise_overfit = pointwise_naive - pointwise_loo
+    pointwise_p_eff = pointwise_naive - pointwise_loo
     pointwise_mcse = _calc_mcse(weights, log_likelihood, pointwise_loo, r_eff)
 
 
     pointwise = KeyedArray(
-        hcat(pointwise_loo, pointwise_naive, pointwise_overfit, pointwise_mcse, ξ);
+        hcat(pointwise_loo, pointwise_naive, pointwise_p_eff, pointwise_mcse, ξ);
         data=1:length(pointwise_loo),
-        statistic=[:cv_est, :naive_est, :overfit, :mcse, :pareto_k],
+        statistic=[:cv_est, :naive_est, :p_eff, :mcse, :pareto_k],
     )
 
     table = _generate_loo_table(pointwise)
@@ -160,28 +157,28 @@ end
 
 
 function psis_loo(
-    log_likelihood::T,
+    log_likelihood::AbstractMatrix{<:Real},
     args...;
     chain_index::AbstractVector=ones(size(log_likelihood, 1)),
     kwargs...,
-) where {F <: Real, T <: AbstractMatrix{F}}
+)
     new_log_ratios = _convert_to_array(log_likelihood, chain_index)
     return psis_loo(new_log_ratios, args...; kwargs...)
 end
 
 
-function _generate_loo_table(pointwise::AbstractArray)
+function _generate_loo_table(pointwise::AbstractArray{<:Real})
 
     data_size = size(pointwise, :data)
     # create table with the right labels
     table = KeyedArray(
         similar(NamedDims.unname(pointwise), 3, 4);
-        criterion=[:cv_est, :naive_est, :overfit],
+        criterion=[:cv_est, :naive_est, :p_eff],
         statistic=[:total, :se_total, :mean, :se_mean],
     )
 
     # calculate the sample expectation for the total score
-    to_sum = pointwise([:cv_est, :naive_est, :overfit])
+    to_sum = pointwise([:cv_est, :naive_est, :p_eff])
     @tullio averages[crit] := to_sum[data, crit] / data_size
     averages = reshape(averages, 3)
     table(:, :mean) .= averages
@@ -196,6 +193,11 @@ function _generate_loo_table(pointwise::AbstractArray)
 
     # calculate the sample expectation for the standard error in averages
     table(:, :se_total) .= se_mean * data_size
+
+    if table(:p_eff, :total) ≤ 0
+        @warn "The calculated effective number of parameters is negative, which should " *
+        "not be possible. PSIS has failed to approximate the target distribution."
+    end
 
     return table
 end

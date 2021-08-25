@@ -77,6 +77,7 @@ function gpdfit(
 
 end
 
+
 """
     gpd_quantile(p::T, k::T, sigma::T) where {T<:Real} -> T
 
@@ -95,4 +96,3 @@ A quantile of the Generalized Pareto Distribution.
 function gpd_quantile(p, ξ::T, sigma::T) where {T <: Real}
     return sigma * expm1(-ξ * log1p(-p)) / ξ
 end
-

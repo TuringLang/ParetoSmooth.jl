@@ -4,6 +4,10 @@ const CHAIN_INDEX_DOC = """
     `log_likelihood[:, step]` belongs to the second chain.
 """
 
+const DATA_ARG = """
+`data`: An array of data points used to estimate the parameters of the model.
+"""
+
 const LIKELIHOOD_FUNCTION_ARG = """
 `ll_fun::Function`: A function taking a single data point and returning the log-likelihood 
 of that point. This function must take the form `f(θ[1], ..., θ[n], data)`, where `θ` is the
