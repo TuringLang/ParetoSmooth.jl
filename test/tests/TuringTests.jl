@@ -92,4 +92,7 @@ using Distributions, Random, MCMCChains, Turing
     psis_output = psis(model(data), chain; r_eff=r_eff)
     @test isa(psis_output, Psis)
 
+    @test ParetoSmooth.naive_lpd(model(data), chain) ≈ 
+        psis_loo_output.estimates(:naive_est, :total)
+
 end

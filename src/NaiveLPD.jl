@@ -3,7 +3,7 @@ using Tullio
 
 
 """
-    naive_lpd()
+    naive_lpd(log_likelihood::AbstractArray{<:Real, 3})
 
 Calculate the naive (in-sample) estimate of the expected log probability density, otherwise
 known as the in-sample Bayes score. Not recommended for most uses.

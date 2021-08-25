@@ -83,3 +83,15 @@ function psis(model::DynamicPPL.Model, chain::Chains, args...; kwargs...)
     log_ratios = pointwise_log_likelihoods(model, chain)
     return psis(-log_ratios, args...; kwargs...)
 end
+
+
+"""
+    naive_lpd(model::DynamicPPL.Model, chain::Chains, args...; kwargs...)
+
+Calculate the naive (in-sample) estimate of the log probability density, otherwise
+known as the Bayes score. Not recommended for most uses.
+"""
+function naive_lpd(model::DynamicPPL.Model, chain::Chains, args...; kwargs...)
+    log_ratios = pointwise_log_likelihoods(model, chain)
+    return naive_lpd(log_ratios, args...; kwargs...)
+end
