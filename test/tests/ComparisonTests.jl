@@ -90,5 +90,4 @@ using StatsBase
     total = NamedDims.unname(sum(comps.pointwise(:, :cv_est, :); dims=:data))
     @test reshape(total, 3) ≈ comps.estimates(:, :cv_est) atol=.001
     
-
 end

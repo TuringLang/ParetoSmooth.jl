@@ -93,6 +93,6 @@ using Distributions, Random, MCMCChains, Turing
     @test isa(psis_output, Psis)
 
     @test ParetoSmooth.naive_lpd(model(data), chain) ≈ 
-        psis_loo_output.estimates(:naive_est, :total)
+        psis_loo_output.estimates(:naive_est, :total) atol=.01
 
 end

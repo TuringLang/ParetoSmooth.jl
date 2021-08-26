@@ -1,4 +1,5 @@
 using LoopVectorization
+using TensorOperations
 using Tullio
 
 const LIKELY_ERROR_CAUSES = """
@@ -174,17 +175,12 @@ Additional information can be found in the LOO package from R.
 function _do_psis_i!(is_ratios::AbstractVector{T}, tail_length::Integer) where {T <: Real}
 
     len = length(is_ratios)
+    tail_start = len - tail_length + 1  # index of smallest tail value
 
     # sort is_ratios and also get results of sortperm() at the same time
-    ordering = similar(is_ratios, Int)
     ratio_index = collect(zip(is_ratios, Base.OneTo(len)))
-    tuples = sort!(ratio_index; by=first)
-    is_ratios .= first.(tuples)
-    ordering .= last.(tuples)
-
-
-    # Define and check tail
-    tail_start = len - tail_length + 1  # index of smallest tail value
+    partialsort!(ratio_index, (tail_start-1):len; by=first)
+    is_ratios .= first.(ratio_index)
     @views tail = is_ratios[tail_start:len]
     _check_tail(tail)
 
@@ -195,7 +191,7 @@ function _do_psis_i!(is_ratios::AbstractVector{T}, tail_length::Integer) where {
     # truncate at max of raw weights (1 after scaling)
     clamp!(is_ratios, 0, 1)
     # unsort the ratios to their original position:
-    invpermute!(is_ratios, ordering)
+    invpermute!(is_ratios, last.(ratio_index))
 
     return ξ::T
 end
@@ -207,9 +203,7 @@ end
 Define the tail length as in Vehtari et al. (2019).
 """
 function _def_tail_length(length::I, r_eff::Real) where {I <: Integer}
-    len = I(ceil(min(length / 5, 3 * sqrt(length / r_eff))))
-    len = 4 * round(len / 4) # multiples of 4 easier to vectorize
-    return I(len)
+    return I(ceil(min(length / 5, 3 * sqrt(length / r_eff))))
 end
 
 

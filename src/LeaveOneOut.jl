@@ -5,6 +5,7 @@ using LoopVectorization
 using NamedDims
 using Statistics
 using Printf
+using TensorOperations
 using Tullio
 
 export loo, psis_loo

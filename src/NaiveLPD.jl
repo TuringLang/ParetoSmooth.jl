@@ -1,4 +1,5 @@
 using LoopVectorization
+using TensorOperations
 using Tullio
 
 
@@ -16,6 +17,5 @@ function naive_lpd(log_likelihood::AbstractArray{<:Real, 3})
     log_count = log(mcmc_count)
 
     @tullio pointwise_naive[i] := exp(log_likelihood[i, j, k] - log_count) |> log
-
-    return sum(pointwise_naive)
+    return @tullio naive := pointwise_naive[i]
 end
