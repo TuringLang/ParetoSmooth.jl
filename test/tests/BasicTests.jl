@@ -22,14 +22,14 @@ import RData
     r_pointwise = KeyedArray(
         r_loo["pointwise"][:, Not(4)];
         data=1:size(r_loo["pointwise"], 1),
-        statistic=[:cv_est, :mcse, :p_eff, :pareto_k],
+        statistic=[:cv_elpd, :mcse, :p_eff, :pareto_k],
     )
     
     r_loo["estimates"] = hcat(r_loo["estimates"], r_loo["estimates"] / size(r_pointwise, 1))
     r_ests = KeyedArray(
         r_loo["estimates"][Not(3), :];
-        criterion=[:cv_est, :p_eff],
-        statistic=[:total, :se_total, :mean, :se_mean],
+        statistic=[:cv_elpd, :p_eff],
+        columns=[:total, :se_total, :mean, :se_mean],
     )
 
     # All of these should run
@@ -40,7 +40,7 @@ import RData
     matrix_psis = psis(log_lik_mat; chain_index=chain_index)
     log_psis = psis(log_lik_arr; log_weights=true)
 
-    jul_loo = loo(log_lik_arr)
+    jul_loo = psis_loo(log_lik_arr)
     r_eff_loo = psis_loo(log_lik_arr; r_eff=r_eff)
 
     @test display(jul_psis) === nothing
@@ -62,9 +62,9 @@ import RData
     ## Test difference in loo pointwise results
 
     # Different r_eff
-    jul_pointwise = jul_loo.pointwise([:cv_est, :mcse, :p_eff, :pareto_k])
+    jul_pointwise = jul_loo.pointwise([:cv_elpd, :mcse, :p_eff, :pareto_k])
     errs = (r_pointwise - jul_pointwise) .^ 2
-    @test sqrt(mean(errs(:cv_est))) ≤ 0.01
+    @test sqrt(mean(errs(:cv_elpd))) ≤ 0.01
     @test sqrt(mean(errs(:p_eff))) ≤ 0.01
     @test sqrt(mean(errs(:pareto_k))) ≤ 0.025
     display(r_pointwise(:mcse))
@@ -74,9 +74,9 @@ import RData
     @test sqrt(mean(errs_mcse.^2)) ≤ 0.1
 
     # Same r_eff
-    r_eff_pointwise = r_eff_loo.pointwise([:cv_est, :mcse, :p_eff, :pareto_k])
+    r_eff_pointwise = r_eff_loo.pointwise([:cv_elpd, :mcse, :p_eff, :pareto_k])
     errs = (r_pointwise - r_eff_pointwise) .^ 2
-    @test sqrt(mean(errs(:cv_est))) ≤ 0.01
+    @test sqrt(mean(errs(:cv_elpd))) ≤ 0.01
     @test sqrt(mean(errs(:p_eff))) ≤ 0.01
     @test sqrt(mean(errs(:pareto_k))) ≤ 0.025
     errs_mcse = log.(r_pointwise(:mcse) ./ r_eff_loo.pointwise(:mcse))
@@ -86,13 +86,13 @@ import RData
     @test sqrt(mean(errs_mcse.^2)) ≤ 0.1
 
     # Test estimates
-    errs = r_ests - jul_loo.estimates(; criterion=[:cv_est, :p_eff])
+    errs = r_ests - jul_loo.estimates(; statistic=[:cv_elpd, :p_eff])
     display(r_ests)
-    display(jul_loo.estimates(; criterion=[:cv_est, :p_eff]))
+    display(jul_loo.estimates(; statistic=[:cv_elpd, :p_eff]))
     display(errs)
     @test maximum(abs.(errs)) ≤ 0.01
 
-    errs = r_ests - r_eff_loo.estimates(; criterion=[:cv_est, :p_eff])
+    errs = r_ests - r_eff_loo.estimates(; statistic=[:cv_elpd, :p_eff])
     display(errs)
     @test maximum(abs.(errs)) ≤ 0.01
 
@@ -100,6 +100,6 @@ import RData
     @test jul_loo.psis_object.weights ≈ psis(-log_lik_arr).weights
     @test r_eff_loo.psis_object.weights ≈ psis(-log_lik_arr; r_eff=r_eff).weights
 
-    @test ParetoSmooth.naive_lpd(log_lik_arr) ≈ jul_loo.estimates(:naive_est, :total)
-    @test ParetoSmooth.naive_lpd(log_lik_arr) ≈ r_eff_loo.estimates(:naive_est, :total)
+    @test ParetoSmooth.naive_lpd(log_lik_arr) ≈ jul_loo.estimates(:naive_lpd, :total)
+    @test ParetoSmooth.naive_lpd(log_lik_arr) ≈ r_eff_loo.estimates(:naive_lpd, :total)
 end

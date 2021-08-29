@@ -1,12 +1,15 @@
+using AxisKeys
 using CSV
 using DataFrames
 using StatsBase
+using NamedDims
+using Turing
 
 @testset "LooCompare" begin
     using Random
     Random.seed!(129111)
 
-    df = CSV.read(joinpath("data", "WaffleDivorce.csv"), DataFrame)
+    df = CSV.read("data/WaffleDivorce.csv", DataFrame)
     df.D = zscore(df.Divorce)
     df.M = zscore(df.Marriage)
     df.A = zscore(df.MedianAgeMarriage)
@@ -77,17 +80,17 @@ using StatsBase
     comps = loo_compare(n_tuple)
     comps |> display
 
-    @test comps.estimates(:m5_1t, :cv_est) ≈ 0.00 atol = .01
-    @test comps.estimates(:m5_1t, :se_cv_est) ≈ 0.00 atol = .01
+    @test comps.estimates(:m5_1t, :cv_elpd) ≈ 0.00 atol = .01
+    @test comps.std_err[:m5_1t] ≈ 0.00 atol = .01
     @test comps.estimates(:m5_1t, :weight) ≈ 0.67 atol = .01
-    @test comps.estimates(:m5_2t, :cv_est) ≈ -6.68 atol = .01
-    @test comps.estimates(:m5_2t, :se_cv_est) ≈ 4.79 atol = .01
+    @test comps.estimates(:m5_2t, :cv_elpd) ≈ -6.68 atol = .01
+    @test comps.std_err[:m5_2t] ≈ 4.79 atol = .01
     @test comps.estimates(:m5_2t, :weight) ≈ 0.00 atol = .01
-    @test comps.estimates(:m5_3t, :cv_est) ≈ -0.69 atol = .01
-    @test comps.estimates(:m5_3t, :se_cv_est) ≈ 0.42 atol = .01
+    @test comps.estimates(:m5_3t, :cv_elpd) ≈ -0.69 atol = .01
+    @test comps.std_err[:m5_3t] ≈ 0.42 atol = .01
     @test comps.estimates(:m5_3t, :weight) ≈ 0.33 atol = .01
     @test sum(comps.estimates(:, :weight, :)) ≈ 1
-    total = NamedDims.unname(sum(comps.pointwise(:, :cv_est, :); dims=:data))
-    @test reshape(total, 3) ≈ comps.estimates(:, :cv_est) atol=.001
+    total = NamedDims.unname(sum(comps.pointwise(:, :cv_elpd, :); dims=:data))
+    @test reshape(total, 3) ≈ comps.estimates(:, :cv_elpd) atol=.001
     
 end

@@ -8,7 +8,7 @@ using Printf
 using TensorOperations
 using Tullio
 
-export loo, psis_loo
+export loo, psis_loo, loo_from_psis
 
 
 #####################
@@ -26,13 +26,7 @@ struct PsisLooMethod <: AbstractCVMethod end
 
 
 """
-    PsisLoo{
-        F <: Real,
-        AF <: AbstractArray{F},
-        VF <: AbstractVector{F},
-        I <: Integer,
-        VI <: AbstractVector{I},
-    } <: AbstractCV
+    PsisLoo <: AbstractCV
 
 A struct containing the results of jackknife (leave-one-out) cross validation using Pareto 
 smoothed importance sampling.
@@ -44,13 +38,11 @@ See also: [`loo`]@ref, [`bayes_cv`]@ref, [`psis_loo`]@ref, [`Psis`]@ref
 struct PsisLoo{
     F <: Real,
     AF <: AbstractArray{F},
-    VF <: AbstractVector{F},
-    I <: Integer,
-    VI <: AbstractVector{I},
+    V <: AbstractVector{F},
 } <: AbstractCV
     estimates::KeyedArray
     pointwise::KeyedArray
-    psis_object::Psis{F, AF, VF, I, VI}
+    psis_object::Psis{F, AF, V}
     mcse::F
 end
 
@@ -67,8 +59,8 @@ function Base.show(io::IO, ::MIME"text/plain", loo_object::PsisLoo)
     return pretty_table(
         table;
         compact_printing=false,
-        header=table.statistic,
-        row_names=table.criterion,
+        header=table.columns,
+        row_names=table.statistic,
         formatters=ft_printf("%5.2f"),
         alignment=:r,
     )
@@ -116,10 +108,43 @@ score.
 
 See also: [`psis`](@ref), [`loo`](@ref), [`PsisLoo`](@ref).
 """
-function psis_loo(
-    log_likelihood::AbstractArray{<:Real, 3}, args...; kwargs...
-)
+function psis_loo(log_likelihood::AbstractArray{<:Real, 3}, args...; kwargs...)
+    psis_object = psis(-log_likelihood, args...; kwargs...)
+    return loo_from_psis(log_likelihood, psis_object)
+end
 
+
+function psis_loo(
+    log_likelihood::AbstractMatrix{<:Real},
+    args...;
+    chain_index::AbstractVector=_assume_one_chain(log_likelihood),
+    kwargs...,
+)
+    new_log_ratios = _convert_to_array(log_likelihood, chain_index)
+    return psis_loo(new_log_ratios, args...; kwargs...)
+end
+
+
+"""
+    loo_from_psis(
+        log_likelihood::AbstractArray, psis_object::Psis; 
+        chain_index::AbstractVector{Integer}
+    )
+
+Use a precalculated `Psis` object to estimate the leave-one-out cross validation score.
+
+# Arguments
+
+    - `log_likelihood::Array`: A matrix or 3d array of log-likelihood values indexed as
+    `[data, step, chain]`. The chain argument can be left off if `chain_index` is provided
+    or if all posterior samples were drawn from a single chain.
+    - `psis_object`: A precomputed `Psis` object used to estimate the LOO-CV score.
+    - $CHAIN_INDEX_DOC
+
+See also: [`psis`](@ref), [`loo`](@ref), [`PsisLoo`](@ref).
+
+"""
+function loo_from_psis(log_likelihood::AbstractArray{<:Real, 3}, psis_object::Psis)
     dims = size(log_likelihood)
     data_size = dims[1]
     mcmc_count = dims[2] * dims[3]  # total number of samples from posterior
@@ -130,7 +155,7 @@ function psis_loo(
     # log_likelihood::ArrayType = similar(log_likelihood)
     # log_likelihood .= score(log_likelihood)
 
-    psis_object = psis(-log_likelihood, args...; kwargs...)
+    
     weights = psis_object.weights
     ξ = psis_object.pareto_k
     r_eff = psis_object.r_eff
@@ -144,7 +169,7 @@ function psis_loo(
     pointwise = KeyedArray(
         hcat(pointwise_loo, pointwise_naive, pointwise_p_eff, pointwise_mcse, ξ);
         data=1:length(pointwise_loo),
-        statistic=[:cv_est, :naive_est, :p_eff, :mcse, :pareto_k],
+        statistic=[:cv_elpd, :naive_lpd, :p_eff, :mcse, :pareto_k],
     )
 
     table = _generate_loo_table(pointwise)
@@ -153,42 +178,39 @@ function psis_loo(
     mcse = sqrt(mcse)
 
     return PsisLoo(table, pointwise, psis_object, mcse)
-
 end
 
 
-function psis_loo(
-    log_likelihood::AbstractMatrix{<:Real},
-    args...;
-    chain_index::AbstractVector=ones(size(log_likelihood, 1)),
-    kwargs...,
+function loo_from_psis(
+    log_likelihood::AbstractMatrix{<:Real}, psis_object::Psis, args...;
+    chain_index::AbstractVector=_assume_one_chain(log_likelihood), kwargs...
 )
     new_log_ratios = _convert_to_array(log_likelihood, chain_index)
-    return psis_loo(new_log_ratios, args...; kwargs...)
+    return loo_from_psis(new_log_ratios, psis_object, args...; kwargs...)
 end
 
 
-function _generate_loo_table(pointwise::AbstractArray{<:Real})
+function _generate_loo_table(pointwise::KeyedArray{<:Real})
 
     data_size = size(pointwise, :data)
     # create table with the right labels
     table = KeyedArray(
         similar(NamedDims.unname(pointwise), 3, 4);
-        criterion=[:cv_est, :naive_est, :p_eff],
-        statistic=[:total, :se_total, :mean, :se_mean],
+        statistic=[:cv_elpd, :naive_lpd, :p_eff],
+        columns=[:total, :se_total, :mean, :se_mean],
     )
 
     # calculate the sample expectation for the total score
-    to_sum = pointwise([:cv_est, :naive_est, :p_eff])
-    @tullio averages[crit] := to_sum[data, crit] / data_size
-    averages = reshape(averages, 3)
-    table(:, :mean) .= averages
+    to_sum = pointwise([:cv_elpd, :naive_lpd, :p_eff])
+    @tullio avgs[crit] := to_sum[data, crit] / data_size
+    avgs = reshape(avgs, 3)
+    table(:, :mean) .= avgs
 
     # calculate the sample expectation for the average score
     table(:, :total) .= table(:, :mean) .* data_size
 
     # calculate the sample expectation for the standard error in the totals
-    se_mean = std(to_sum; mean=averages', dims=1) / sqrt(data_size)
+    se_mean = std(to_sum; mean=avgs', dims=1) / sqrt(data_size)
     se_mean = reshape(se_mean, 3)
     table(:, :se_mean) .= se_mean
 
@@ -208,7 +230,6 @@ function _calc_mcse(weights, log_likelihood, pointwise_loo, r_eff)
     E_epd = exp.(pointwise_loo)
     @tullio pointwise_var[i] := 
         (weights[i, j, k] * (exp(log_likelihood[i, j, k]) - E_epd[i]))^2
-    # apply autocorrelation adjustment:
     # If MCMC draws follow a log-normal distribution, then their log has this std. error:
     @turbo @. pointwise_var = log1p(pointwise_var / E_epd^2)
     # (google "log-normal method of moments" for a proof)

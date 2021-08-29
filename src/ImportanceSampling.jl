@@ -19,7 +19,7 @@ export psis, PsisLoo, PsisLooMethod, Psis
 
 
 """
-    Psis{V<:AbstractVector{F},I<:Integer} where {F<:Real}
+    Psis
 
 A struct containing the results of Pareto-smoothed importance sampling.
 
@@ -28,24 +28,23 @@ A struct containing the results of Pareto-smoothed importance sampling.
   - `weights`: A vector of smoothed, truncated, and normalized importance sampling weights.
   - `pareto_k`: Estimates of the shape parameter `k` of the generalized Pareto distribution.
   - `ess`: Estimated effective sample size for each LOO evaluation.
+  - `r_eff`: The relative efficiency of the MCMC chain, i.e. ESS / posterior sample size.
   - `tail_len`: Vector indicating how large the "tail" is for each observation.
-  - `dims`: Named tuple of length 2 containing `s` (posterior sample size) and `n` (number
-    of observations).
+  - `posterior_sample_size`: How many draws from an MCMC chain were used for PSIS.
+  - `data_size`: How many data points were used for PSIS.
 """
 struct Psis{
     F <: Real,
     AF <: AbstractArray{F, 3},
-    VF <: AbstractVector{F},
-    I <: Integer,
-    VI <: AbstractVector{I},
+    V <: AbstractVector{F},
 }
     weights::AF
-    pareto_k::VF
-    ess::VF
-    r_eff::VF
-    tail_len::VI
-    posterior_sample_size::I
-    data_size::I
+    pareto_k::V
+    ess::V
+    r_eff::V
+    tail_len::Vector{Int}
+    posterior_sample_size::Int
+    data_size::Int
 end
 
 
@@ -53,10 +52,7 @@ function Base.show(io::IO, ::MIME"text/plain", psis_object::Psis)
     table = hcat(psis_object.pareto_k, psis_object.ess)
     post_samples = psis_object.posterior_sample_size
     data_size = psis_object.data_size
-    println(
-        "Results of PSIS with $post_samples Monte Carlo samples and " *
-        "$data_size data points.",
-    )
+    println("Results of PSIS with $post_samples posterior samples and $data_size cases.")
     _throw_pareto_k_warning(psis_object.pareto_k)
     return pretty_table(
         table;
@@ -102,11 +98,11 @@ Implements Pareto-smoothed importance sampling (PSIS).
 See also: [`relative_eff`]@ref, [`psis_loo`]@ref, [`psis_ess`]@ref.
 """
 function psis(
-    log_ratios::AbstractArray{T, 3};
-    r_eff::AbstractVector{<:AbstractFloat}=similar(log_ratios, 0),
+    log_ratios::AbstractArray{<:Real, 3};
+    r_eff::AbstractVector{<:Real}=similar(log_ratios, 0),
     source::Union{AbstractString, Symbol}="mcmc",
     log_weights::Bool=false,
-) where {T <: Real}
+)
 
     source = lowercase(String(source))
     dims = size(log_ratios)
@@ -123,8 +119,8 @@ function psis(
     r_eff = _generate_r_eff(weights, dims, r_eff, source)
     _check_input_validity_psis(reshape(log_ratios, dims), r_eff)
 
-    tail_length = similar(log_ratios, Int, data_size)
-    ξ = similar(log_ratios, data_size)
+    tail_length = Vector{Int}(undef, data_size)
+    ξ = similar(r_eff)
     @inbounds Threads.@threads for i in eachindex(tail_length)
         tail_length[i] = @views _def_tail_length(post_sample_size, r_eff[i])
         ξ[i] = @views ParetoSmooth._do_psis_i!(weights[i, :], tail_length[i])
@@ -202,8 +198,8 @@ end
 
 Define the tail length as in Vehtari et al. (2019).
 """
-function _def_tail_length(length::I, r_eff::Real) where {I <: Integer}
-    return I(ceil(min(length / 5, 3 * sqrt(length / r_eff))))
+function _def_tail_length(length::Int, r_eff::Real)
+    return Int(ceil(min(length / 5, 3 * sqrt(length / r_eff))))
 end
 
 

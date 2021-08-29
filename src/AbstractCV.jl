@@ -4,21 +4,21 @@ using PrettyTables
 
 export AbstractCVMethod, AbstractCV
 
-const POINTWISE_LABELS = (:cv_est, :naive_est, :p_eff, :ess, :pareto_k)
+const POINTWISE_LABELS = (:cv_elpd, :naive_lpd, :p_eff, :ess, :pareto_k)
 const CV_DESC = """
 # Fields
 
   - `estimates::KeyedArray`: A KeyedArray with columns `:total, :se_total, :mean, :se_mean`,
-    and rows `:cv_est, :naive_est, :p_eff`. See `# Extended help` for more.
-      - `:cv_est` contains estimates for the out-of-sample prediction error, as
+    and rows `:cv_elpd, :naive_lpd, :p_eff`. See `# Extended help` for more.
+      - `:cv_elpd` contains estimates for the out-of-sample prediction error, as
         estimated using leave-one-out cross validation.
-      - `:naive_est` contains estimates of the in-sample prediction error.
+      - `:naive_lpd` contains estimates of the in-sample prediction error.
       - `:p_eff` is the effective number of parameters -- a model with a `p_eff` of 2 is 
         "about as overfit" as a model with 2 parameters and no regularization.
   - `pointwise::KeyedArray`: A `KeyedArray` of pointwise estimates with 5 columns --
-      - `:cv_est` contains the estimated out-of-sample error for this point, as measured
+      - `:cv_elpd` contains the estimated out-of-sample error for this point, as measured
       using leave-one-out cross validation.
-      - `:naive_est` contains the in-sample estimate of error for this point.
+      - `:naive_lpd` contains the in-sample estimate of error for this point.
       - `:p_eff` is the difference in the two previous estimates.
       - `:ess` is the effective sample size, which estimates the simulation error caused by 
         using Monte Carlo estimates. It does not measure the accuracy of predictions.  
@@ -114,8 +114,8 @@ abstract type AbstractCVMethod end
 #     return pretty_table(
 #         table;
 #         compact_printing=false,
-#         header=table.statistic,
-#         row_names=table.criterion,
+#         header=table.columns,
+#         row_names=table.statistic,
 #         formatters=ft_printf("%5.2f"),
 #         alignment=:r,
 #     )

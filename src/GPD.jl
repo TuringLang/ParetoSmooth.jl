@@ -45,7 +45,6 @@ function gpdfit(
 
 
     grid_size = min_grid_pts + isqrt(len)  # isqrt = floor sqrt
-    grid_size = grid_size - (grid_size % 4)  # multiples of 4 easier to vectorize
     n_0 = 10  # determines how strongly to nudge ξ towards .5
     x_star::T = inv(3 * sample[(len + 2) ÷ 4])  # magic number. ¯\_(ツ)_/¯
 

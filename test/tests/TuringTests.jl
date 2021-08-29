@@ -35,8 +35,8 @@ using Distributions, Random, MCMCChains, Turing
     psis_loo_output = psis_loo(compute_loglike, chain, data; r_eff=r_eff)
     @test isa(psis_loo_output, PsisLoo)
     # test that loo works with MCMCChains and yields correct type
-    psis_output = loo(compute_loglike, chain, data; r_eff=r_eff)
-    @test isa(psis_output, PsisLoo)
+    loo_output = loo(compute_loglike, chain, data; r_eff=r_eff)
+    @test isa(loo_output, PsisLoo)
     # test that psis works with MCMCChains and yields correct type
     psis_output = psis(compute_loglike, chain, data; r_eff=r_eff)
     @test isa(psis_output, Psis)
@@ -79,10 +79,14 @@ using Distributions, Random, MCMCChains, Turing
     psis_output = psis(model(data), chain)
     @test isa(psis_output, Psis)
 
+    # test that loo works when using `psis_output`
+    psis_specified = loo_from_psis(model(data), chain, psis_output)
+    @test psis_specified.estimates ≈ psis_loo_output.estimates
+
 
     # ensure that methods work with r_eff argument
     r_eff = similar(pw_lls_turing, 0)
-    # test that psis_loo works with Turin and gives correct type
+    # test that psis_loo works with Turing and gives correct type
     psis_loo_output = psis_loo(model(data), chain; r_eff=r_eff)
     @test isa(psis_loo_output, PsisLoo)
     # test that loo works with Turing model and MCMCChains and gives correct type
@@ -93,6 +97,6 @@ using Distributions, Random, MCMCChains, Turing
     @test isa(psis_output, Psis)
 
     @test ParetoSmooth.naive_lpd(model(data), chain) ≈ 
-        psis_loo_output.estimates(:naive_est, :total) atol=.01
+        psis_loo_output.estimates(:naive_lpd, :total) atol=.01
 
 end

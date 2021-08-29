@@ -10,8 +10,8 @@ Calculate the naive (in-sample) estimate of the expected log probability density
 known as the in-sample Bayes score. Not recommended for most uses.
 """
 function naive_lpd(log_likelihood::AbstractArray{<:Real, 3})
-    @info "We strongly advise against using `naive_lpd`, as it gives inconsistent and " *
-    "strongly biased estimates. Use `psis_loo` instead."
+    @info "We advise against using `naive_lpd`, as it gives inconsistent and strongly " *
+    "biased estimates. Use `psis_loo` instead."
 
     dims = size(log_likelihood)
     data_size = dims[1]

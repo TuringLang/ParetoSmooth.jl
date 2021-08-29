@@ -4,12 +4,13 @@ using DocStringExtensions
 
 function __init__()
     @require Turing = "fce5fe82-541a-59a6-adf8-730c64b5f9a0" begin
-        include("MCMCChainsHelpers.jl")
         include("TuringHelpers.jl")
-    end
+    end 
+
     @require MCMCChains = "c7f686f2-ff18-58e9-bc7b-31028e88f75d" begin 
         include("MCMCChainsHelpers.jl")
     end
+
 end
 
 include("AbstractCV.jl")
