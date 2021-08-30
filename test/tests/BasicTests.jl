@@ -29,7 +29,7 @@ import RData
     r_ests = KeyedArray(
         r_loo["estimates"][Not(3), :];
         statistic=[:cv_elpd, :p_eff],
-        columns=[:total, :se_total, :mean, :se_mean],
+        column=[:total, :se_total, :mean, :se_mean],
     )
 
     # All of these should run

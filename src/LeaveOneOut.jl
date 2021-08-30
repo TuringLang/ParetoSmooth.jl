@@ -36,14 +36,14 @@ $CV_DESC
 See also: [`loo`]@ref, [`bayes_cv`]@ref, [`psis_loo`]@ref, [`Psis`]@ref
 """
 struct PsisLoo{
-    F <: Real,
-    AF <: AbstractArray{F},
-    V <: AbstractVector{F},
+    RealType <: Real,
+    ArrayType <: AbstractArray{RealType},
+    VectorType <: AbstractVector{RealType},
 } <: AbstractCV
-    estimates::KeyedArray
-    pointwise::KeyedArray
-    psis_object::Psis{F, AF, V}
-    mcse::F
+    estimates::KeyedArray{RealType, 2, <:NamedDimsArray, <:Any}
+    pointwise::KeyedArray{RealType, 2, <:NamedDimsArray, <:Any}
+    psis_object::Psis{RealType, ArrayType, VectorType}
+    mcse::RealType
 end
 
 
@@ -59,7 +59,7 @@ function Base.show(io::IO, ::MIME"text/plain", loo_object::PsisLoo)
     return pretty_table(
         table;
         compact_printing=false,
-        header=table.columns,
+        header=table.column,
         row_names=table.statistic,
         formatters=ft_printf("%5.2f"),
         alignment=:r,
@@ -165,12 +165,12 @@ function loo_from_psis(log_likelihood::AbstractArray{<:Real, 3}, psis_object::Ps
     pointwise_p_eff = pointwise_naive - pointwise_loo
     pointwise_mcse = _calc_mcse(weights, log_likelihood, pointwise_loo, r_eff)
 
-
     pointwise = KeyedArray(
         hcat(pointwise_loo, pointwise_naive, pointwise_p_eff, pointwise_mcse, ξ);
         data=1:length(pointwise_loo),
         statistic=[:cv_elpd, :naive_lpd, :p_eff, :mcse, :pareto_k],
     )
+
 
     table = _generate_loo_table(pointwise)
 
@@ -197,12 +197,12 @@ function _generate_loo_table(pointwise::KeyedArray{<:Real})
     table = KeyedArray(
         similar(NamedDims.unname(pointwise), 3, 4);
         statistic=[:cv_elpd, :naive_lpd, :p_eff],
-        columns=[:total, :se_total, :mean, :se_mean],
+        column=[:total, :se_total, :mean, :se_mean],
     )
 
     # calculate the sample expectation for the total score
     to_sum = pointwise([:cv_elpd, :naive_lpd, :p_eff])
-    @tullio avgs[crit] := to_sum[data, crit] / data_size
+    @tullio avgs[statistic] := to_sum[data, statistic] / data_size
     avgs = reshape(avgs, 3)
     table(:, :mean) .= avgs
 
@@ -227,7 +227,7 @@ end
 
 
 function _calc_mcse(weights, log_likelihood, pointwise_loo, r_eff)
-    E_epd = exp.(pointwise_loo)
+    @turbo E_epd = exp.(pointwise_loo)
     @tullio pointwise_var[i] := 
         (weights[i, j, k] * (exp(log_likelihood[i, j, k]) - E_epd[i]))^2
     # If MCMC draws follow a log-normal distribution, then their log has this std. error:

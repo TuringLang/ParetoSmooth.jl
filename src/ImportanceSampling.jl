@@ -34,14 +34,14 @@ A struct containing the results of Pareto-smoothed importance sampling.
   - `data_size`: How many data points were used for PSIS.
 """
 struct Psis{
-    F <: Real,
-    AF <: AbstractArray{F, 3},
-    V <: AbstractVector{F},
+    RealType <: Real,
+    ArrayType <: AbstractArray{RealType, 3},
+    VectorType <: AbstractArray{RealType},
 }
-    weights::AF
-    pareto_k::V
-    ess::V
-    r_eff::V
+    weights::ArrayType
+    pareto_k::VectorType
+    ess::VectorType
+    r_eff::VectorType
     tail_len::Vector{Int}
     posterior_sample_size::Int
     data_size::Int
@@ -127,7 +127,7 @@ function psis(
     end
 
     @tullio norm_const[i] := weights[i, j]
-    @turbo weights .= weights ./ norm_const
+    @tturbo weights .= weights ./ norm_const
     ess = psis_ess(weights, r_eff)
 
     weights = reshape(weights, dims)

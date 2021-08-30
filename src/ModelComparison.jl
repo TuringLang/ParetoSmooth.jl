@@ -39,6 +39,7 @@ struct ModelComparison
     pointwise::KeyedArray
     estimates::KeyedArray
     std_err::NamedTuple
+    differences::KeyedArray
 end
 
 
@@ -94,10 +95,9 @@ function loo_compare(
         statistic=[:cv_elpd, :naive_lpd, :p_eff, :mcse, :pareto_k],
         model=model_names,
     )
-
     # Subtract the effective number of params and elpd ests; leave mcse+pareto_k the same
     @views base_case = pointwise_diffs[:, 1:3, 1]
-    @turbo @. pointwise_diffs[:, 1:3, Not(1)] = pointwise_diffs[:, 1:3, Not(1)] - base_case
+    @views @. pointwise_diffs[:, 1:3, Not(1)] = pointwise_diffs[:, 1:3, Not(1)] - base_case
     pointwise_diffs[:, 1:3, 1] .= 0
 
     name_tuple = ntuple(i -> model_names[i], n_models)  # convert to tuple
@@ -108,16 +108,24 @@ function loo_compare(
     se_total = NamedTuple{name_tuple}(se_total)
 
     log_norm = logsumexp(cv_elpd)
-    weights = @turbo @. exp(cv_elpd - log_norm)
-    avg_elpd = @turbo @. cv_elpd / data_size
-    @turbo @. cv_elpd = cv_elpd - cv_elpd[1]
+    weights = @turbo warn_check_args=false @. exp(cv_elpd - log_norm)
+    avg_elpd = @turbo warn_check_args=false @. (cv_elpd - cv_elpd[1]) / data_size
+    @turbo warn_check_args=false @. cv_elpd = cv_elpd - cv_elpd[1]
     total_diffs = KeyedArray(
         hcat(cv_elpd, avg_elpd, weights);
         model=model_names,
         statistic=[:cv_elpd, :cv_avg, :weight],
     )
-    
-    return ModelComparison(pointwise_diffs, total_diffs, se_total)
+
+    all_diffs = @views [
+        cv_results[i].estimates(column=[:total, :mean]) for i in 1:n_models
+    ]
+    base_case = all_diffs[1]
+    all_diffs = cat(all_diffs...; dims=3)
+    @inbounds for slice in eachslice(all_diffs; dims=3)
+        @fastmath @turbo warn_check_args=false slice .-= base_case
+    end
+    return ModelComparison(pointwise_diffs, total_diffs, se_total, all_diffs)
 
 end
 

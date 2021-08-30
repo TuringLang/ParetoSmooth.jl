@@ -114,7 +114,7 @@ abstract type AbstractCVMethod end
 #     return pretty_table(
 #         table;
 #         compact_printing=false,
-#         header=table.columns,
+#         header=table.column,
 #         row_names=table.statistic,
 #         formatters=ft_printf("%5.2f"),
 #         alignment=:r,
