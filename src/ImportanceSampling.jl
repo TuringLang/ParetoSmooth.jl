@@ -1,5 +1,5 @@
 using LoopVectorization
-using TensorOperations
+
 using Tullio
 
 const LIKELY_ERROR_CAUSES = """

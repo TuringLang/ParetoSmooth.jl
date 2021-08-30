@@ -5,7 +5,6 @@ using LoopVectorization
 using NamedDims
 using Statistics
 using Printf
-using TensorOperations
 using Tullio
 
 export loo, psis_loo, loo_from_psis
@@ -171,7 +170,6 @@ function loo_from_psis(log_likelihood::AbstractArray{<:Real, 3}, psis_object::Ps
         statistic=[:cv_elpd, :naive_lpd, :p_eff, :mcse, :pareto_k],
     )
 
-
     table = _generate_loo_table(pointwise)
 
     @tullio mcse := pointwise_mcse[i]^2
@@ -202,7 +200,7 @@ function _generate_loo_table(pointwise::KeyedArray{<:Real})
 
     # calculate the sample expectation for the total score
     to_sum = pointwise([:cv_elpd, :naive_lpd, :p_eff])
-    @tullio avgs[statistic] := to_sum[data, statistic] / data_size
+    @tullio avx=false avgs[statistic] := to_sum[data, statistic] / data_size
     avgs = reshape(avgs, 3)
     table(:, :mean) .= avgs
 

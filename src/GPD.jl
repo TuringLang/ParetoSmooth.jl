@@ -1,7 +1,7 @@
 using LinearAlgebra
 using LoopVectorization
 using Statistics
-using TensorOperations
+
 using Tullio
 
 

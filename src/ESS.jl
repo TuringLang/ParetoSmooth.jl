@@ -1,7 +1,7 @@
 using FFTW
 using LoopVectorization
 using MCMCDiagnosticTools
-using TensorOperations
+
 using Tullio
 
 export relative_eff, psis_ess, psis_n_eff
