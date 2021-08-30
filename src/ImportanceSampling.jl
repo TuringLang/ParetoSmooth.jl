@@ -29,15 +29,15 @@ A struct containing the results of Pareto-smoothed importance sampling.
   - `weights`: A vector of smoothed, truncated, and normalized importance sampling weights.
   - `pareto_k`: Estimates of the shape parameter `k` of the generalized Pareto distribution.
   - `ess`: Estimated effective sample size for each LOO evaluation, based on the variance of
-  the weights.
+    the weights.
+  - `sup_ess`: Estimated effective sample size for each LOO evaluation, based on the 
+    supremum norm, i.e. the size of the largest weight. More robust than `ess`, but highly
+    variable and sometimes far too conservative.
   - `r_eff`: The relative efficiency of the MCMC chain, i.e. ESS / posterior sample size.
   - `tail_len`: Vector indicating how large the "tail" is for each observation.
   - `posterior_sample_size`: How many draws from an MCMC chain were used for PSIS.
   - `data_size`: How many data points were used for PSIS.
 """
-#- `robust_ess`: Estimated effective sample size for each LOO evaluation, based on the 
-#supremum norm, i.e. the largest weight. More robust than `ess`, but is sometimes far too 
-#conservative.
 struct Psis{
     R <: Real,
     AT <: AbstractArray{R, 3},
@@ -46,6 +46,7 @@ struct Psis{
     weights::AT
     pareto_k::VT
     ess::VT
+    sup_ess::VT
     r_eff::VT
     tail_len::Vector{Int}
     posterior_sample_size::Int
@@ -134,7 +135,7 @@ function psis(
     @tullio norm_const[i] := weights[i, j]
     @tturbo weights .= weights ./ norm_const
     ess = psis_ess(weights, r_eff)
-    # robust_ess = sup_ess(weights, r_eff)
+    inf_ess = sup_ess(weights, r_eff)
 
     weights = reshape(weights, dims)
 
@@ -146,7 +147,7 @@ function psis(
         weights, 
         ξ, 
         ess, 
-        # robust_ess, 
+        inf_ess, 
         r_eff, 
         tail_length, 
         post_sample_size, 
