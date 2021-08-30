@@ -20,8 +20,11 @@ const CV_DESC = """
       using leave-one-out cross validation.
       - `:naive_lpd` contains the in-sample estimate of error for this point.
       - `:p_eff` is the difference in the two previous estimates.
-      - `:ess` is the effective sample size, which estimates the simulation error caused by 
-        using Monte Carlo estimates. It does not measure the accuracy of predictions.  
+      - `:ess` is the L2 effective sample size, which estimates the simulation error caused 
+        by using Monte Carlo estimates. It does not measure model performance.  
+      - `:inf_ess` is the supremum-based effective sample size, which estimates the 
+        simulation error caused by using Monte Carlo estimates. It is more robust than 
+        `:ess` and should therefore be preferred. It does not measure model performance.  
       - `:pareto_k` is the estimated value for the parameter `ξ` of the generalized Pareto
         distribution. Values above .7 indicate that PSIS has failed to approximate the true
         distribution.

@@ -3,7 +3,8 @@ using LoopVectorization
 using Tullio
 
 const LIKELY_ERROR_CAUSES = """
-1. Bugs in the program that generated the sample, or otherwise incorrect input variables. 
+1. Incorrect inputs -- check your program for bugs. If you provided an `r_eff` argument,
+double check it is correct.
 2. Your chains failed to converge. Check diagnostics. 
 3. You do not have enough posterior samples (ESS < ~25).
 """
@@ -19,7 +20,7 @@ export psis, PsisLoo, PsisLooMethod, Psis
 
 
 """
-    Psis
+    Psis{R<:Real, AT<:AbstractArray{R, 3}, VT<:AbstractVector{R}}
 
 A struct containing the results of Pareto-smoothed importance sampling.
 
@@ -27,21 +28,25 @@ A struct containing the results of Pareto-smoothed importance sampling.
 
   - `weights`: A vector of smoothed, truncated, and normalized importance sampling weights.
   - `pareto_k`: Estimates of the shape parameter `k` of the generalized Pareto distribution.
-  - `ess`: Estimated effective sample size for each LOO evaluation.
+  - `ess`: Estimated effective sample size for each LOO evaluation, based on the variance of
+  the weights.
   - `r_eff`: The relative efficiency of the MCMC chain, i.e. ESS / posterior sample size.
   - `tail_len`: Vector indicating how large the "tail" is for each observation.
   - `posterior_sample_size`: How many draws from an MCMC chain were used for PSIS.
   - `data_size`: How many data points were used for PSIS.
 """
+#- `robust_ess`: Estimated effective sample size for each LOO evaluation, based on the 
+#supremum norm, i.e. the largest weight. More robust than `ess`, but is sometimes far too 
+#conservative.
 struct Psis{
-    RealType <: Real,
-    ArrayType <: AbstractArray{RealType, 3},
-    VectorType <: AbstractArray{RealType},
+    R <: Real,
+    AT <: AbstractArray{R, 3},
+    VT <: AbstractVector{R},
 }
-    weights::ArrayType
-    pareto_k::VectorType
-    ess::VectorType
-    r_eff::VectorType
+    weights::AT
+    pareto_k::VT
+    ess::VT
+    r_eff::VT
     tail_len::Vector{Int}
     posterior_sample_size::Int
     data_size::Int
@@ -129,6 +134,7 @@ function psis(
     @tullio norm_const[i] := weights[i, j]
     @tturbo weights .= weights ./ norm_const
     ess = psis_ess(weights, r_eff)
+    # robust_ess = sup_ess(weights, r_eff)
 
     weights = reshape(weights, dims)
 
@@ -136,15 +142,24 @@ function psis(
         @tturbo @. weights = log(weights)
     end
 
-    return Psis(weights, ξ, ess, r_eff, tail_length, post_sample_size, data_size)
+    return Psis(
+        weights, 
+        ξ, 
+        ess, 
+        # robust_ess, 
+        r_eff, 
+        tail_length, 
+        post_sample_size, 
+        data_size
+    )
 end
 
 
 function psis(
-    log_ratios::AbstractMatrix{T};
-    chain_index::AbstractVector{I}=_assume_one_chain(log_ratios),
+    log_ratios::AbstractMatrix{<:Real};
+    chain_index::AbstractVector{<:Integer}=_assume_one_chain(log_ratios),
     kwargs...,
-) where {T <: Real, I <: Integer}
+)
     new_log_ratios = _convert_to_array(log_ratios, chain_index)
     return psis(new_log_ratios; kwargs...)
 end
@@ -211,11 +226,13 @@ with PSIS before returning shape parameter `ξ`.
 """
 function _psis_smooth_tail!(tail::AbstractVector{T}, cutoff::T) where {T <: Real}
     len = length(tail)
-    @turbo @. tail = tail - cutoff
+    if any(isinf.(tail))
+        return ξ = Inf
+    else
+        @turbo @. tail = tail - cutoff
 
-    # save time not sorting since tail is already sorted
-    ξ, σ = gpdfit(tail)
-    if ξ ≠ Inf
+        # save time not sorting since tail is already sorted
+        ξ, σ = gpdfit(tail)
         @turbo @. tail = gpd_quantile(($(1:len) - 0.5) / len, ξ, σ) + cutoff
     end
     return ξ
@@ -228,23 +245,61 @@ end
 ##########################
 
 """
+Generate the relative effective sample size if not provided by the user.
+"""
+function _generate_r_eff(
+    weights::AbstractArray{R}, 
+    dims::Base.AbstractVecOrTuple, 
+    r_eff::T, 
+    source::String,
+)::T where {R<:Real, T<:AbstractVector{R}}
+    output::T = similar(r_eff, dims[1])
+    if isempty(r_eff)
+        if source == "mcmc"
+            @info "Adjusting for autocorrelation. If the posterior samples are not " *
+                  "autocorrelated, specify the source of the posterior sample using the " *
+                  "keyword argument `source`. MCMC samples are always autocorrelated; VI " *
+                  "samples are not."
+            output .= relative_eff(reshape(weights, dims))
+        elseif source ∈ SAMPLE_SOURCES
+            @info "Samples have not been adjusted for autocorrelation. If the posterior " *
+                  "samples are autocorrelated, as in MCMC methods, ESS estimates will be " *
+                  "upward-biased, and standard error estimates will be downward-biased. " *
+                  "MCMC samples are always autocorrelated; VI samples are not."
+            return output .= ones(R, dims[1])
+        else
+            throw(
+                ArgumentError(
+                    "$source is not a valid source. Valid sources are $SAMPLE_SOURCES."
+                ),
+            )
+            return output .= ones(R, dims[1])
+        end
+    else 
+        return r_eff
+    end
+    if any(_invalid_number, r_eff)
+        throw(
+            ArgumentError(
+                "PSIS-LOO has encountered an error calculating ESS values for your " * 
+                "Markov chains. Please check your inputs. $LIKELY_ERROR_CAUSES"
+            )
+        )
+    end
+    return output::T
+end
+
+
+"""
 Make sure all inputs to `psis` are valid.
 """
 function _check_input_validity_psis(
     log_ratios::AbstractArray{T, 3}, r_eff::AbstractVector{T}
 ) where {T <: Real}
-    if any(isnan, log_ratios)
-        throw(DomainError("Invalid input for `log_ratios` (contains NaN values)."))
-    elseif any(isinf, log_ratios)
-        throw(DomainError("Invalid input for `log_ratios` (contains infinite values)."))
+    if any(_invalid_number, log_ratios)
+        throw(DomainError("Invalid input for `log_ratios` (contains NaN  or inf values)."))
     elseif isempty(log_ratios)
         throw(ArgumentError("Invalid input for `log_ratios` (array is empty)."))
-    elseif any(isnan, r_eff)
-        throw(ArgumentError("Invalid input for `r_eff` (contains NaN values)."))
-    elseif any(isinf, r_eff)
-        throw(DomainError("Invalid input for `r_eff` (contains infinite values)."))
-    elseif isempty(log_ratios)
-        throw(ArgumentError("Invalid input for `r_eff` (array is empty)."))
     elseif length(r_eff) ≠ size(log_ratios, 1)
         throw(ArgumentError("Size of `r_eff` does not equal the number of data points."))
     end
@@ -272,4 +327,12 @@ function _check_tail(tail::AbstractVector{T}) where {T <: Real}
         )
     end
     return nothing
+end
+
+
+"""
+Check if an input is invalid.
+"""
+function _invalid_number(x::Real)
+    return isinf(x) || isnan(x)
 end
