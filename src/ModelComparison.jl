@@ -109,7 +109,7 @@ function loo_compare(
 
     log_norm = logsumexp(cv_elpd)
     weights = @turbo warn_check_args=false @. exp(cv_elpd - log_norm)
-    avg_elpd = @turbo warn_check_args=false @. (cv_elpd - cv_elpd[1]) / data_size
+    @turbo warn_check_args=false avg_elpd = cv_elpd ./ data_size
     @turbo warn_check_args=false @. cv_elpd = cv_elpd - cv_elpd[1]
     total_diffs = KeyedArray(
         hcat(cv_elpd, avg_elpd, weights);
