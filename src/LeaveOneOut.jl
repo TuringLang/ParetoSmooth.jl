@@ -188,7 +188,7 @@ function loo_from_psis(
 end
 
 
-function _generate_loo_table(pointwise::KeyedArray{<:Real})
+function _generate_loo_table(pointwise::AbstractMatrix{<:Real})
 
     data_size = size(pointwise, :data)
     # create table with the right labels
@@ -200,7 +200,7 @@ function _generate_loo_table(pointwise::KeyedArray{<:Real})
 
     # calculate the sample expectation for the total score
     to_sum = pointwise([:cv_elpd, :naive_lpd, :p_eff])
-    @tullio avx=false avgs[statistic] := to_sum[data, statistic] / data_size
+    @tullio avgs[statistic] := to_sum[data, statistic] / data_size
     avgs = reshape(avgs, 3)
     table(:, :mean) .= avgs
 

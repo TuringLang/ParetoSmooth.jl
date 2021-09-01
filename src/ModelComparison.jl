@@ -27,19 +27,24 @@ A struct containing the results of model comparison.
       + `weight`: A set of Akaike-like weights assigned to each model, which can be used in
         pseudo-Bayesian model averaging.
   - `std_err::NamedTuple`: A named tuple containing the standard error of `cv_elpd`. Note 
-    that these estimators (incorrectly) assume that all folds are independent, despite their 
-    substantial overlap, which creates a severely biased estimator. In addition, note 
-    that LOO-CV differences are *not* asymptotically normal. As a result, these standard 
-    errors cannot be used to calculate a confidence interval. These standard errors are 
-    included for consistency with R's LOO package, and should not be relied upon.
+    that these estimators (incorrectly) assume all folds are independent, despite their 
+    substantial overlap, which creates a downward biased estimator. LOO-CV differences are
+    *not* asymptotically normal, so these standard errors cannot be used to 
+    calculate a confidence interval.
+  - `gmp::NamedTuple`: The geometric mean of the posterior probability assigned to each data
+    point by each model. This is equal to `exp(cv_avg/n)` for each model. By taking the 
+    exponent of the average score, we can take outcomes on the log scale and shift them back
+    onto the probability scale, making the results more easily interpretable. This measure 
+    is only meaningful for classifiers, i.e. variables with discrete outcomes; it is not
+    possible to interpret GMP values for continuous outcome variables.
 
 See also: [`PsisLoo`](@ref)
 """
-struct ModelComparison
-    pointwise::KeyedArray
-    estimates::KeyedArray
-    std_err::NamedTuple
-    differences::KeyedArray
+struct ModelComparison{RealType<:Real, N}
+    pointwise::KeyedArray{RealType, 3, <:NamedDimsArray, <:Any}
+    estimates::KeyedArray{RealType, 2, <:NamedDimsArray, <:Any}
+    std_err::NamedTuple{<:Any, Tuple{Vararg{RealType, N}}}
+    gmp::NamedTuple{<:Any, Tuple{Vararg{RealType, N}}}
 end
 
 
@@ -55,10 +60,9 @@ end
 Construct a model comparison table from several [`PsisLoo`](@ref) objects.
 
 # Arguments
-
   - `cv_results`: One or more [`PsisLoo`](@ref) objects to be compared. Alternatively,
-  a tuple or named tuple of `PsisLoo` objects can be passed. If a named tuple is passed,
-  these names will be used to label each model. 
+    a tuple or named tuple of `PsisLoo` objects can be passed. If a named tuple is passed,
+    these names will be used to label each model. 
   - $LOO_COMPARE_KWARGS
 
 See also: [`ModelComparison`](@ref), [`PsisLoo`](@ref), [`psis_loo`](@ref)
@@ -109,23 +113,19 @@ function loo_compare(
 
     log_norm = logsumexp(cv_elpd)
     weights = @turbo warn_check_args=false @. exp(cv_elpd - log_norm)
-    @turbo warn_check_args=false avg_elpd = cv_elpd ./ data_size
+
+    gmp = @turbo @. exp(cv_elpd / data_size)
+    gmp = NamedTuple{name_tuple}(gmp)
+    
     @turbo warn_check_args=false @. cv_elpd = cv_elpd - cv_elpd[1]
+    @turbo warn_check_args=false avg_elpd = cv_elpd ./ data_size
     total_diffs = KeyedArray(
         hcat(cv_elpd, avg_elpd, weights);
         model=model_names,
         statistic=[:cv_elpd, :cv_avg, :weight],
     )
-
-    all_diffs = @views [
-        cv_results[i].estimates(column=[:total, :mean]) for i in 1:n_models
-    ]
-    base_case = all_diffs[1]
-    all_diffs = cat(all_diffs...; dims=3)
-    @inbounds for slice in eachslice(all_diffs; dims=3)
-        @fastmath @turbo warn_check_args=false slice .-= base_case
-    end
-    return ModelComparison(pointwise_diffs, total_diffs, se_total, all_diffs)
+    
+    return ModelComparison(pointwise_diffs, total_diffs, se_total, gmp)
 
 end
 
