@@ -85,7 +85,7 @@ using Turing
     @test comps.std_err[:m5_1t] ≈ 0.00 atol = .001
     @test comps.estimates(:m5_1t, :weight) ≈ .7075 rtol = tol
     @test comps.estimates(:m5_2t, :cv_elpd) ≈ -6.62779 atol = tol
-    @test comps.std_err[:m5_2t] ≈ 4.7196844454130655 rtol = tol
+    @test comps.std_err[:m5_2t] ≈ 4.71968 rtol = tol
     @test comps.estimates(:m5_2t, :weight) ≈ 0.00 atol = .001
     @test comps.estimates(:m5_3t, :cv_elpd) ≈ -0.8865456492718806 atol = tol
     @test comps.std_err[:m5_3t] ≈ 0.3638491385753804 rtol = tol
