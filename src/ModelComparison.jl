@@ -31,12 +31,14 @@ A struct containing the results of model comparison.
     substantial overlap, which creates a downward biased estimator. LOO-CV differences are
     *not* asymptotically normal, so these standard errors cannot be used to 
     calculate a confidence interval.
-  - `gmp::NamedTuple`: The geometric mean of the posterior probability assigned to each data
-    point by each model. This is equal to `exp(cv_avg/n)` for each model. By taking the 
-    exponent of the average score, we can take outcomes on the log scale and shift them back
-    onto the probability scale, making the results more easily interpretable. This measure 
-    is only meaningful for classifiers, i.e. variables with discrete outcomes; it is not
-    possible to interpret GMP values for continuous outcome variables.
+  - `gmpd::NamedTuple`: The geometric mean of the predictive distribution. It equals the 
+    geometric mean of the probability assigned to each data point by the model, that is,
+    `exp(cv_avg)`. This measure is only meaningful for classifiers (variables with discrete 
+    outcomes). We can think of it as measuring how often the model was right: A model that
+    always predicts incorrectly will have a GMPD of 0, while a model that always predicts
+    correctly will have a GMPD of 1. However, the GMPD gives a model "Partial points" 
+    between 0 and 1 whenever the model assigns a probability other than 0 or 1 to the 
+    outcome that actually happened.
 
 See also: [`PsisLoo`](@ref)
 """
@@ -44,7 +46,7 @@ struct ModelComparison{RealType<:Real, N}
     pointwise::KeyedArray{RealType, 3, <:NamedDimsArray, <:Any}
     estimates::KeyedArray{RealType, 2, <:NamedDimsArray, <:Any}
     std_err::NamedTuple{<:Any, Tuple{Vararg{RealType, N}}}
-    gmp::NamedTuple{<:Any, Tuple{Vararg{RealType, N}}}
+    gmpd::NamedTuple{<:Any, Tuple{Vararg{RealType, N}}}
 end
 
 
@@ -114,8 +116,8 @@ function loo_compare(
     log_norm = logsumexp(cv_elpd)
     weights = @turbo warn_check_args=false @. exp(cv_elpd - log_norm)
 
-    gmp = @turbo @. exp(cv_elpd / data_size)
-    gmp = NamedTuple{name_tuple}(gmp)
+    gmpd = @turbo @. exp(cv_elpd / data_size)
+    gmpd = NamedTuple{name_tuple}(gmpd)
     
     @turbo warn_check_args=false @. cv_elpd = cv_elpd - cv_elpd[1]
     @turbo warn_check_args=false avg_elpd = cv_elpd ./ data_size
@@ -125,7 +127,7 @@ function loo_compare(
         statistic=[:cv_elpd, :cv_avg, :weight],
     )
     
-    return ModelComparison(pointwise_diffs, total_diffs, se_total, gmp)
+    return ModelComparison(pointwise_diffs, total_diffs, se_total, gmpd)
 
 end
 

@@ -37,7 +37,7 @@ function _throw_pareto_k_warning(ξ)
         @warn "Some Pareto k values are extremely high (>1). PSIS will not produce " *
               "consistent estimates."
     elseif any(ξ .≥ 0.7)
-        @warn "Some Pareto k values are high (>.7), indicating that PSIS has failed to " *
+        @warn "Some Pareto k values are high (>.7), indicating PSIS has failed to " *
               "approximate the true distribution."
     elseif any(ξ .≥ 0.5)
         @info "Some Pareto k values are slightly high (>.5); some pointwise estimates " *
@@ -69,7 +69,7 @@ function _convert_to_array(matrix::AbstractMatrix, chain_index::AbstractVector)
         throw(
             ArgumentError(
                 "Indices must be numbered from 1 through the total number of chains."
-            ),
+            )
         )
     else
         # Check how many elements are in each chain, assign to "counts"
