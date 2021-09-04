@@ -31,17 +31,17 @@ A struct containing the results of Pareto-smoothed importance sampling.
   - `ess`: Estimated effective sample size for each LOO evaluation, based on the variance of
     the weights.
   - `sup_ess`: Estimated effective sample size for each LOO evaluation, based on the 
-    supremum norm, i.e. the size of the largest weight. More robust than `ess`, but highly
-    variable and sometimes far too conservative.
+    supremum norm, i.e. the size of the largest weight. More likely than `ess` to warn when 
+    importance sampling has failed. However, it can have a high variance.
   - `r_eff`: The relative efficiency of the MCMC chain, i.e. ESS / posterior sample size.
   - `tail_len`: Vector indicating how large the "tail" is for each observation.
   - `posterior_sample_size`: How many draws from an MCMC chain were used for PSIS.
   - `data_size`: How many data points were used for PSIS.
 """
 struct Psis{
-    R <: Real,
-    AT <: AbstractArray{R, 3},
-    VT <: AbstractVector{R},
+    RealType <: Real,
+    AT <: AbstractArray{RealType, 3},
+    VT <: AbstractVector{RealType},
 }
     weights::AT
     pareto_k::VT
@@ -55,7 +55,7 @@ end
 
 
 function Base.show(io::IO, ::MIME"text/plain", psis_object::Psis)
-    table = hcat(psis_object.pareto_k, psis_object.ess)
+    table = hcat(psis_object.pareto_k, psis_object.ess, psis_object.sup_ess)
     post_samples = psis_object.posterior_sample_size
     data_size = psis_object.data_size
     println("Results of PSIS with $post_samples posterior samples and $data_size cases.")
@@ -63,7 +63,7 @@ function Base.show(io::IO, ::MIME"text/plain", psis_object::Psis)
     return pretty_table(
         table;
         compact_printing=false,
-        header=[:pareto_k, :ess],
+        header=[:pareto_k, :ess, :sup_ess],
         formatters=ft_printf("%5.2f"),
         alignment=:r,
     )
@@ -179,10 +179,6 @@ Do PSIS on a single vector, smoothing its tail values.
 # Returns
 
   - `T<:Real`: ξ, the shape parameter for the GPD; big numbers indicate thick tails.
-
-# Extended help
-
-Additional information can be found in the LOO package from R.
 """
 function _do_psis_i!(is_ratios::AbstractVector{T}, tail_length::Integer) where {T <: Real}
 

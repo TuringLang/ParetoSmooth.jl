@@ -78,6 +78,7 @@ using Distributions, Random, MCMCChains, Turing
     # test that psis works with Turing model and MCMCChains and yields correct type
     psis_output = psis(model(data), chain)
     @test isa(psis_output, Psis)
+    display(psis_output)
 
     # test that loo works when using `psis_output`
     psis_specified = loo_from_psis(model(data), chain, psis_output)

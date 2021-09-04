@@ -27,7 +27,7 @@ struct PsisLooMethod <: AbstractCVMethod end
 """
     PsisLoo <: AbstractCV
 
-A struct containing the results of jackknife (leave-one-out) cross validation using Pareto 
+A struct containing the results of leave-one-out cross validation using Pareto 
 smoothed importance sampling.
 
 $CV_DESC
