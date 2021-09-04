@@ -22,7 +22,7 @@ Compute the pointwise log likelihoods.
     indicate the parameter; and the third should indicate the chain. 
   - $DATA_ARG
   - `splat`: If `true` (default), `f` must be a function of `n` different parameters. 
-  Otherwise, `f` is assumed to be a function of a single parameter vector.
+    Otherwise, `f` is assumed to be a function of a single parameter vector.
   - $CHAIN_INDEX_DOC
 
 # Returns
