@@ -34,7 +34,7 @@ using Turing
         end
     end
 
-    chn5_1t = sample(m5_1t(df.A, df.D), NUTS(1000, 0.9), MCMCThreads(), 1000, 4)
+    chn5_1t = sample(m5_1t(df.A, df.D), NUTS(1000, 0.9), MCMCThreads(), 1000, 12)
 
     @model function m5_2t(M, D)
         a ~ Normal(0, 0.2)
@@ -46,7 +46,7 @@ using Turing
         end
     end
 
-    chn5_2t = sample(m5_2t(df.M, df.D), NUTS(1000, 0.9), MCMCThreads(), 1000, 4)
+    chn5_2t = sample(m5_2t(df.M, df.D), NUTS(1000, 0.9), MCMCThreads(), 1000, 12)
 
     @model function m5_3t(A, M, D)
         a ~ Normal(0, 0.2)
@@ -59,7 +59,7 @@ using Turing
         end
     end
 
-    chn5_3t = sample(m5_3t(df.A, df.M, df.D), NUTS(1000, 0.9), MCMCThreads(), 1000, 4)
+    chn5_3t = sample(m5_3t(df.A, df.M, df.D), NUTS(1000, 0.9), MCMCThreads(), 1000, 12)
     pw_lls5_1t = pointwise_log_likelihoods(m5_1t(df.A, df.D), chn5_1t)
     psis_loo_output5_1t = psis_loo(m5_1t(df.A, df.D), chn5_1t)
     psis_loo_output5_1t |> display
@@ -80,15 +80,16 @@ using Turing
     comps = loo_compare(n_tuple)
     comps |> display
 
-    @test comps.estimates(:m5_1t, :cv_elpd) ≈ 0.00 atol = .01
-    @test comps.std_err[:m5_1t] ≈ 0.00 atol = .01
-    @test comps.estimates(:m5_1t, :weight) ≈ 0.67 atol = .01
-    @test comps.estimates(:m5_2t, :cv_elpd) ≈ -6.68 atol = .01
-    @test comps.std_err[:m5_2t] ≈ 4.79 atol = .01
-    @test comps.estimates(:m5_2t, :weight) ≈ 0.00 atol = .01
-    @test comps.estimates(:m5_3t, :cv_elpd) ≈ -0.69 atol = .01
-    @test comps.std_err[:m5_3t] ≈ 0.42 atol = .01
-    @test comps.estimates(:m5_3t, :weight) ≈ 0.33 atol = .01
+    tol = 2 * sqrt(sum([x.mcse ^ 2 for x in n_tuple]))
+    @test comps.estimates(:m5_1t, :cv_elpd) ≈ 0.00 atol = .001
+    @test comps.std_err[:m5_1t] ≈ 0.00 atol = .001
+    @test comps.estimates(:m5_1t, :weight) ≈ .7075 rtol = tol
+    @test comps.estimates(:m5_2t, :cv_elpd) ≈ -6.62779 atol = tol
+    @test comps.std_err[:m5_2t] ≈ 4.7196844454130655 rtol = tol
+    @test comps.estimates(:m5_2t, :weight) ≈ 0.00 atol = .001
+    @test comps.estimates(:m5_3t, :cv_elpd) ≈ -0.8865456492718806 atol = tol
+    @test comps.std_err[:m5_3t] ≈ 0.3638491385753804 rtol = tol
+    @test comps.estimates(:m5_3t, :weight) ≈ 0.2915500227946632 atol = tol
     @test sum(comps.estimates(:, :weight, :)) ≈ 1
     total = NamedDims.unname(sum(comps.pointwise(:, :cv_elpd, :); dims=:data))
     @test reshape(total, 3) ≈ comps.estimates(:, :cv_elpd) atol=.001
