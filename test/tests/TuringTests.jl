@@ -49,12 +49,12 @@ using Distributions, Random, MCMCChains, Turing
         end
     end
 
-    chain = sample(model(data), NUTS(1000, 0.9), MCMCThreads(), 1000, 4)
+    chain = sample(model(data), NUTS(1000, 0.9), MCMCThreads(), 1000, 12)
     pw_lls_turing = pointwise_log_likelihoods(model(data), chain)
     pw_lls_loglike = pointwise_log_likelihoods(compute_loglike, chain, data)
 
     # test the dimensions: data points, samples, chains
-    @test size(pw_lls_turing) == (50, 1000, 4)
+    @test size(pw_lls_turing) == (50, 1000, 12)
     # test that sum of pointwise log likelihoods equals sum of log likelihoods
     turing_samples = Array(Chains(chain, :parameters).value)
     # make this more terse with @tullio or other method later
