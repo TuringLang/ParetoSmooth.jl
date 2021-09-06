@@ -15,9 +15,9 @@ parameter vector. See also the `splat` keyword argument.
 """
 
 const R_EFF_DOC = """
-`r_eff::AbstractVector`: An (optional) vector of relative effective sample sizes used
-in ESS calculations. If left empty, calculated automatically using the FFTESS method
-from InferenceDiagnostics.jl. See `relative_eff` to calculate these values.
+`r_eff::AbstractVector`: An (optional) vector of relative effective sample sizes used in ESS 
+calculations. If left empty, calculated automatically using the FFTESS method from 
+InferenceDiagnostics.jl. See `relative_eff` to calculate these values.
 """
 
 const ARGS = """`args...`: Positional arguments to be passed to"""

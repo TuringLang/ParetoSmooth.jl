@@ -42,6 +42,7 @@ struct PsisLoo{
     estimates::KeyedArray{RealType, 2, <:NamedDimsArray, <:Any}
     pointwise::KeyedArray{RealType, 2, <:NamedDimsArray, <:Any}
     psis_object::Psis{RealType, ArrayType, VectorType}
+    gmpd::RealType
     mcse::RealType
 end
 
@@ -111,7 +112,7 @@ function psis_loo(log_likelihood::AbstractArray{<:Real, 3}, args...; kwargs...)
     psis_object = psis(-log_likelihood, args...; kwargs...)
     return loo_from_psis(log_likelihood, psis_object)
 end
-
+psis_loo
 
 function psis_loo(
     log_likelihood::AbstractMatrix{<:Real},
@@ -171,11 +172,13 @@ function loo_from_psis(log_likelihood::AbstractArray{<:Real, 3}, psis_object::Ps
     )
 
     table = _generate_loo_table(pointwise)
+    
+    gmpd = exp.(table(column=:mean, statistic=:cv_elpd))
 
     @tullio mcse := pointwise_mcse[i]^2
     mcse = sqrt(mcse)
 
-    return PsisLoo(table, pointwise, psis_object, mcse)
+    return PsisLoo(table, pointwise, psis_object, gmpd, mcse)
 end
 
 
