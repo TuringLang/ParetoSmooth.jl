@@ -93,8 +93,9 @@ using Turing
     total = NamedDims.unname(sum(comps.pointwise(:, :cv_elpd, :); dims=:data))
     @test reshape(total, 3) ≈ comps.estimates(:, :cv_elpd) atol=.001
 
-    gmpd_vals = getproperty.(values(n_tuple), :gmpd)
-    gmpd_vals = sort([i for i in gmpd_vals])
-    @test values(comps.gmpd) .≈ gmpd_vals
+    gmpd_1 = getproperty.(values(n_tuple), :gmpd)
+    gmpd_1 = sort([i for i in gmpd_1])
+    comp_gmpd = sort([i for i in values(comps.gmpd)])
+    @test comp_gmpd .≈ gmpd_1 atol = .001
     
 end
