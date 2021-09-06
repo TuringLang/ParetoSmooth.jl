@@ -30,6 +30,14 @@ const CV_DESC = """
         distribution.
   - `psis_object::Psis`: A `Psis` object containing the results of Pareto-smoothed 
     importance sampling.
+  - `gmpd`: The geometric mean of the predictive density. It is defined as the geometric
+    mean of the probability assigned to each data point by the model, i.e. `exp(cv_avg)`. 
+    This measure is only interpretable for classifiers (variables with discrete outcomes).
+    We can think of it as measuring how often the model was right: A model that always
+    predicts incorrectly will have a GMPD of 0, while a model that always predicts
+    correctly will have a GMPD of 1. However, the GMPD gives a model "Partial points" 
+    between 0 and 1 whenever the model assigns a probability other than 0 or 1 to the 
+    outcome that actually happened, making it a fully Bayesian measure of model quality.
   - `mcse`: A float containing the estimated Monte Carlo standard error for the total 
     cross-validation estimate.
 

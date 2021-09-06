@@ -8,7 +8,7 @@ const TURING_MODEL_ARG = """
 
 
 """
-    pointwise_log_likelihoods(model::DynamicPPL.Model, chains::Chains)
+    $(TYPEDSIGNATURES) -> Array
 
 Compute pointwise log-likelihoods from a Turing model.  
 
@@ -38,11 +38,7 @@ end
 
 
 """
-    function psis_loo(
-        ll_fun::Function, 
-        chains::Chains
-        [, args...; kwargs...]
-    ) -> PsisLoo
+    $(TYPEDSIGNATURES) -> PsisLoo
 
 Use Pareto-Smoothed Importance Sampling to calculate the leave-one-out cross validation
 score from a `chains` object and a Turing model. 
@@ -63,11 +59,7 @@ end
 
 
 """
-    function loo_from_psis(
-        ll_fun::Function, 
-        chains::Chains
-        [, args...; kwargs...]
-    ) -> PsisLoo
+    $(TYPEDSIGNATURES) -> PsisLoo
 
 Use Pareto-Smoothed Importance Sampling to calculate the leave-one-out cross validation
 score from a `Chains` object, a Turing model, and a precalculated `Psis` object.
@@ -88,12 +80,7 @@ end
 
 
 """
-    psis(
-        model::DynamicPPL.Model, 
-        chains::Chains,
-        args...; 
-        kwargs...
-    ) -> Psis
+    $(TYPEDSIGNATURES) -> Psis
 
 Generate samples using Pareto smoothed importance sampling (PSIS).
 
@@ -111,12 +98,6 @@ function psis(model::DynamicPPL.Model, chains::Chains, args...; kwargs...)
 end
 
 
-"""
-    naive_lpd(model::DynamicPPL.Model, chains::Chains, args...; kwargs...)
-
-Calculate the naive (in-sample) estimate of the log probability density, otherwise
-known as the Bayes score. Not recommended for most uses.
-"""
 function naive_lpd(model::DynamicPPL.Model, chains::Chains, args...; kwargs...)
     log_ratios = pointwise_log_likelihoods(model, chains)
     return naive_lpd(log_ratios, args...; kwargs...)
