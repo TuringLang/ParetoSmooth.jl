@@ -95,6 +95,6 @@ using Turing
 
     gmpd_vals = getproperty.(values(n_tuple), :gmpd)
     gmpd_vals = sort([i for i in gmpd_vals])
-    @test values(comps.gmpd) ≈ gmpd_vals
+    @test values(comps.gmpd) .≈ gmpd_vals
     
 end
