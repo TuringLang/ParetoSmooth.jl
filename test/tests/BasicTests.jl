@@ -38,7 +38,6 @@ import RData
     log_lik_mat = reshape(log_lik_arr, 32, 1000)
     chain_index = vcat(fill(1, 500), fill(2, 500))
     matrix_psis = psis(log_lik_mat; chain_index=chain_index)
-    log_psis = psis(log_lik_arr; log_weights=true)
 
     jul_loo = psis_loo(log_lik_arr)
     r_eff_loo = psis_loo(log_lik_arr; r_eff=r_eff)
@@ -56,7 +55,7 @@ import RData
     # RMSE less than .2% when using InferenceDiagnostics' ESS
     @test sqrt(mean((jul_psis.weights ./ r_weights .- 1) .^ 2)) ≤ 0.002
     # Max difference is 1%
-    @test maximum(log_psis.weights .- log.(r_weights)) ≤ 0.01
+    @test maximum(log.(jul_psis.weights) .- log.(r_weights)) ≤ 0.01
 
 
     ## Test difference in loo pointwise results

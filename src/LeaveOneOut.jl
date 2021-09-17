@@ -99,9 +99,7 @@ score.
 
 # Arguments
 
-  - `log_likelihood::Array`: A matrix or 3d array of log-likelihood values indexed as
-    `[data, step, chain]`. The chain argument can be left off if `chain_index` is provided
-    or if all posterior samples were drawn from a single chain.
+  - $LIKELIHOOD_ARRAY_ARG
   - $ARGS [`psis`](@ref).
   - $CHAIN_INDEX_DOC
   - $KWARGS [`psis`](@ref).
@@ -135,11 +133,9 @@ Use a precalculated `Psis` object to estimate the leave-one-out cross validation
 
 # Arguments
 
-    - `log_likelihood::Array`: A matrix or 3d array of log-likelihood values indexed as
-    `[data, step, chain]`. The chain argument can be left off if `chain_index` is provided
-    or if all posterior samples were drawn from a single chain.
-    - `psis_object`: A precomputed `Psis` object used to estimate the LOO-CV score.
-    - $CHAIN_INDEX_DOC
+  - $LIKELIHOOD_ARRAY_ARG
+  - `psis_object`: A precomputed `Psis` object used to estimate the LOO-CV score.
+  - $CHAIN_INDEX_DOC
 
 See also: [`psis`](@ref), [`loo`](@ref), [`PsisLoo`](@ref).
 
@@ -160,6 +156,7 @@ function loo_from_psis(log_likelihood::AbstractArray{<:Real, 3}, psis_object::Ps
     ξ = psis_object.pareto_k
     r_eff = psis_object.r_eff
 
+    
     @tullio pointwise_loo[i] := weights[i, j, k] * exp(log_likelihood[i, j, k]) |> log
     @tullio pointwise_naive[i] := exp(log_likelihood[i, j, k] - log_count) |> log
     pointwise_p_eff = pointwise_naive - pointwise_loo
@@ -174,8 +171,7 @@ function loo_from_psis(log_likelihood::AbstractArray{<:Real, 3}, psis_object::Ps
     table = _generate_loo_table(pointwise)
     
     gmpd = exp.(table(column=:mean, statistic=:cv_elpd))
-
-    @tullio mcse := pointwise_mcse[i]^2
+    @tullio mcse := pointwise_mcse[i]^2 
     mcse = sqrt(mcse)
 
     return PsisLoo(table, pointwise, psis_object, gmpd, mcse)
@@ -203,7 +199,7 @@ function _generate_loo_table(pointwise::AbstractMatrix{<:Real})
 
     # calculate the sample expectation for the total score
     to_sum = pointwise([:cv_elpd, :naive_lpd, :p_eff])
-    @tullio avgs[statistic] := to_sum[data, statistic] / data_size
+    @tullio avgs[statistic] := to_sum[data, statistic] |> _ / data_size
     avgs = reshape(avgs, 3)
     table(:, :mean) .= avgs
 
@@ -228,12 +224,12 @@ end
 
 
 function _calc_mcse(weights, log_likelihood, pointwise_loo, r_eff)
-    @turbo E_epd = exp.(pointwise_loo)
+    pointwise_gmpd = exp.(pointwise_loo)
     @tullio pointwise_var[i] := 
-        (weights[i, j, k] * (exp(log_likelihood[i, j, k]) - E_epd[i]))^2
-    # If MCMC draws follow a log-normal distribution, then their log has this std. error:
-    @turbo @. pointwise_var = log1p(pointwise_var / E_epd^2)
-    # (google "log-normal method of moments" for a proof)
+        (weights[i, j, k] * (exp(log_likelihood[i, j, k]) - pointwise_gmpd[i]))^2
+    # If MCMC draws follow a log-normal distribution, we can use method of moments to est
+    # the standard deviation of their log:
+    @turbo @. pointwise_var = log1p(pointwise_var / pointwise_gmpd^2)
     # apply MCMC correlation correction:
     return @turbo @. sqrt(pointwise_var / r_eff)
 end
