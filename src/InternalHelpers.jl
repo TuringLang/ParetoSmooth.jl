@@ -14,6 +14,11 @@ of that point. This function must take the form `f(θ[1], ..., θ[n], data)`, wh
 parameter vector. See also the `splat` keyword argument.
 """
 
+const LIKELIHOOD_ARRAY_ARG = """
+`log_likelihood::Array`: A matrix or 3d array of log-likelihood values indexed as
+`[data, step, chain]`. See the `chain_index` argument if leaving the `chain` index off.
+"""
+
 const R_EFF_DOC = """
 `r_eff::AbstractVector`: An (optional) vector of relative effective sample sizes used in ESS 
 calculations. If left empty, calculated automatically using the FFTESS method from 

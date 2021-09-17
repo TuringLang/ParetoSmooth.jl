@@ -99,9 +99,7 @@ score.
 
 # Arguments
 
-  - `log_likelihood::Array`: A matrix or 3d array of log-likelihood values indexed as
-    `[data, step, chain]`. The chain argument can be left off if `chain_index` is provided
-    or if all posterior samples were drawn from a single chain.
+  - $LIKELIHOOD_ARRAY_ARG
   - $ARGS [`psis`](@ref).
   - $CHAIN_INDEX_DOC
   - $KWARGS [`psis`](@ref).
@@ -135,11 +133,9 @@ Use a precalculated `Psis` object to estimate the leave-one-out cross validation
 
 # Arguments
 
-    - `log_likelihood::Array`: A matrix or 3d array of log-likelihood values indexed as
-      `[data, step, chain]`. The chain argument can be left off if `chain_index` is provided
-      or if all posterior samples were drawn from a single chain.
-    - `psis_object`: A precomputed `Psis` object used to estimate the LOO-CV score.
-    - $CHAIN_INDEX_DOC
+  - $LIKELIHOOD_ARRAY_ARG
+  - `psis_object`: A precomputed `Psis` object used to estimate the LOO-CV score.
+  - $CHAIN_INDEX_DOC
 
 See also: [`psis`](@ref), [`loo`](@ref), [`PsisLoo`](@ref).
 
