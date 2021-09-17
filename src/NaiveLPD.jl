@@ -29,6 +29,7 @@ function _naive_lpd(log_likelihood::AbstractArray{<:Real, 3})
     mcmc_count = dims[2] * dims[3]  # total number of samples from posterior
     log_count = log(mcmc_count)
 
-    @tullio pointwise_naive[i] := exp(log_likelihood[i, j, k] - log_count) |> log
+    pointwise_naive = similar(log_likelihood, data_size)
+    @tullio pointwise_naive[i] = exp(log_likelihood[i, j, k] - log_count) |> log
     return @tullio naive := pointwise_naive[i]
 end

@@ -48,7 +48,7 @@ function psis_ess(
     weights::AbstractVector{T}, r_eff::AbstractVector{T}
 ) where {T <: Union{Real, Missing}}
     @tullio sum_of_squares := weights[x]^2
-    return r_eff ./ sum_of_squares
+    return @turbo r_eff ./ sum_of_squares
 end
 
 
@@ -56,7 +56,7 @@ function psis_ess(
     weights::AbstractMatrix{T}, r_eff::AbstractVector{T}
 ) where {T <: Union{Real, Missing}}
     @tullio sum_of_squares[x] := weights[x, y]^2
-    return @tturbo r_eff ./ sum_of_squares
+    return @turbo r_eff ./ sum_of_squares
 end
 
 
@@ -84,5 +84,5 @@ L-∞ norm.
 function sup_ess(
     weights::AbstractMatrix{T}, r_eff::V
  ) where {T<:Union{Real, Missing}, V<:AbstractVector{T}}
-    return @tturbo inv.(dropdims(maximum(weights; dims=2); dims=2)) .* r_eff
+    return @turbo inv.(dropdims(maximum(weights; dims=2); dims=2)) .* r_eff
 end
