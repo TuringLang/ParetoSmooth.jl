@@ -1,13 +1,14 @@
 using StatsFuns
 
 """
-    naive_lpd(log_likelihood::AbstractArray{<:Real})
+    naive_lpd(log_likelihood::AbstractArray{<:Real}[, chain_index])
 
 Calculate the naive (in-sample) estimate of the expected log probability density, otherwise
 known as the in-sample Bayes score. Not recommended for most uses.
 
 # Arguments
   - $LOG_LIK_ARR
+  - $CHAIN_INDEX_DOC
 """
 function naive_lpd(log_likelihood::AbstractArray{<:Real, 3})
     @info "We advise against using `naive_lpd`, as it gives inconsistent and strongly " *
@@ -31,6 +32,7 @@ function _naive_lpd(log_likelihood::AbstractArray{<:Real, 3})
     mcmc_count = dims[2] * dims[3]
     log_count = log(mcmc_count)
 
-    @tullio pointwise_naive[i] := exp(log_likelihood[i, j, k] - log_count) |> log
+    pointwise_naive = similar(log_likelihood, data_size)
+    @tullio pointwise_naive[i] = exp(log_likelihood[i, j, k] - log_count) |> log
     return @tullio naive := pointwise_naive[i]
 end

@@ -78,8 +78,7 @@ end
     psis(
         log_ratios::AbstractArray{T<:Real}, 
         r_eff::AbstractVector; 
-        source::String="mcmc", 
-        log_weights::Bool=false
+        source::String="mcmc"    
     ) -> Psis
 
 Implements Pareto-smoothed importance sampling (PSIS).
@@ -97,15 +96,13 @@ Implements Pareto-smoothed importance sampling (PSIS).
   - `source::String="mcmc"`: A string or symbol describing the source of the sample being 
     used. If `"mcmc"`, adjusts ESS for autocorrelation. Otherwise, samples are assumed to be 
     independent. Currently permitted values are $SAMPLE_SOURCES.
-  - `log_weights::Bool=false`: Return the log weights, rather than the PSIS weights. 
 
 See also: [`relative_eff`]@ref, [`psis_loo`]@ref, [`psis_ess`]@ref.
 """
 function psis(
     log_ratios::AbstractArray{<:Real, 3};
     r_eff::AbstractVector{<:Real}=similar(log_ratios, 0),
-    source::Union{AbstractString, Symbol}="mcmc",
-    log_weights::Bool=false,
+    source::Union{AbstractString, Symbol}="mcmc"
 )
 
     source = lowercase(String(source))
@@ -116,17 +113,18 @@ function psis(
 
     # Reshape to matrix (easier to deal with)
     log_ratios = reshape(log_ratios, data_size, post_sample_size)
+    r_eff = _generate_r_eff(log_ratios, dims, r_eff, source)
     weights = similar(log_ratios)
     # Shift ratios by maximum to prevent overflow
     @. weights = exp(log_ratios - $maximum(log_ratios; dims=2))
-
+    
     r_eff = _generate_r_eff(weights, dims, r_eff, source)
     _check_input_validity_psis(reshape(log_ratios, dims), r_eff)
 
     tail_length = Vector{Int}(undef, data_size)
     ξ = similar(r_eff)
     @inbounds Threads.@threads for i in eachindex(tail_length)
-        tail_length[i] = @views _def_tail_length(post_sample_size, r_eff[i])
+        tail_length[i] = _def_tail_length(post_sample_size, r_eff[i])
         ξ[i] = @views ParetoSmooth._do_psis_i!(weights[i, :], tail_length[i])
     end
 
@@ -136,10 +134,6 @@ function psis(
     inf_ess = sup_ess(weights, r_eff)
 
     weights = reshape(weights, dims)
-
-    if log_weights
-        @. weights = log(weights)
-    end
 
     return Psis(
         weights, 
