@@ -1,4 +1,3 @@
-using FFTW
 using MCMCDiagnosticTools
 using Tullio
 
