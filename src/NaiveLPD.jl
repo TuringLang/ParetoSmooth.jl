@@ -1,5 +1,3 @@
-using StatsFuns
-
 """
     naive_lpd(log_likelihood::AbstractArray{<:Real}[, chain_index])
 
@@ -29,6 +27,7 @@ end
 
 function _naive_lpd(log_likelihood::AbstractArray{<:Real, 3}) 
     dims = size(log_likelihood)
+    data_size = dims[1]
     mcmc_count = dims[2] * dims[3]
     log_count = log(mcmc_count)
 

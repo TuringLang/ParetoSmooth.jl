@@ -1,4 +1,3 @@
-using StatsFuns
 import Base.show
 
 export loo_compare, ModelComparison

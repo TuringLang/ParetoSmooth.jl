@@ -1,6 +1,5 @@
 module ParetoSmooth
 using Requires
-using DocStringExtensions
 
 function __init__()
     chains=false
