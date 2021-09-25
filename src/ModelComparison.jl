@@ -1,14 +1,13 @@
 using StatsFuns
-using LoopVectorization
 import Base.show
 
 export loo_compare, ModelComparison
 
 const LOO_COMPARE_KWARGS = """
-- `model_names`: A vector or tuple of strings or symbols used to identify models. If
-none, models are numbered using the order of the arguments.
-- `sort_models`: Sort models by total score.
-- `high_to_low`: Sort models from best to worst score. If `false`, reverse the order.
+  - `model_names`: A vector or tuple of strings or symbols used to identify models. If
+    none, models are numbered using the order of the arguments.
+  - `sort_models`: Sort models by total score.
+  - `high_to_low`: Sort models from best to worst score. If `false`, reverse the order.
 """
 
 """
@@ -53,7 +52,7 @@ end
 
 """
     function loo_compare(
-        cv_results::PsisLoo...;
+        cv_results...;
         sort_models::Bool=true,
         best_to_worst::Bool=true,
         [, model_names::Tuple{Symbol}]
@@ -62,9 +61,9 @@ end
 Construct a model comparison table from several [`PsisLoo`](@ref) objects.
 
 # Arguments
-  - `cv_results`: One or more [`PsisLoo`](@ref) objects to be compared. Alternatively,
-    a tuple or named tuple of `PsisLoo` objects can be passed. If a named tuple is passed,
-    these names will be used to label each model. 
+  - `cv_results`: The [`PsisLoo`](@ref) objects to be compared. Alternatively, a tuple
+    or named tuple of `PsisLoo` objects can be passed. If a named tuple is passed, these
+    names will be used to label each model. 
   - $LOO_COMPARE_KWARGS
 
 See also: [`ModelComparison`](@ref), [`PsisLoo`](@ref), [`psis_loo`](@ref)
@@ -114,13 +113,13 @@ function loo_compare(
     se_total = NamedTuple{name_tuple}(se_total)
 
     log_norm = logsumexp(cv_elpd)
-    weights = @turbo warn_check_args=false @. exp(cv_elpd - log_norm)
+    weights = @. exp(cv_elpd - log_norm)
 
-    gmpd = @turbo @. exp(cv_elpd / data_size)
+    gmpd = @. exp(cv_elpd / data_size)
     gmpd = NamedTuple{name_tuple}(gmpd)
     
-    @turbo warn_check_args=false @. cv_elpd = cv_elpd - cv_elpd[1]
-    @turbo warn_check_args=false avg_elpd = cv_elpd ./ data_size
+    @. cv_elpd = cv_elpd - cv_elpd[1]
+    avg_elpd = cv_elpd ./ data_size
     total_diffs = KeyedArray(
         hcat(cv_elpd, avg_elpd, weights);
         model=model_names,

@@ -8,7 +8,7 @@ const TURING_MODEL_ARG = """
 
 
 """
-    $(TYPEDSIGNATURES) -> Array
+    pointwise_log_likelihoods(model::DynamicPPL.Model, chains::Chains) -> Array
 
 Compute pointwise log-likelihoods from a Turing model.  
 
@@ -38,7 +38,7 @@ end
 
 
 """
-    $(TYPEDSIGNATURES) -> PsisLoo
+    psis_loo(model::DynamicPPL.Model, chains::Chains, args...; kwargs...) -> PsisLoo
 
 Use Pareto-Smoothed Importance Sampling to calculate the leave-one-out cross validation
 score from a `chains` object and a Turing model. 
@@ -59,7 +59,7 @@ end
 
 
 """
-    $(TYPEDSIGNATURES) -> PsisLoo
+    loo_from_psis(model::DynamicPPL.Model, chains::Chains, args...; kwargs...) -> PsisLoo
 
 Use Pareto-Smoothed Importance Sampling to calculate the leave-one-out cross validation
 score from a `Chains` object, a Turing model, and a precalculated `Psis` object.
@@ -68,8 +68,6 @@ score from a `Chains` object, a Turing model, and a precalculated `Psis` object.
 
   - $CHAINS_ARG
   - $TURING_MODEL_ARG
-  - $ARGS [`psis`](@ref).
-  - $KWARGS [`psis`](@ref).
 
 See also: [`psis`](@ref), [`psis_loo`](@ref), [`PsisLoo`](@ref).
 """
@@ -80,15 +78,13 @@ end
 
 
 """
-    $(TYPEDSIGNATURES) -> Psis
+    psis(model::DynamicPPL.Model, chains::Chains, args...; kwargs...) -> Psis
 
 Generate samples using Pareto smoothed importance sampling (PSIS).
 
 # Arguments
   - $TURING_MODEL_ARG
   - $CHAINS_ARG
-  - $ARGS [`psis`](@ref).
-  - $KWARGS [`psis`](@ref).
 
 See also: [`psis`](@ref), [`loo`](@ref), [`PsisLoo`](@ref).
 """

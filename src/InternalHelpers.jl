@@ -1,5 +1,5 @@
 const CHAIN_INDEX_DOC = """
-`chain_index::Vector`: An optional vector of integers specifying which chain each step
+`chain_index::Vector{Int}`: An optional vector of integers specifying which chain each step
 belongs to. For instance, `chain_index[step]` should return `2` if `log_likelihood[:, step]`
 belongs to the second chain.
 """
@@ -12,6 +12,12 @@ const LIKELIHOOD_FUNCTION_ARG = """
 `ll_fun::Function`: A function taking a single data point and returning the log-likelihood
 of that point. This function must take the form `f(θ[1], ..., θ[n], data)`, where `θ` is the
 parameter vector. See also the `splat` keyword argument.
+"""
+
+const LOG_LIK_ARR = """
+`log_likelihood::Array`: A matrix or 3d array of log-likelihood values indexed as
+`[data, step, chain]`. The chain argument can be left off if `chain_index` is provided
+or if all posterior samples were drawn from a single chain.
 """
 
 const R_EFF_DOC = """

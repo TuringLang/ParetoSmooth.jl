@@ -1,5 +1,3 @@
-using LoopVectorization
-
 using Tullio
 
 const LIKELY_ERROR_CAUSES = """
@@ -120,7 +118,7 @@ function psis(
     log_ratios = reshape(log_ratios, data_size, post_sample_size)
     weights = similar(log_ratios)
     # Shift ratios by maximum to prevent overflow
-    @tturbo @. weights = exp(log_ratios - $maximum(log_ratios; dims=2))
+    @. weights = exp(log_ratios - $maximum(log_ratios; dims=2))
 
     r_eff = _generate_r_eff(weights, dims, r_eff, source)
     _check_input_validity_psis(reshape(log_ratios, dims), r_eff)
@@ -133,14 +131,14 @@ function psis(
     end
 
     @tullio norm_const[i] := weights[i, j]
-    @tturbo weights .= weights ./ norm_const
+    @. weights = weights / norm_const
     ess = psis_ess(weights, r_eff)
     inf_ess = sup_ess(weights, r_eff)
 
     weights = reshape(weights, dims)
 
     if log_weights
-        @tturbo @. weights = log(weights)
+        @. weights = log(weights)
     end
 
     return Psis(
@@ -158,9 +156,10 @@ end
 
 function psis(
     log_ratios::AbstractMatrix{<:Real};
-    chain_index::AbstractVector{<:Integer}=_assume_one_chain(log_ratios),
+    chain_index::AbstractVector=_assume_one_chain(log_ratios),
     kwargs...,
 )
+    chain_index = Vector(Int.(chain_index))
     new_log_ratios = _convert_to_array(log_ratios, chain_index)
     return psis(new_log_ratios; kwargs...)
 end
@@ -173,7 +172,7 @@ Do PSIS on a single vector, smoothing its tail values.
 
 # Arguments
 
-  - `is_ratios::AbstractVector{Real}`: A vector of importance sampling ratios,
+  - `is_ratios::AbstractVector{<:Real}`: A vector of importance sampling ratios,
     scaled to have a maximum of 1.
 
 # Returns
@@ -226,11 +225,11 @@ function _psis_smooth_tail!(tail::AbstractVector{T}, cutoff::T) where {T <: Real
     if any(isinf.(tail))
         return ξ = Inf
     else
-        @turbo @. tail = tail - cutoff
+        @. tail = tail - cutoff
 
         # save time not sorting since tail is already sorted
         ξ, σ = gpdfit(tail)
-        @turbo @. tail = gpd_quantile(($(1:len) - 0.5) / len, ξ, σ) + cutoff
+        @. tail = gpd_quantile(($(1:len) - 0.5) / len, ξ, σ) + cutoff
     end
     return ξ
 end

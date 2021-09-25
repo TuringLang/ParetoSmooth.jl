@@ -60,9 +60,10 @@ function pointwise_log_likelihoods(
     ll_fun::Function,
     samples::AbstractMatrix{<:Union{Real, Missing}},
     data;
-    chain_index::AbstractVector{<:Integer}=_assume_one_chain(samples),
+    chain_index::AbstractVector=_assume_one_chain(samples),
     kwargs...,
 )
+    chain_index = Int.(chain_index)
     samples = _convert_to_array(samples, chain_index)
     return pointwise_log_likelihoods(ll_fun, samples, data)
 end

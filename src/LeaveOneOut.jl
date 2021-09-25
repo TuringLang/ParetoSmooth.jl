@@ -1,7 +1,5 @@
 using AxisKeys
-using Distributions
 using InteractiveUtils
-using LoopVectorization
 using NamedDims
 using Statistics
 using Printf
@@ -90,8 +88,8 @@ end
 
 """
     function psis_loo(
-        log_likelihood::Array{Real} [, args...];
-        [, chain_index::Vector{Integer}, kwargs...]
+        log_likelihood::AbstractArray{<:Real} [, args...];
+        [, chain_index::Vector{Int}, kwargs...]
     ) -> PsisLoo
 
 Use Pareto-Smoothed Importance Sampling to calculate the leave-one-out cross validation
@@ -99,9 +97,7 @@ score.
 
 # Arguments
 
-  - `log_likelihood::Array`: A matrix or 3d array of log-likelihood values indexed as
-    `[data, step, chain]`. The chain argument can be left off if `chain_index` is provided
-    or if all posterior samples were drawn from a single chain.
+  - $LOG_LIK_ARR
   - $ARGS [`psis`](@ref).
   - $CHAIN_INDEX_DOC
   - $KWARGS [`psis`](@ref).
@@ -112,7 +108,7 @@ function psis_loo(log_likelihood::AbstractArray{<:Real, 3}, args...; kwargs...)
     psis_object = psis(-log_likelihood, args...; kwargs...)
     return loo_from_psis(log_likelihood, psis_object)
 end
-psis_loo
+
 
 function psis_loo(
     log_likelihood::AbstractMatrix{<:Real},
@@ -120,6 +116,7 @@ function psis_loo(
     chain_index::AbstractVector=_assume_one_chain(log_likelihood),
     kwargs...,
 )
+    chain_index = Int.(chain_index)
     new_log_ratios = _convert_to_array(log_likelihood, chain_index)
     return psis_loo(new_log_ratios, args...; kwargs...)
 end
@@ -127,19 +124,17 @@ end
 
 """
     loo_from_psis(
-        log_likelihood::AbstractArray, psis_object::Psis; 
-        chain_index::AbstractVector{Integer}
+        log_likelihood::AbstractArray{<:Real}, psis_object::Psis; 
+        chain_index::Vector{<:Integer}
     )
 
 Use a precalculated `Psis` object to estimate the leave-one-out cross validation score.
 
 # Arguments
 
-    - `log_likelihood::Array`: A matrix or 3d array of log-likelihood values indexed as
-    `[data, step, chain]`. The chain argument can be left off if `chain_index` is provided
-    or if all posterior samples were drawn from a single chain.
-    - `psis_object`: A precomputed `Psis` object used to estimate the LOO-CV score.
-    - $CHAIN_INDEX_DOC
+  - $LOG_LIK_ARR
+  - `psis_object`: A precomputed `Psis` object used to estimate the LOO-CV score.
+  - $CHAIN_INDEX_DOC
 
 See also: [`psis`](@ref), [`loo`](@ref), [`PsisLoo`](@ref).
 
@@ -159,7 +154,6 @@ function loo_from_psis(log_likelihood::AbstractArray{<:Real, 3}, psis_object::Ps
     weights = psis_object.weights
     ξ = psis_object.pareto_k
     r_eff = psis_object.r_eff
-
     @tullio pointwise_loo[i] := weights[i, j, k] * exp(log_likelihood[i, j, k]) |> log
     @tullio pointwise_naive[i] := exp(log_likelihood[i, j, k] - log_count) |> log
     pointwise_p_eff = pointwise_naive - pointwise_loo
@@ -175,9 +169,7 @@ function loo_from_psis(log_likelihood::AbstractArray{<:Real, 3}, psis_object::Ps
     
     gmpd = exp.(table(column=:mean, statistic=:cv_elpd))
 
-    @tullio mcse := pointwise_mcse[i]^2
-    mcse = sqrt(mcse)
-
+    mcse = sum(abs2, pointwise_mcse) |> sqrt
     return PsisLoo(table, pointwise, psis_object, gmpd, mcse)
 end
 
@@ -186,6 +178,7 @@ function loo_from_psis(
     log_likelihood::AbstractMatrix{<:Real}, psis_object::Psis, args...;
     chain_index::AbstractVector=_assume_one_chain(log_likelihood), kwargs...
 )
+    chain_index = Int.(chain_index)
     new_log_ratios = _convert_to_array(log_likelihood, chain_index)
     return loo_from_psis(new_log_ratios, psis_object, args...; kwargs...)
 end
@@ -228,12 +221,12 @@ end
 
 
 function _calc_mcse(weights, log_likelihood, pointwise_loo, r_eff)
-    @turbo E_epd = exp.(pointwise_loo)
+    E_epd = exp.(pointwise_loo)
     @tullio pointwise_var[i] := 
         (weights[i, j, k] * (exp(log_likelihood[i, j, k]) - E_epd[i]))^2
     # If MCMC draws follow a log-normal distribution, then their log has this std. error:
-    @turbo @. pointwise_var = log1p(pointwise_var / E_epd^2)
+    @. pointwise_var = log1p(pointwise_var / E_epd^2)
     # (google "log-normal method of moments" for a proof)
     # apply MCMC correlation correction:
-    return @turbo @. sqrt(pointwise_var / r_eff)
+    return @. sqrt(pointwise_var / r_eff)
 end
