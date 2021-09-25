@@ -1,5 +1,3 @@
-using StatsFuns
-using LoopVectorization
 import Base.show
 
 export loo_compare, ModelComparison
@@ -47,7 +45,7 @@ end
 
 """
     function loo_compare(
-        cv_results::PsisLoo...;
+        cv_results...;
         sort_models::Bool=true,
         best_to_worst::Bool=true,
         [, model_names::Tuple{Symbol}]
@@ -111,13 +109,13 @@ function loo_compare(
     se_total = NamedTuple{name_tuple}(se_total)
 
     log_norm = logsumexp(cv_elpd)
-    weights = @turbo warn_check_args=false @. exp(cv_elpd - log_norm)
+    weights = @. exp(cv_elpd - log_norm)
 
-    gmpd = @turbo @. exp(cv_elpd / data_size)
+    gmpd = @. exp(cv_elpd / data_size)
     gmpd = NamedTuple{name_tuple}(gmpd)
     
-    @turbo warn_check_args=false @. cv_elpd = cv_elpd - cv_elpd[1]
-    @turbo warn_check_args=false avg_elpd = cv_elpd ./ data_size
+    @. cv_elpd = cv_elpd - cv_elpd[1]
+    avg_elpd = cv_elpd ./ data_size
     total_diffs = KeyedArray(
         hcat(cv_elpd, avg_elpd, weights);
         model=model_names,

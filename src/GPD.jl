@@ -1,5 +1,5 @@
 using LinearAlgebra
-using LoopVectorization
+using LogExpFunctions
 using Statistics
 using Tullio
 
@@ -45,22 +45,23 @@ function gpdfit(
 
     grid_size = min_grid_pts + isqrt(len)  # isqrt = floor sqrt
     n_0 = 10  # determines how strongly to nudge ξ towards .5
-    x_star::T = inv(3 * sample[(len + 2) ÷ 4])  # magic number. ¯\_(ツ)_/¯
-
+    x_star = inv(3 * sample[(len + 2) ÷ 4])  # magic number. ¯\_(ツ)_/¯
+    invmax = inv(sample[len])
 
     # build pointwise estimates of ξ and θ at each grid point
     θ_hats = similar(sample, grid_size)
-    ξ_hats = similar(sample, grid_size)
-    invmax = inv(sample[len])
-    @tullio threads=false θ_hats[i] = invmax + (1 - sqrt((grid_size + 1) / i)) * x_star
-    @tullio threads=false ξ_hats[i] = log1p(-θ_hats[i] * sample[j]) |> _ / len
-    log_like = similar(ξ_hats)
+    @fastmath @. θ_hats = invmax + (1 - sqrt((grid_size + 1) / $(1:grid_size))) * x_star
+    @tullio threads=false ξ_hats[i] := log1p(-θ_hats[i] * sample[j])
+    ξ_hats /= len
+
+    log_like = ξ_hats  # Reuse preallocated array
     # Calculate profile log-likelihood at each estimate:
-    @tullio threads=false log_like[i] =
+    @tullio threads=false ξ_hats[i] =
         len * (log(-θ_hats[i] / ξ_hats[i]) - ξ_hats[i] - 1)
     # Calculate weights from log-likelihood:
-    weights = ξ_hats  # Reuse preallocated array
-    @tullio threads=false weights[y] = exp(log_like[x] - log_like[y]) |> inv
+    weights = log_like  # Reuse preallocated array
+    log_norm = logsumexp(log_like)
+    @tullio threads=false log_like[x] = exp(log_like[x] - log_norm)
     # Take weighted mean:
     @tullio threads=false θ_hat := weights[x] * θ_hats[x]
     @tullio threads=false ξ := log1p(-θ_hat * sample[i])
@@ -72,7 +73,7 @@ function gpdfit(
         @fastmath ξ = (ξ * len + 0.5 * n_0) / (len + n_0)
     end
 
-    return ξ::T, σ::T
+    return ξ, σ
 
 end
 

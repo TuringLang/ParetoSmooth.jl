@@ -1,14 +1,11 @@
-using LoopVectorization
-using Tullio
-
-
 """
-    naive_lpd(log_likelihood::AbstractArray{<:Real}, chain_index::Vector}<:Int)
+    naive_lpd(log_likelihood::AbstractArray{<:Real}[, chain_index])
+
 Calculate the naive (in-sample) estimate of the expected log probability density, otherwise
 known as the in-sample Bayes score. Not recommended for most uses.
 
 # Arguments
-  - $LIKELIHOOD_ARRAY_ARG
+  - $LOG_LIK_ARR
   - $CHAIN_INDEX_DOC
 """
 function naive_lpd(log_likelihood::AbstractArray{<:Real, 3})
@@ -20,18 +17,18 @@ end
 
 function naive_lpd(
     log_likelihood::AbstractMatrix{<:Real}, 
-    chain_index::AbstractVector{<:Integer} = _assume_one_chain(log_likelihood)
+    chain_index::AbstractVector = _assume_one_chain(log_likelihood)
 )
-    @nospecialize(chain_index)
+    chain_index = Int.(chain_index)
     log_likelihood = _convert_to_array(log_likelihood, chain_index)
-    return _naive_lpd(log_likelihood)
+    return naive_lpd(log_likelihood)
 end
 
 
 function _naive_lpd(log_likelihood::AbstractArray{<:Real, 3}) 
     dims = size(log_likelihood)
     data_size = dims[1]
-    mcmc_count = dims[2] * dims[3]  # total number of samples from posterior
+    mcmc_count = dims[2] * dims[3]
     log_count = log(mcmc_count)
 
     pointwise_naive = similar(log_likelihood, data_size)
