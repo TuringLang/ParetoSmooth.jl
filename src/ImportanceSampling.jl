@@ -9,7 +9,7 @@ double check it is correct.
 const MIN_TAIL_LEN = 5  # Minimum size of a tail for PSIS to give sensible answers
 const SAMPLE_SOURCES = ["mcmc", "vi", "other"]
 
-export psis, PsisLoo, PsisLooMethod, Psis
+export psis, psis!, PsisLoo, PsisLooMethod, Psis
 
 
 ###########################
@@ -125,7 +125,7 @@ function psis(
     ξ = similar(r_eff)
     @inbounds Threads.@threads for i in eachindex(tail_length)
         tail_length[i] = _def_tail_length(post_sample_size, r_eff[i])
-        ξ[i] = @views ParetoSmooth._do_psis_i!(weights[i, :], tail_length[i])
+        ξ[i] = @views psis!(weights[i, :], tail_length[i])
     end
 
     @tullio norm_const[i] := weights[i, j]
@@ -159,21 +159,36 @@ function psis(
 end
 
 
-"""
-    _do_psis_i!(is_ratios::AbstractVector{Real}, tail_length::Integer) -> T
+function psis(is_ratios::AbstractVector{<:Real}, args...)
+    new_ratios = copy(is_ratios)
+    ξ = psis!(new_ratios)
+    return new_ratios, ξ
+end
 
-Do PSIS on a single vector, smoothing its tail values.
+
+
+"""
+    psis!(is_ratios::AbstractVector{<:Real}, tail_length::Integer) -> Real
+    psis!(is_ratios::AbstractVector{<:Real}, r_eff::Real) -> Real
+
+Do PSIS on a single vector, smoothing its tail values *in place* before returning the 
+estimated tail value.
 
 # Arguments
 
   - `is_ratios::AbstractVector{<:Real}`: A vector of importance sampling ratios,
     scaled to have a maximum of 1.
+  - `r_eff::AbstractVector{<:Real}`: A vector of relative effective sample sizes if .
 
 # Returns
 
   - `T<:Real`: ξ, the shape parameter for the GPD; big numbers indicate thick tails.
+
+# Notes
+
+Unlike `psis`, `psis!` performs no checks to make sure the input values are valid.
 """
-function _do_psis_i!(is_ratios::AbstractVector{T}, tail_length::Integer) where {T <: Real}
+function psis!(is_ratios::AbstractVector{<:Real}, tail_length::Integer)
 
     len = length(is_ratios)
     tail_start = len - tail_length + 1  # index of smallest tail value
@@ -198,13 +213,19 @@ function _do_psis_i!(is_ratios::AbstractVector{T}, tail_length::Integer) where {
 end
 
 
+function psis!(is_ratios::AbstractVector{<:Real}, r_eff::Real=1)
+    tail_length = _def_tail_length(length(is_ratios), r_eff)
+    return psis!(is_ratios, tail_length)
+end
+
+
 """
-    _def_tail_length(log_ratios::AbstractVector, r_eff::Real) -> tail_len::Integer
+    _def_tail_length(log_ratios::AbstractVector, r_eff::Real) -> Integer
 
 Define the tail length as in Vehtari et al. (2019).
 """
-function _def_tail_length(length::Int, r_eff::Real)
-    return Int(ceil(min(length / 5, 3 * sqrt(length / r_eff))))
+function _def_tail_length(length::Integer, r_eff::Real=1)
+    return min(cld(length, 5), ceil(3 * sqrt(length / r_eff))) |> Int
 end
 
 
