@@ -10,21 +10,21 @@ Calculate the relative efficiency of an MCMC chain, i.e. the effective sample si
 by the nominal sample size. If none is provided, use the default method from 
 MCMCDiagnosticTools.
 """
-function relative_eff(sample::AbstractArray{<:Real, 3}; method)
+function relative_eff(sample::AbstractArray{<:Real, 3}; kwargs...)
     dims = size(sample)
     post_sample_size = dims[2] * dims[3]
     ess_sample = inv.(permutedims(sample, [2, 1, 3]))
-    ess, = MCMCDiagnosticTools.ess_rhat(ess_sample; method=method, maxlag=dims[2])
+    ess, = MCMCDiagnosticTools.ess_rhat(ess_sample; maxlag=dims[2], kwargs...)
     r_eff = ess / post_sample_size
     return r_eff
 end
 
 
-function relative_eff(sample::AbstractArray{<:Real, 3})
+function relative_eff(sample::AbstractArray{<:Real, 3}; maxlag, kwargs...)
     dims = size(sample)
     post_sample_size = dims[2] * dims[3]
     ess_sample = inv.(permutedims(sample, [2, 1, 3]))
-    ess, = MCMCDiagnosticTools.ess_rhat(ess_sample; maxlag=dims[2])
+    ess, = MCMCDiagnosticTools.ess_rhat(ess_sample; maxlag=maxlag, kwargs...)
     r_eff = ess / post_sample_size
     return r_eff
 end
