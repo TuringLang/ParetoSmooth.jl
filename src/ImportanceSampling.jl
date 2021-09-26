@@ -229,7 +229,7 @@ function psis!(is_ratios::AbstractVector{<:Real}, tail_length::Integer)
     # unsort the ratios to their original position:
     invpermute!(is_ratios, last.(ratio_index))
 
-    return ξ::T
+    return ξ
 end
 
 
