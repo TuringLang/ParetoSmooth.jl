@@ -2,7 +2,10 @@
     naive_lpd(log_likelihood::AbstractArray{<:Real}[, chain_index])
 
 Calculate the naive (in-sample) estimate of the expected log probability density, otherwise
-known as the in-sample Bayes score. Not recommended for most uses.
+known as the in-sample Bayes score. This method yields heavily biased results, and we advise
+against using it; it is included only for pedagogical purposes.
+
+This method is unexported and can only be accessed by calling `ParetoSmooth.naive_lpd`.
 
 # Arguments
   - $LOG_LIK_ARR
