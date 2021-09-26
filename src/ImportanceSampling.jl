@@ -43,14 +43,41 @@ struct Psis{
 }
     weights::AT
     pareto_k::VT
-    ess::VT
-    sup_ess::VT
     r_eff::VT
     tail_len::Vector{Int}
-    posterior_sample_size::Int
-    data_size::Int
 end
 
+function Base.propertynames(psis_object::Psis)
+    return (
+        fieldnames(typeof(psis_object))...,
+        :log_weights,
+        :ess,
+        :sup_ess,
+        :posterior_sample_size,
+        :data_size,
+    )
+end
+
+function Base.getproperty(psis_object::Psis, k::Symbol)
+    if k === :log_weights
+        return log.(getfield(psis_object, :weights))
+    elseif k === :posterior_sample_size
+        weights = getfield(psis_object, :weights)
+        return size(weights, 2) * size(weights, 3)
+    elseif k === :data_size
+        return size(getfield(psis_object, :weights), 1)
+    elseif k === :ess
+        weights = getfield(psis_object, :weights)
+        r_eff = getfield(psis_object, :r_eff)
+        return psis_ess(reshape(weights, size(weights, 1), :), r_eff)
+    elseif k === :sup_ess
+        weights = getfield(psis_object, :weights)
+        r_eff = getfield(psis_object, :r_eff)
+        return sup_ess(reshape(weights, size(weights, 1), :), r_eff)
+    else
+        return getfield(psis_object, k)
+    end
+end
 
 function Base.show(io::IO, ::MIME"text/plain", psis_object::Psis)
     table = hcat(psis_object.pareto_k, psis_object.ess, psis_object.sup_ess)
@@ -136,14 +163,10 @@ function psis(
     weights = reshape(weights, dims)
 
     return Psis(
-        weights, 
+        weights,
         ξ, 
-        ess, 
-        inf_ess, 
         r_eff, 
         tail_length, 
-        post_sample_size, 
-        data_size
     )
 end
 
