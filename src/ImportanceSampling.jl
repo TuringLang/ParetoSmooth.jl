@@ -139,28 +139,25 @@ function psis(
     post_sample_size = dims[2] * dims[3]
 
     # Reshape to matrix (easier to deal with)
-    log_ratios = reshape(log_ratios, data_size, post_sample_size)
-    r_eff = _generate_r_eff(log_ratios, dims, r_eff, source)
+    log_ratios_mat = reshape(log_ratios, data_size, post_sample_size)
+    r_eff = _generate_r_eff(log_ratios_mat, dims, r_eff, source)
     weights = similar(log_ratios)
+    weights_mat = reshape(weights, data_size, post_sample_size)
     # Shift ratios by maximum to prevent overflow
-    @. weights = exp(log_ratios - $maximum(log_ratios; dims=2))
+    weights .= exp.(log_ratios .- maximum(log_ratios; dims=(2, 3)))
     
-    r_eff = _generate_r_eff(weights, dims, r_eff, source)
-    _check_input_validity_psis(reshape(log_ratios, dims), r_eff)
+    r_eff = _generate_r_eff(weights_mat, dims, r_eff, source)
+    _check_input_validity_psis(log_ratios, r_eff)
 
     tail_length = Vector{Int}(undef, data_size)
     ξ = similar(r_eff)
     @inbounds Threads.@threads for i in eachindex(tail_length)
         tail_length[i] = _def_tail_length(post_sample_size, r_eff[i])
-        ξ[i] = @views psis!(weights[i, :], tail_length[i])
+        ξ[i] = @views psis!(weights_mat[i, :], tail_length[i])
     end
 
-    @tullio norm_const[i] := weights[i, j]
+    @tullio norm_const[i] := weights[i, j, k]
     @. weights = weights / norm_const
-    ess = psis_ess(weights, r_eff)
-    inf_ess = sup_ess(weights, r_eff)
-
-    weights = reshape(weights, dims)
 
     return Psis(
         weights,
