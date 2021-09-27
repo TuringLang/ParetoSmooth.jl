@@ -9,7 +9,7 @@ double check it is correct.
 const MIN_TAIL_LEN = 5  # Minimum size of a tail for PSIS to give sensible answers
 const SAMPLE_SOURCES = ["mcmc", "vi", "other"]
 
-export psis, psis!, PsisLoo, PsisLooMethod, Psis
+export psis, psis!, Psis
 
 
 ###########################
