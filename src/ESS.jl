@@ -44,9 +44,9 @@ distance of the proposal and target distributions.
 See `?relative_eff` to calculate `r_eff`.
 """
 function psis_ess(
-    weights::AbstractMatrix{T}, r_eff::AbstractVector{T}
+    weights::AbstractArray{T,3}, r_eff::AbstractVector{T}
 ) where {T <: Real}
-    @tullio sum_of_squares[x] := xlogx(weights[x, y]) |> exp
+    @tullio sum_of_squares[x] := xlogx(weights[x, y, z]) |> exp
     return r_eff ./ sum_of_squares
 end
 
