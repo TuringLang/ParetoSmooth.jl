@@ -55,7 +55,7 @@ import RData
     # RMSE less than .2% when using InferenceDiagnostics' ESS
     @test sqrt(mean((jul_psis.weights ./ r_weights .- 1) .^ 2)) ≤ 0.002
     # Max difference is 1%
-    @test maximum(log.(jul_psis.weights) .- log.(r_weights)) ≤ 0.01
+    @test maximum(log.(jul_psis.weights) .- log.(r_weights)) ≤ 0.02
 
 
     ## Test difference in loo pointwise results

@@ -5,8 +5,9 @@ using Tullio
 
 
 """
-    gpdfit(
-        sample::AbstractVector{T<:Real}; 
+    gpd_fit(
+        sample::AbstractVector{T<:Real},
+        r_eff::T = 1; 
         wip::Bool=true, 
         min_grid_pts::Integer=30, 
         sort_sample::Bool=false
@@ -29,12 +30,13 @@ generalized Pareto distribution (GPD), assuming the location parameter is 0.
 Estimation method taken from Zhang, J. and Stephens, M.A. (2009). The parameter ξ is the
 negative of k.
 """
-function gpdfit(
-    sample::AbstractVector{T};
+function gpd_fit(
+    sample::AbstractVector{T},
+    r_eff::T=1;
     wip::Bool=true,
     min_grid_pts::Integer=30,
     sort_sample::Bool=false,
-) where {T <: Real}
+) where T<:Real
 
     len = length(sample)
     # sample must be sorted, but we can skip if sample is already sorted
@@ -70,7 +72,7 @@ function gpdfit(
 
     # Drag towards .5 to reduce variance for small len
     if wip
-        @fastmath ξ = (ξ * len + 0.5 * n_0) / (len + n_0)
+        @fastmath ξ = (r_eff * ξ * len + 0.5 * n_0) / (r_eff * len + n_0)
     end
 
     return ξ, σ
