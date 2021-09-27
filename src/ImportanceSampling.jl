@@ -143,7 +143,7 @@ function psis(
         inf_ess = sup_ess(weights, r_eff)
     else
         ess = similar(weights, 1)
-        psis_ess = similar(weights, 1)
+        inf_ess = similar(weights, 1)
         ess .= NaN
         inf_ess .= NaN
     end

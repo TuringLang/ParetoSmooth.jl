@@ -10,7 +10,7 @@ A struct containing the results of model comparison.
 
 # Fields
 
-  - `pointwise::KeyedArray`: An array containing 
+- `pointwise::KeyedArray`: A `KeyedArray` of pointwise estimates. See [`PsisLoo`]@ref.
   - `estimates::KeyedArray`: A table containing the results of model comparison, with the
     following columns --
       + `cv_elpd`: The difference in total leave-one-out cross validation scores

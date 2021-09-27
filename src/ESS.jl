@@ -65,8 +65,8 @@ end
     ) -> AbstractVector
 
 Calculate the supremum-based effective sample size of a PSIS sample, i.e. the inverse of the
-maximum weight. This measure is more trustworthy than the `ess` from `psis_ess`. It uses the
-L-∞ norm.
+maximum weight. This measure is more sensitive than the `ess` from `psis_ess`, but also 
+much more variable. It uses the L-∞ norm.
 
 # Arguments
   - `weights`: A set of importance sampling weights derived from PSIS.
