@@ -137,12 +137,15 @@ function psis(
     @tullio norm_const[i] := weights[i, j, k]
     @. weights = weights / norm_const
 
-    ess = similar(weights, data_size)
-    psis_ess = similar(weights, data_size)
+    
     if calc_ess
+        ess = similar(weights, data_size)
+        psis_ess = similar(weights, data_size)
         ess .= psis_ess(weights, r_eff)
         inf_ess .= sup_ess(weights, r_eff)
     else
+        ess = similar(weights, 1)
+        psis_ess = similar(weights, 1)
         ess .= NaN
         inf_ess .= NaN
     end
