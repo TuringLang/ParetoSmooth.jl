@@ -39,16 +39,16 @@ A struct containing the results of Pareto-smoothed importance sampling.
   - `data_size`: How many data points were used for PSIS.
 """
 struct Psis{
-    RealType <: Real,
-    AT <: AbstractArray{RealType, 3},
-    VT <: AbstractVector{RealType},
+    R <: Real,
+    AT <: AbstractArray{R, 3},
+    VT <: AbstractVector{R}
 }
     weights::AT
     pareto_k::VT
     ess::VT
     sup_ess::VT
     r_eff::VT
-    tail_len::Vector{Int}
+    tail_len::AbstractVector{Int}
     posterior_sample_size::Int
     data_size::Int
 end
@@ -86,7 +86,9 @@ end
 Implements Pareto-smoothed importance sampling (PSIS).
 
 # Arguments
+
 ## Positional Arguments
+
   - `log_ratios::AbstractArray`: A 2d or 3d array of (unnormalized) importance ratios on the
     log scale. Indices must be ordered as `[data, step, chain]`. The chain index can be left 
     off if there is only one chain, or if keyword argument `chain_index` is provided.
@@ -98,6 +100,8 @@ Implements Pareto-smoothed importance sampling (PSIS).
   - `source::String="mcmc"`: A string or symbol describing the source of the sample being 
     used. If `"mcmc"`, adjusts ESS for autocorrelation. Otherwise, samples are assumed to be 
     independent. Currently permitted values are $SAMPLE_SOURCES.
+  - `log_weights::Bool`: If `true`
+  - `calc_ess::Bool = true`
 
 See also: [`relative_eff`]@ref, [`psis_loo`]@ref, [`psis_ess`]@ref.
 """
@@ -105,7 +109,7 @@ function psis(
     log_ratios::AbstractArray{<:Real, 3};
     r_eff::AbstractVector{<:Real}=similar(log_ratios, 0),
     source::Union{AbstractString, Symbol}="mcmc",
-    log_weights::Bool=true
+    calc_ess::Bool = true
 )
 
     source = lowercase(String(source))
@@ -115,27 +119,36 @@ function psis(
     post_sample_size = dims[2] * dims[3]
 
     # Reshape to matrix (easier to deal with)
-    log_ratios = reshape(log_ratios, data_size, post_sample_size)
-    r_eff = _generate_r_eff(log_ratios, dims, r_eff, source)
-    _check_input_validity_psis(reshape(log_ratios, dims), r_eff)
-    weights = @. exp(log_ratios - $maximum(log_ratios; dims=2))
+    log_ratios_mat = reshape(log_ratios, data_size, post_sample_size)
+    r_eff = _generate_r_eff(log_ratios_mat, dims, r_eff, source)
+    _check_input_validity_psis(log_ratios, r_eff)
+    weights = similar(log_ratios)
+    weights_mat = reshape(weights, data_size, post_sample_size)
+    @. weights = exp(log_ratios - $maximum(log_ratios; dims=(2,3)))
 
-    tail_length = Vector{Int}(undef, data_size)
+
+    tail_length = similar(log_ratios, data_size)
     ξ = similar(r_eff)
     @inbounds Threads.@threads for i in eachindex(tail_length)
         tail_length[i] = _def_tail_length(post_sample_size, r_eff[i])
-        ξ[i] = @views psis!(weights[i, :], tail_length[i])
+        ξ[i] = @views psis!(weights_mat[i, :], tail_length[i])
     end
 
-    @tullio norm_const[i] := weights[i, j]
+    @tullio norm_const[i] := weights[i, j, k]
     @. weights = weights / norm_const
-    ess = psis_ess(weights, r_eff)
-    inf_ess = sup_ess(weights, r_eff)
 
-    weights = reshape(weights, dims)
+    ess = similar(weights, data_size)
+    psis_ess = similar(weights, data_size)
+    if calc_ess
+        ess .= psis_ess(weights, r_eff)
+        inf_ess .= sup_ess(weights, r_eff)
+    else
+        ess .= NaN
+        inf_ess .= NaN
+    end
 
     return Psis(
-        weights, 
+        weights,
         ξ, 
         ess, 
         inf_ess, 
@@ -196,7 +209,7 @@ valid.
 function psis!(is_ratios::AbstractVector{<:Real}, tail_length::Integer; 
     log_weights::Bool=false
 )
-
+    
     len = length(is_ratios)
     tail_start = len - tail_length + 1  # index of smallest tail value
 
