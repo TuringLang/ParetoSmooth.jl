@@ -81,7 +81,7 @@ using `psis_loo` instead if reproducibility is required.
 
 See also: [`psis_loo`](@ref), [`PsisLoo`](@ref).
 """
-@nospecialize function loo(args...; kwargs...)
+function loo(args...; kwargs...)
     return psis_loo(args...; kwargs...)
 end
 
