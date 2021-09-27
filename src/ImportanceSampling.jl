@@ -24,7 +24,9 @@ A struct containing the results of Pareto-smoothed importance sampling.
 
 # Fields
 
-  - `weights`: A vector of smoothed, truncated, and normalized importance sampling weights.
+  - `log_weights`: A vector of smoothed and truncated but *unnormalized* importance sampling
+    weights.
+  - `weights`: A lazy
   - `pareto_k`: Estimates of the shape parameter `k` of the generalized Pareto distribution.
   - `ess`: Estimated effective sample size for each LOO evaluation, based on the variance of
     the weights.
@@ -102,7 +104,8 @@ See also: [`relative_eff`]@ref, [`psis_loo`]@ref, [`psis_ess`]@ref.
 function psis(
     log_ratios::AbstractArray{<:Real, 3};
     r_eff::AbstractVector{<:Real}=similar(log_ratios, 0),
-    source::Union{AbstractString, Symbol}="mcmc"
+    source::Union{AbstractString, Symbol}="mcmc",
+    log_weights::Bool=true
 )
 
     source = lowercase(String(source))
@@ -114,12 +117,8 @@ function psis(
     # Reshape to matrix (easier to deal with)
     log_ratios = reshape(log_ratios, data_size, post_sample_size)
     r_eff = _generate_r_eff(log_ratios, dims, r_eff, source)
-    weights = similar(log_ratios)
-    # Shift ratios by maximum to prevent overflow
-    @. weights = exp(log_ratios - $maximum(log_ratios; dims=2))
-    
-    r_eff = _generate_r_eff(weights, dims, r_eff, source)
     _check_input_validity_psis(reshape(log_ratios, dims), r_eff)
+    weights = @. exp(log_ratios - $maximum(log_ratios; dims=2))
 
     tail_length = Vector{Int}(undef, data_size)
     ξ = similar(r_eff)
@@ -159,36 +158,44 @@ function psis(
 end
 
 
-function psis(is_ratios::AbstractVector{<:Real}, args...)
+function psis(is_ratios::AbstractVector{<:Real}, args...; kwargs...)
     new_ratios = copy(is_ratios)
-    ξ = psis!(new_ratios)
+    ξ = psis!(new_ratios, kwargs...)
     return new_ratios, ξ
 end
 
 
 
 """
-    psis!(is_ratios::AbstractVector{<:Real}, tail_length::Integer) -> Real
-    psis!(is_ratios::AbstractVector{<:Real}, r_eff::Real) -> Real
+    psis!(is_ratios::AbstractVector{<:Real}, tail_length::Integer; log_ratios=false) -> Real
+    psis!(is_ratios::AbstractVector{<:Real}, r_eff::Real; log_ratios=false) -> Real
 
 Do PSIS on a single vector, smoothing its tail values *in place* before returning the 
-estimated tail value.
+estimated shape constant for the `pareto_k` distribution. This *does not* normalize the 
+log-weights.
 
 # Arguments
 
   - `is_ratios::AbstractVector{<:Real}`: A vector of importance sampling ratios,
     scaled to have a maximum of 1.
-  - `r_eff::AbstractVector{<:Real}`: A vector of relative effective sample sizes if .
+  - `r_eff::AbstractVector{<:Real}`: The relative effective sample size, used for improving
+    the .
+    case `psis!` will automatically calculate the correct tail length.
+  - `log_weights::Bool`: A boolean indicating whether the input vector is a vector of log
+    ratios, rather than raw importance sampling ratios.
 
 # Returns
 
-  - `T<:Real`: ξ, the shape parameter for the GPD; big numbers indicate thick tails.
+  - `Real`: ξ, the shape parameter for the GPD. Bigger numbers indicate thicker tails.
 
 # Notes
 
-Unlike `psis`, `psis!` performs no checks to make sure the input values are valid.
+Unlike the methods for arrays, `psis!` performs no checks to make sure the input values are 
+valid.
 """
-function psis!(is_ratios::AbstractVector{<:Real}, tail_length::Integer)
+function psis!(is_ratios::AbstractVector{<:Real}, tail_length::Integer; 
+    log_weights::Bool=false
+)
 
     len = length(is_ratios)
     tail_start = len - tail_length + 1  # index of smallest tail value
@@ -199,6 +206,10 @@ function psis!(is_ratios::AbstractVector{<:Real}, tail_length::Integer)
     is_ratios .= first.(ratio_index)
     @views tail = is_ratios[tail_start:len]
     _check_tail(tail)
+    if log_weights 
+        biggest = maximum(tail)
+        @. tail = exp(tail - biggest)
+    end
 
     # Get value just before the tail starts:
     cutoff = is_ratios[tail_start - 1]
@@ -209,7 +220,11 @@ function psis!(is_ratios::AbstractVector{<:Real}, tail_length::Integer)
     # unsort the ratios to their original position:
     invpermute!(is_ratios, last.(ratio_index))
 
-    return ξ::T
+    if log_weights 
+        @. tail = log(tail + biggest)
+    end
+
+    return ξ
 end
 
 
@@ -222,7 +237,8 @@ end
 """
     _def_tail_length(log_ratios::AbstractVector, r_eff::Real) -> Integer
 
-Define the tail length as in Vehtari et al. (2019).
+Define the tail length as in Vehtari et al. (2019), with the small addition that the tail
+must a multiple of `32*bit_length` (which improves performance).
 """
 function _def_tail_length(length::Integer, r_eff::Real=1)
     return min(cld(length, 5), ceil(3 * sqrt(length / r_eff))) |> Int
@@ -322,7 +338,7 @@ end
 Check the tail to make sure a GPD fit is possible.
 """
 function _check_tail(tail::AbstractVector{T}) where {T <: Real}
-    if maximum(tail) ≈ minimum(tail)
+    if tail[end] ≈ tail[1]
         throw(
             ArgumentError(
                 "Unable to fit generalized Pareto distribution: all tail values are the " *
@@ -333,7 +349,7 @@ function _check_tail(tail::AbstractVector{T}) where {T <: Real}
         throw(
             ArgumentError(
                 "Unable to fit generalized Pareto distribution: tail length was too " *
-                "short. Likely causese are: \n$LIKELY_ERROR_CAUSES",
+                "short. Likely causes are: \n$LIKELY_ERROR_CAUSES",
             ),
         )
     end
