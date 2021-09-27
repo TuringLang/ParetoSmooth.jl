@@ -127,7 +127,7 @@ function psis(
     @. weights = exp(log_ratios - $maximum(log_ratios; dims=(2,3)))
 
 
-    tail_length = similar(log_ratios, data_size)
+    tail_length = similar(r_eff, Int)
     ξ = similar(r_eff)
     @inbounds Threads.@threads for i in eachindex(tail_length)
         tail_length[i] = _def_tail_length(post_sample_size, r_eff[i])
@@ -139,11 +139,11 @@ function psis(
 
     
     if calc_ess
-        ess = psis_ess(weights, r_eff)
-        inf_ess = sup_ess(weights, r_eff)
+        ess = psis_ess(weights_mat, r_eff)
+        inf_ess = sup_ess(weights_mat, r_eff)
     else
-        ess = similar(weights, 1)
-        inf_ess = similar(weights, 1)
+        ess = similar(weights_mat, 1)
+        inf_ess = similar(weights_mat, 1)
         ess .= NaN
         inf_ess .= NaN
     end

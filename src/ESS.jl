@@ -5,7 +5,7 @@ export relative_eff, psis_ess, sup_ess
 
 """
     relative_eff(
-        sample::AbstractArray{Real, 3}; 
+        sample::AbstractArray{<:Real, 3}; 
         method=MCMCDiagnosticTools.FFTESSMethod()
     )
 
@@ -16,7 +16,7 @@ by the nominal sample size.
 
   - `sample::AbstractArray{<:Real, 3}`: An array of log-likelihood values.
 """
-function relative_eff(sample::AbstractArray{<:Real, 3}; maxlag=size(sample, 2), kwargs...)
+function relative_eff(sample::AbstractArray{<:Real,3}; maxlag=size(sample, 2), kwargs...)
     dims = size(sample)
     post_sample_size = dims[2] * dims[3]
     ess_sample = permutedims(sample, [2, 1, 3])
@@ -44,7 +44,7 @@ distance of the proposal and target distributions.
 See `?relative_eff` to calculate `r_eff`.
 """
 function psis_ess(
-    weights::AbstractArray{T,3}, r_eff::AbstractVector{T}
+    weights::AbstractMatrix{T}, r_eff::AbstractVector{T}
 ) where {T <: Real}
     @tullio sum_of_squares[x] := xlogx(weights[x, y, z]) |> exp
     return r_eff ./ sum_of_squares
@@ -60,7 +60,7 @@ end
 
 """
     function sup_ess(
-        weights::AbstractVector{T},
+        weights::AbstractMatrix{T},
         r_eff::AbstractVector{T}
     ) -> AbstractVector
 
