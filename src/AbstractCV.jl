@@ -64,12 +64,12 @@ comparison using cross-validation methods.
 #### CROSS VALIDATION ####
 ##########################
 
-# """
-#     AbstractCV
+"""
+    AbstractCV
 
-# An abstract type used in cross-validation.
-# """
-# abstract type AbstractCV end
+An abstract type used in cross-validation.
+"""
+abstract type AbstractCV end
 
 
 # """
