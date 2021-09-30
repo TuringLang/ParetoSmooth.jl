@@ -16,13 +16,19 @@ by the nominal sample size.
 
   - `sample::AbstractArray{<:Real, 3}`: An array of log-likelihood values.
 """
-function relative_eff(sample::AbstractArray{<:Real,3}; maxlag=size(sample, 2), kwargs...)
+function relative_eff(
+    sample::AbstractArray{<:Real,3}; 
+    source::Union{AbstractString, Symbol}="default", maxlag=size(sample, 2), kwargs...
+)
+    if lowercase(String(source)) ∉ ["mcmc", "default"]
+        return ones(size(sample, 1))
+    end
+
     dims = size(sample)
     post_sample_size = dims[2] * dims[3]
     ess_sample = permutedims(sample, [2, 1, 3])
-    ess, = MCMCDiagnosticTools.ess_rhat(ess_sample; maxlag=dims[2], kwargs...)
-    r_eff = ess / post_sample_size
-    return r_eff
+    ess, = MCMCDiagnosticTools.ess_rhat(ess_sample; maxlag=maxlag, kwargs...)
+    return r_eff = ess / post_sample_size
 end
 
 
@@ -33,8 +39,8 @@ end
     ) -> AbstractVector{T}
 
 Calculate the (approximate) effective sample size of a PSIS sample, using the correction in
-Vehtari et al. 2019. This uses the variance-based definition of ESS, and measures the L2 
-distance of the proposal and target distributions.
+Vehtari et al. 2019. This uses the entropy-based definition of ESS, measuring the K-L
+divergence of the proposal and target distributions.
 
 # Arguments
 
@@ -45,9 +51,9 @@ See `?relative_eff` to calculate `r_eff`.
 """
 function psis_ess(
     weights::AbstractMatrix{T}, r_eff::AbstractVector{T}
-) where {T <: Real}
-    @tullio sum_of_squares[x] := xlogx(weights[x, y]) |> exp
-    return r_eff ./ sum_of_squares
+) where T<:Real
+    @tullio exp_entropy[x] := - xlogx(weights[x, y]) |> exp
+    return r_eff .* exp_entropy
 end
 
 
@@ -74,6 +80,6 @@ much more variable. It uses the L-∞ norm.
 """
 function sup_ess(
     weights::AbstractMatrix{T}, r_eff::AbstractVector{T}
-) where {T<:Real}
+) where T<:Real
     return inv.(dropdims(maximum(weights; dims=2); dims=2)) .* r_eff
 end
