@@ -116,27 +116,39 @@ Implements Pareto-smoothed importance sampling (PSIS).
     used. If `"mcmc"`, adjusts ESS for autocorrelation. Otherwise, samples are assumed to be 
     independent. Currently permitted values are $SAMPLE_SOURCES.
   - `calc_ess::Bool=true`: If `false`, do not calculate ESS diagnostics. Attempting to
-    access ESS diagnostics will return an empty list.
+    access ESS diagnostics will return an empty array.
+  - `checks::Bool=true`: If `true`, check inputs for possible errors. Disabling will improve 
+    performance slightly.
 
 See also: [`relative_eff`]@ref, [`psis_loo`]@ref, [`psis_ess`]@ref.
 """
 function psis(
     log_ratios::AbstractArray{T, 3};
-    r_eff::AbstractVector{T}=similar(log_ratios, 0),
-    source::Union{AbstractString, Symbol}="mcmc",
-    calc_ess::Bool = true
+    source::Union{AbstractString, Symbol}="default",
+    r_eff::AbstractVector{T}=relative_eff(log_ratios; source=source),
+    calc_ess::Bool = true, 
+    skip_checks::Bool = false
 ) where T <: Real
 
-    source = lowercase(String(source))
     dims = size(log_ratios)
-
     data_size = dims[1]
     post_sample_size = dims[2] * dims[3]
 
+    skip_checks || _check_input_validity_psis(log_ratios)
+
+    source = lowercase(String(source))
+    if source == "default"
+        @info "No source provided for samples; variables are assumed to be from a Markov " *
+        "Chain. If the samples are independent, specify this with keyword argument " *
+        "`source=:other`."
+    end
+
+    if !skip_checks && size(r_eff, 1) ≠ data_size
+        throw(ArgumentError("Size of `r_eff` does not equal the number of data points."))
+    end
+
     # Reshape to matrix (easier to deal with)
-    log_ratios_mat = reshape(log_ratios, data_size, post_sample_size)
-    r_eff = _generate_r_eff(log_ratios_mat, dims, r_eff, source)
-    _check_input_validity_psis(log_ratios, r_eff)
+    
     weights = similar(log_ratios)
     weights_mat = reshape(weights, data_size, post_sample_size)
     @. weights = exp(log_ratios - $maximum(log_ratios; dims=(2,3)))
@@ -144,9 +156,12 @@ function psis(
 
     tail_length = similar(r_eff, Int)
     ξ = similar(r_eff)
-    @inbounds Threads.@threads for i in eachindex(tail_length)
+    @inbounds @views Threads.@threads for i in eachindex(tail_length)
         tail_length[i] = _def_tail_length(post_sample_size, r_eff[i])
-        ξ[i] = @views psis!(weights_mat[i, :], r_eff[i]; tail_length=tail_length[i])
+        ξ[i] = psis!(
+            weights_mat[i, :], r_eff[i]; 
+            tail_length=tail_length[i], log_weights = false
+        )
     end
 
     @tullio norm_const[i] := weights[i, j, k]
@@ -194,8 +209,7 @@ end
 
 
 """
-    psis!(is_ratios::AbstractVector{<:Real}, tail_length::Integer; log_ratios=false) -> Real
-    psis!(is_ratios::AbstractVector{<:Real}, r_eff::Real; log_ratios=false) -> Real
+    psis!(is_ratios::AbstractVector{<:Real}; tail_length::Integer, log_ratios=false) -> Real
 
 Do PSIS on a single vector, smoothing its tail values *in place* before returning the 
 estimated shape constant for the `pareto_k` distribution. This *does not* normalize the 
@@ -205,9 +219,8 @@ log-weights.
 
   - `is_ratios::AbstractVector{<:Real}`: A vector of importance sampling ratios,
     scaled to have a maximum of 1.
-  - `r_eff::AbstractVector{<:Real}`: The relative effective sample size, used for improving
-    the .
-    case `psis!` will automatically calculate the correct tail length.
+  - `r_eff::AbstractVector{<:Real}`: The relative effective sample size, used to calculate
+    the effective sample size. See [rel_eff]@ref for more information.
   - `log_weights::Bool`: A boolean indicating whether the input vector is a vector of log
     ratios, rather than raw importance sampling ratios.
 
@@ -221,9 +234,12 @@ Unlike the methods for arrays, `psis!` performs no checks to make sure the input
 valid.
 """
 function psis!(is_ratios::AbstractVector{T}, r_eff::T=one(T);
+    log_weights::Bool = true,
     tail_length::Integer = _def_tail_length(length(is_ratios), r_eff),
-    log_weights::Bool=false
+    skip_checks::Bool = false
 ) where T<:Real
+
+    skip_checks || _check_input_validity_psis(is_ratios)
     
     len = length(is_ratios)
     tail_start = len - tail_length + 1  # index of smallest tail value
@@ -294,64 +310,17 @@ end
 #### HELPER FUNCTIONS ####
 ##########################
 
-"""
-Generate the relative effective sample size if not provided by the user.
-"""
-function _generate_r_eff(
-    weights::AbstractArray{R}, 
-    dims::Base.AbstractVecOrTuple, 
-    r_eff::T, 
-    source::String,
-)::T where {R<:Real, T<:AbstractVector{R}}
-    output::T = similar(r_eff, dims[1])
-    if isempty(r_eff)
-        if source == "mcmc"
-            @info "Adjusting for autocorrelation. If the posterior samples are not " *
-                  "autocorrelated, specify the source of the posterior sample using the " *
-                  "keyword argument `source`. MCMC samples are always autocorrelated; VI " *
-                  "samples are not."
-            output .= relative_eff(reshape(weights, dims))
-        elseif source ∈ SAMPLE_SOURCES
-            @info "Samples have not been adjusted for autocorrelation. If the posterior " *
-                  "samples are autocorrelated, as in MCMC methods, ESS estimates will be " *
-                  "upward-biased, and standard error estimates will be downward-biased. " *
-                  "MCMC samples are always autocorrelated; VI samples are not."
-            return output .= ones(R, dims[1])
-        else
-            throw(
-                ArgumentError(
-                    "$source is not a valid source. Valid sources are $SAMPLE_SOURCES."
-                ),
-            )
-            return output .= ones(R, dims[1])
-        end
-    else 
-        return r_eff
-    end
-    if any(_invalid_number, r_eff)
-        throw(
-            ArgumentError(
-                "PSIS-LOO has encountered an error calculating ESS values for your " * 
-                "Markov chains. Please check your inputs. $LIKELY_ERROR_CAUSES"
-            )
-        )
-    end
-    return output::T
-end
-
 
 """
-Make sure all inputs to `psis` are valid.
+Make sure all inputs to `psis` are valid.else
 """
 function _check_input_validity_psis(
-    log_ratios::AbstractArray{T, 3}, r_eff::AbstractVector{T}
-) where {T <: Real}
+    log_ratios::AbstractArray{<:Real}
+)
     if any(_invalid_number, log_ratios)
         throw(DomainError("Invalid input for `log_ratios` (contains NaN  or inf values)."))
     elseif isempty(log_ratios)
         throw(ArgumentError("Invalid input for `log_ratios` (array is empty)."))
-    elseif length(r_eff) ≠ size(log_ratios, 1)
-        throw(ArgumentError("Size of `r_eff` does not equal the number of data points."))
     end
     return nothing
 end
@@ -364,15 +333,15 @@ function _check_tail(tail::AbstractVector{T}) where {T <: Real}
     if tail[end] ≈ tail[1]
         throw(
             ArgumentError(
-                "Unable to fit generalized Pareto distribution: all tail values are the " *
-                "same. Likely causes are: \n$LIKELY_ERROR_CAUSES",
+                "Unable to fit generalized Pareto distribution; all tail values are the " *
+                "same. Likely causes are:\n$LIKELY_ERROR_CAUSES",
             ),
         )
-    elseif length(tail) < MIN_TAIL_LEN
+    elseif length(tail) ≤ MIN_TAIL_LEN
         throw(
             ArgumentError(
-                "Unable to fit generalized Pareto distribution: tail length was too " *
-                "short. Likely causes are: \n$LIKELY_ERROR_CAUSES",
+                "Unable to fit generalized Pareto distribution; tail length was too " *
+                "short. Likely causes are:\n$LIKELY_ERROR_CAUSES",
             ),
         )
     end
