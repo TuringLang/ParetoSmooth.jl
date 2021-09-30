@@ -21,6 +21,7 @@ Tullio = "bc48ee85-29a4-5162-ae0b-a64e1601d4bc"
 
 [compat]
 AxisKeys = "0.1.18"
+Lazy = "0.15"
 LogExpFunctions = "0.3"
 MCMCDiagnosticTools = "0.1.0"
 NamedDims = "0.2.35"
