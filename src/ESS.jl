@@ -5,7 +5,7 @@ export relative_eff, psis_ess, sup_ess
 
 """
     relative_eff(
-        sample::AbstractArray{Real, 3}; 
+        sample::AbstractArray{<:Real, 3}; 
         method=MCMCDiagnosticTools.FFTESSMethod()
     )
 
@@ -16,7 +16,7 @@ by the nominal sample size.
 
   - `sample::AbstractArray{<:Real, 3}`: An array of log-likelihood values.
 """
-function relative_eff(sample::AbstractArray{<:Real, 3}; maxlag=size(sample, 2), kwargs...)
+function relative_eff(sample::AbstractArray{<:Real,3}; maxlag=size(sample, 2), kwargs...)
     dims = size(sample)
     post_sample_size = dims[2] * dims[3]
     ess_sample = permutedims(sample, [2, 1, 3])
@@ -60,13 +60,13 @@ end
 
 """
     function sup_ess(
-        weights::AbstractVector{T},
+        weights::AbstractMatrix{T},
         r_eff::AbstractVector{T}
     ) -> AbstractVector
 
 Calculate the supremum-based effective sample size of a PSIS sample, i.e. the inverse of the
-maximum weight. This measure is more trustworthy than the `ess` from `psis_ess`. It uses the
-L-∞ norm.
+maximum weight. This measure is more sensitive than the `ess` from `psis_ess`, but also 
+much more variable. It uses the L-∞ norm.
 
 # Arguments
   - `weights`: A set of importance sampling weights derived from PSIS.

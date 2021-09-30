@@ -5,7 +5,7 @@ using Statistics
 using Printf
 using Tullio
 
-export loo, psis_loo, loo_from_psis
+export loo, psis_loo, loo_from_psis, PsisLoo
 
 
 #####################
@@ -13,19 +13,19 @@ export loo, psis_loo, loo_from_psis
 #####################
 
 
-"""
-    PsisLooMethod
+# """
+#     PsisLooMethod
 
-Use Pareto-smoothed importance sampling together with leave-one-out cross validation to
-estimate the out-of-sample predictive accuracy.
-"""
-struct PsisLooMethod <: AbstractCVMethod end
+# Use Pareto-smoothed importance sampling together with leave-one-out cross validation to
+# estimate the out-of-sample predictive accuracy.
+# """
+# struct PsisLooMethod <: AbstractCVMethod end
 
 
 """
     PsisLoo <: AbstractCV
 
-A struct containing the results of leave-one-out cross validation using Pareto 
+A struct containing the results of leave-one-out cross validation computed with Pareto 
 smoothed importance sampling.
 
 $CV_DESC
@@ -71,17 +71,17 @@ end
 
 
 """
-    function loo(args...; method=PsisLooMethod(), kwargs...) -> PsisLoo
+    function loo(args...; kwargs...) -> PsisLoo
 
-Compute the approximate leave-one-out cross-validation score using the specified method.
+Compute an approximate leave-one-out cross-validation score.
 
 Currently, this function only serves to call `psis_loo`, but this could change in the
-future. The default methods or return type may change without warning; thus, we recommend
+future. The default methods or return type may change without warning, so we recommend
 using `psis_loo` instead if reproducibility is required.
 
 See also: [`psis_loo`](@ref), [`PsisLoo`](@ref).
 """
-function loo(args...; method=PsisLooMethod(), kwargs...)
+function loo(args...; kwargs...)
     return psis_loo(args...; kwargs...)
 end
 

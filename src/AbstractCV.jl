@@ -2,9 +2,8 @@
 using AxisKeys
 using PrettyTables
 
-export AbstractCVMethod, AbstractCV
+# export AbstractCVMethod, AbstractCV
 
-const POINTWISE_LABELS = (:cv_elpd, :naive_lpd, :p_eff, :ess, :pareto_k)
 const CV_DESC = """
 # Fields
 
@@ -73,12 +72,12 @@ An abstract type used in cross-validation.
 abstract type AbstractCV end
 
 
-"""
-    AbstractCVMethod
+# """
+#     AbstractCVMethod
 
-An abstract type used to dispatch the correct method for cross validation.
-"""
-abstract type AbstractCVMethod end
+# An abstract type used to dispatch the correct method for cross validation.
+# """
+# abstract type AbstractCVMethod end
 
 
 ##########################
