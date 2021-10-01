@@ -66,19 +66,19 @@ See also: [`ModelComparison`](@ref), [`PsisLoo`](@ref), [`psis_loo`](@ref)
 """
 function loo_compare(
     cv_results::AbstractVector{<:PsisLoo};
-    model_names::StringContainer=[Symbol("model_$i") for i in 1:length(cv_results)],
+    model_names::S=[Symbol("model_$i") for i in 1:length(cv_results)],
     sort_models::Bool=true,
     high_to_low::Bool=true,
-) where {StringContainer <: Base.AbstractVecOrTuple{<:Union{AbstractString, Symbol}}}
+) where S <: Base.AbstractVecOrTuple{<:Union{AbstractString, Symbol}}
 
     model_names = [Symbol(model_names[i]) for i in 1:length(model_names)]  # array version
     n_models, data_size = _get_dims(cv_results, model_names)
     
-    if sort_models
+    @views if sort_models
         sorting_by = x -> x.estimates(:cv_elpd, :total)
         order = sortperm(cv_results; by=sorting_by, rev=high_to_low)
-        permute!(cv_results, order)
-        permute!(model_names, order)
+        cv_results = cv_results[order]
+        model_names = model_names[order]
     end
 
     # Extract relevant values from PsisLoo objects
