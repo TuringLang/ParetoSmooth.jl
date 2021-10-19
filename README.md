@@ -8,7 +8,8 @@
 [![ColPrac: Contributor's Guide on Collaborative Practices for Community Packages](https://img.shields.io/badge/ColPrac-Contributor's%20Guide-blueviolet)](https://github.com/SciML/ColPrac)
 
 
-ParetoSmooth.jl is a julia package that allows users to compute efficient approximate leave-one-out cross-validation for fitted Bayesian models. We compute approximate LOO-CV using Pareto smoothed importance sampling (PSIS), a new procedure for regularizing importance sampling weights.
+ParetoSmooth.jl is a Julia package for efficient approximate leave-one-out cross-validation for fitted Bayesian models. We compute LOO-CV using Pareto smoothed importance sampling (PSIS), a modification of importance sampling. More details can be found in Vehtari, Gelman, and Gabry (2017).
+
 
 
 
