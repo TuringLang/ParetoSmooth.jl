@@ -275,8 +275,7 @@ end
 """
     _def_tail_length(log_ratios::AbstractVector, r_eff::Real) -> Integer
 
-Define the tail length as in Vehtari et al. (2019), with the small addition that the tail
-must a multiple of `32*bit_length` (which improves performance).
+Define the tail length as in Vehtari et al. (2019).
 """
 function _def_tail_length(length::Integer, r_eff::Real=one(T))
     return min(cld(length, 5), ceil(3 * sqrt(length / r_eff))) |> Int
