@@ -312,7 +312,7 @@ end
 
 
 """
-Make sure all inputs to `psis` are valid.else
+Make sure all inputs to `psis` are valid.
 """
 function _check_input_validity_psis(
     log_ratios::AbstractArray{<:Real}
