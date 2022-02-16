@@ -19,7 +19,7 @@ StatsBase = "2913bbd2-ae8a-5f71-8c99-4fb6c76f3a91"
 Tullio = "bc48ee85-29a4-5162-ae0b-a64e1601d4bc"
 
 [compat]
-AxisKeys = "0.1.18"
+AxisKeys = "0.1.18, 0.2"
 LogExpFunctions = "0.3"
 MCMCDiagnosticTools = "0.1.0"
 NamedDims = "0.2.35"
