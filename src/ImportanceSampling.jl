@@ -209,7 +209,10 @@ end
 
 
 """
-    psis!(is_ratios::AbstractVector{<:Real}; tail_length::Integer, log_ratios=false) -> Real
+    psis!(
+        is_ratios::AbstractVector{<:Real}; 
+        tail_length::Integer, log_weights::Bool=true
+    ) -> Real
 
 Do PSIS on a single vector, smoothing its tail values *in place* before returning the 
 estimated shape constant for the `pareto_k` distribution. This *does not* normalize the 
@@ -277,7 +280,7 @@ end
 
 Define the tail length as in Vehtari et al. (2019).
 """
-function _def_tail_length(length::Integer, r_eff::Real=one(T))
+function _def_tail_length(length::Integer, r_eff::Real=1)
     return min(cld(length, 5), ceil(3 * sqrt(length / r_eff))) |> Int
 end
 
