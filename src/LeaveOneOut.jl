@@ -33,13 +33,13 @@ $CV_DESC
 See also: [`loo`]@ref, [`bayes_cv`]@ref, [`psis_loo`]@ref, [`Psis`]@ref
 """
 struct PsisLoo{
-    RealType <: Real,
-    ArrayType <: AbstractArray{RealType},
-    VectorType <: AbstractVector{RealType},
+    RealType<:Real,
+    ArrayType<:AbstractArray{RealType},
+    VectorType<:AbstractVector{RealType},
 } <: AbstractCV
-    estimates::KeyedArray{RealType, 2, <:NamedDimsArray, <:Any}
-    pointwise::KeyedArray{RealType, 2, <:NamedDimsArray, <:Any}
-    psis_object::Psis{RealType, ArrayType, VectorType}
+    estimates::KeyedArray{RealType,2,<:NamedDimsArray,<:Any}
+    pointwise::KeyedArray{RealType,2,<:NamedDimsArray,<:Any}
+    psis_object::Psis{RealType,ArrayType,VectorType}
     gmpd::RealType
     mcse::RealType
 end
@@ -55,12 +55,12 @@ function Base.show(io::IO, ::MIME"text/plain", loo_object::PsisLoo)
         Printf.@sprintf("data points. Total Monte Carlo SE of %.2g.", loo_object.mcse),
     )
     return pretty_table(
-        table;
+        table.data;
         compact_printing=false,
         header=table.column,
         row_names=table.statistic,
         formatters=ft_printf("%5.2f"),
-        alignment=:r,
+        alignment=:r
     )
 end
 
@@ -104,7 +104,7 @@ score.
 
 See also: [`psis`](@ref), [`loo`](@ref), [`PsisLoo`](@ref).
 """
-function psis_loo(log_likelihood::AbstractArray{<:Real, 3}, args...; kwargs...)
+function psis_loo(log_likelihood::AbstractArray{<:Real,3}, args...; kwargs...)
     psis_object = psis(-log_likelihood, args...; kwargs...)
     return loo_from_psis(log_likelihood, psis_object)
 end
@@ -114,7 +114,7 @@ function psis_loo(
     log_likelihood::AbstractMatrix{<:Real},
     args...;
     chain_index::AbstractVector=_assume_one_chain(log_likelihood),
-    kwargs...,
+    kwargs...
 )
     chain_index = Int.(chain_index)
     new_log_ratios = _convert_to_array(log_likelihood, chain_index)
@@ -139,7 +139,7 @@ Use a precalculated `Psis` object to estimate the leave-one-out cross validation
 See also: [`psis`](@ref), [`loo`](@ref), [`PsisLoo`](@ref).
 
 """
-function loo_from_psis(log_likelihood::AbstractArray{<:Real, 3}, psis_object::Psis)
+function loo_from_psis(log_likelihood::AbstractArray{<:Real,3}, psis_object::Psis)
     dims = size(log_likelihood)
     data_size = dims[1]
     mcmc_count = dims[2] * dims[3]  # total number of samples from posterior
@@ -150,12 +150,12 @@ function loo_from_psis(log_likelihood::AbstractArray{<:Real, 3}, psis_object::Ps
     # log_likelihood::ArrayType = similar(log_likelihood)
     # log_likelihood .= score(log_likelihood)
 
-    
+
     weights = psis_object.weights
     ξ = psis_object.pareto_k
     r_eff = psis_object.r_eff
 
-    
+
     @tullio pointwise_loo[i] := weights[i, j, k] * exp(log_likelihood[i, j, k]) |> log
     @tullio pointwise_naive[i] := exp(log_likelihood[i, j, k] - log_count) |> log
     pointwise_p_eff = pointwise_naive - pointwise_loo
@@ -164,11 +164,11 @@ function loo_from_psis(log_likelihood::AbstractArray{<:Real, 3}, psis_object::Ps
     pointwise = KeyedArray(
         hcat(pointwise_loo, pointwise_naive, pointwise_p_eff, pointwise_mcse, ξ);
         data=1:length(pointwise_loo),
-        statistic=[:cv_elpd, :naive_lpd, :p_eff, :mcse, :pareto_k],
+        statistic=[:cv_elpd, :naive_lpd, :p_eff, :mcse, :pareto_k]
     )
 
     table = _generate_loo_table(pointwise)
-    
+
     gmpd = exp.(table(column=:mean, statistic=:cv_elpd))
 
     mcse = sum(abs2, pointwise_mcse) |> sqrt
@@ -193,7 +193,7 @@ function _generate_loo_table(pointwise::AbstractMatrix{<:Real})
     table = KeyedArray(
         similar(NamedDims.unname(pointwise), 3, 4);
         statistic=[:cv_elpd, :naive_lpd, :p_eff],
-        column=[:total, :se_total, :mean, :se_mean],
+        column=[:total, :se_total, :mean, :se_mean]
     )
 
     # calculate the sample expectation for the total score
@@ -215,7 +215,7 @@ function _generate_loo_table(pointwise::AbstractMatrix{<:Real})
 
     if table(:p_eff, :total) ≤ 0
         @warn "The calculated effective number of parameters is negative, which should " *
-        "not be possible. PSIS has failed to approximate the target distribution."
+              "not be possible. PSIS has failed to approximate the target distribution."
     end
 
     return table
@@ -224,7 +224,7 @@ end
 
 function _calc_mcse(weights, log_likelihood, pointwise_loo, r_eff)
     pointwise_gmpd = exp.(pointwise_loo)
-    @tullio pointwise_var[i] := 
+    @tullio pointwise_var[i] :=
         (weights[i, j, k] * (exp(log_likelihood[i, j, k]) - pointwise_gmpd[i]))^2
     # If MCMC draws follow a log-normal distribution, then their log has this std. error:
     @. pointwise_var = log1p(pointwise_var / pointwise_gmpd^2)

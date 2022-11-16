@@ -34,11 +34,11 @@ A struct containing the results of model comparison.
 
 See also: [`PsisLoo`](@ref)
 """
-struct ModelComparison{RealType<:Real, N}
-    pointwise::KeyedArray{RealType, 3, <:NamedDimsArray, <:Any}
-    estimates::KeyedArray{RealType, 2, <:NamedDimsArray, <:Any}
-    std_err::NamedTuple{<:Any, Tuple{Vararg{RealType, N}}}
-    gmpd::NamedTuple{<:Any, Tuple{Vararg{RealType, N}}}
+struct ModelComparison{RealType<:Real,N}
+    pointwise::KeyedArray{RealType,3,<:NamedDimsArray,<:Any}
+    estimates::KeyedArray{RealType,2,<:NamedDimsArray,<:Any}
+    std_err::NamedTuple{<:Any,Tuple{Vararg{RealType,N}}}
+    gmpd::NamedTuple{<:Any,Tuple{Vararg{RealType,N}}}
 end
 
 
@@ -68,12 +68,12 @@ function loo_compare(
     cv_results::AbstractVector{<:PsisLoo};
     model_names::S=[Symbol("model_$i") for i in 1:length(cv_results)],
     sort_models::Bool=true,
-    high_to_low::Bool=true,
-) where S <: Base.AbstractVecOrTuple{<:Union{AbstractString, Symbol}}
+    high_to_low::Bool=true
+) where {S<:Base.AbstractVecOrTuple{<:Union{AbstractString,Symbol}}}
 
     model_names = [Symbol(model_names[i]) for i in 1:length(model_names)]  # array version
     n_models, data_size = _get_dims(cv_results, model_names)
-    
+
     @views if sort_models
         sorting_by = x -> x.estimates(:cv_elpd, :total)
         order = sortperm(cv_results; by=sorting_by, rev=high_to_low)
@@ -94,7 +94,7 @@ function loo_compare(
         pointwise_diffs;
         data=1:data_size,
         statistic=[:cv_elpd, :naive_lpd, :p_eff, :mcse, :pareto_k],
-        model=model_names,
+        model=model_names
     )
     # Subtract the effective number of params and elpd ests; leave mcse+pareto_k the same
     @views base_case = pointwise_diffs[:, 1:3, 1]
@@ -113,15 +113,15 @@ function loo_compare(
 
     gmpd = @. exp(cv_elpd / data_size)
     gmpd = NamedTuple{name_tuple}(gmpd)
-    
+
     @. cv_elpd = cv_elpd - cv_elpd[1]
     avg_elpd = cv_elpd ./ data_size
     total_diffs = KeyedArray(
         hcat(cv_elpd, avg_elpd, weights);
         model=model_names,
-        statistic=[:cv_elpd, :cv_avg, :weight],
+        statistic=[:cv_elpd, :cv_avg, :weight]
     )
-    
+
     return ModelComparison(pointwise_diffs, total_diffs, se_total, gmpd)
 
 end
@@ -150,12 +150,12 @@ end
 function Base.show(io::IO, ::MIME"text/plain", model_comparison::ModelComparison)
     estimates = model_comparison.estimates
     return pretty_table(
-        estimates;
+        estimates.data;
         compact_printing=false,
         header=estimates.statistic,
         row_names=estimates.model,
         formatters=ft_printf("%5.2f"),
-        alignment=:r,
+        alignment=:r
     )
 end
 
