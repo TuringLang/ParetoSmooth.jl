@@ -14,7 +14,7 @@ ParetoSmooth.jl is a Julia package for efficient approximate leave-one-out cross
 If you use this library, please remember to cite both:
 ```
 @misc{ParetoSmooth.jl,
-	author  = {Carlos Parada <paradac@carleton.edu>},
+	author  = {Carlos Parada <cdp49@cam.ac.uk>},
 	title   = {ParetoSmooth.jl},
 	url     = {https://github.com/TuringLang/ParetoSmooth.jl},
 	version = {v0.7.1},
