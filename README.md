@@ -11,5 +11,34 @@
 ParetoSmooth.jl is a Julia package for efficient approximate leave-one-out cross-validation for fitted Bayesian models. We compute LOO-CV using Pareto smoothed importance sampling (PSIS), a modification of importance sampling. More details can be found in Vehtari, Gelman, and Gabry (2017).
 
 
-
+If you use this library, please remember to cite both:
+```
+@misc{ParetoSmooth.jl,
+	author  = {Carlos Parada <paradac@carleton.edu>},
+	title   = {ParetoSmooth.jl},
+	url     = {https://github.com/TuringLang/ParetoSmooth.jl},
+	version = {v0.7.1},
+	year    = {2021},
+	month   = {6}
+}
+```
+and:
+```
+﻿@Article{Vehtari2017,
+  author={Vehtari, Aki
+  and Gelman, Andrew
+  and Gabry, Jonah},
+  title={Practical Bayesian model evaluation using leave-one-out cross-validation and WAIC},
+  journal={Statistics and Computing},
+  year={2017},
+  month={Sep},
+  day={01},
+  volume={27},
+  number={5},
+  pages={1413-1432},
+  issn={1573-1375},
+  doi={10.1007/s11222-016-9696-4},
+  url={https://doi.org/10.1007/s11222-016-9696-4}
+}
+```
 
