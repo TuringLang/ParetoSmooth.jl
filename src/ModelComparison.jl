@@ -150,7 +150,7 @@ end
 function Base.show(io::IO, ::MIME"text/plain", model_comparison::ModelComparison)
     estimates = model_comparison.estimates
     return pretty_table(
-        estimates;
+        estimates.data;
         compact_printing=false,
         header=estimates.statistic,
         row_names=estimates.model,
