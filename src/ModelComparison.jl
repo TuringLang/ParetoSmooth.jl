@@ -153,7 +153,7 @@ function Base.show(io::IO, ::MIME"text/plain", model_comparison::ModelComparison
         estimates.data;
         compact_printing=false,
         header=estimates.statistic,
-        row_names=estimates.model,
+        row_labels=estimates.model,
         formatters=ft_printf("%5.2f"),
         alignment=:r,
     )

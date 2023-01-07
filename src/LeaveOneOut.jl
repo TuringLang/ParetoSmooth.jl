@@ -58,7 +58,7 @@ function Base.show(io::IO, ::MIME"text/plain", loo_object::PsisLoo)
         table.data;
         compact_printing=false,
         header=table.column,
-        row_names=table.statistic,
+        row_labels=table.statistic,
         formatters=ft_printf("%5.2f"),
         alignment=:r,
     )
