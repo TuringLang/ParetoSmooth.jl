@@ -1,8 +1,6 @@
 using LinearAlgebra
 using LogExpFunctions
 using Statistics
-using Tullio
-
 
 """
     gpd_fit(
@@ -53,20 +51,35 @@ function gpd_fit(
     # build pointwise estimates of ξ and θ at each grid point
     θ_hats = similar(sample, grid_size)
     @fastmath @. θ_hats = invmax + (1 - sqrt((grid_size + 1) / $(1:grid_size))) * x_star
-    @tullio threads=false ξ_hats[i] := log1p(-θ_hats[i] * sample[j])
-    ξ_hats /= len
+    ξ_hats = similar(θ_hats)
+    for i = eachindex(ξ_hats, θ_hats)
+        ξ_hat = zero(eltype(ξ_hats))
+        for j = eachindex(sample)
+            ξ_hat += log1p(-θ_hats[i] * sample[j])
+        end
+        ξ_hats[i] = ξ_hat/len
+    end
 
     log_like = ξ_hats  # Reuse preallocated array
     # Calculate profile log-likelihood at each estimate:
-    @tullio threads=false ξ_hats[i] =
-        len * (log(-θ_hats[i] / ξ_hats[i]) - ξ_hats[i] - 1)
+    for i = eachindex(ξ_hats, θ_hats)
+        ξ_hats[i] = len * (log(-θ_hats[i] / ξ_hats[i]) - ξ_hats[i] - 1)
+    end
     # Calculate weights from log-likelihood:
     weights = log_like  # Reuse preallocated array
     log_norm = logsumexp(log_like)
-    @tullio threads=false log_like[x] = exp(log_like[x] - log_norm)
+    for i = eachindex(log_like)
+        log_like[i] = exp_inline(log_like[i] - log_norm)
+    end
     # Take weighted mean:
-    @tullio threads=false θ_hat := weights[x] * θ_hats[x]
-    @tullio threads=false ξ := log1p(-θ_hat * sample[i])
+    θ_hat = zero(Base.promote_eltype(θ_hats, weights))
+    @simd for i = eachindex(θ_hats, weights)
+        θ_hat += θ_hats[i] * weights[i]
+    end
+    ξ = zero(θ_hat)
+    @simd for i = eachindex(sample)
+        ξ += log1p(-θ_hat * sample[i])
+    end
     ξ /= len
     σ::T = -ξ / θ_hat
 

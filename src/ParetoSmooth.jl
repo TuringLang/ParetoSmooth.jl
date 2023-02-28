@@ -16,6 +16,12 @@ function __init__()
 
 end
 
+if VERSION >= v"1.8"
+@inline exp_inline(x) = @inline exp(x)
+else
+const exp_inline = exp
+end
+
 include("AbstractCV.jl")
 include("ESS.jl")
 include("GPD.jl")

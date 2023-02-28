@@ -3,7 +3,6 @@ using InteractiveUtils
 using NamedDims
 using Statistics
 using Printf
-using Tullio
 
 export loo, psis_loo, loo_from_psis, PsisLoo
 
@@ -155,9 +154,30 @@ function loo_from_psis(log_likelihood::AbstractArray{<:Real, 3}, psis_object::Ps
     ξ = psis_object.pareto_k
     r_eff = psis_object.r_eff
 
-    
-    @tullio pointwise_loo[i] := weights[i, j, k] * exp(log_likelihood[i, j, k]) |> log
-    @tullio pointwise_naive[i] := exp(log_likelihood[i, j, k] - log_count) |> log
+    T = eltype(log_likelihood)
+    pointwise_loo = zeros(T, size(log_likelihood, 1))
+    pointwise_naive = zeros(pointwise_loo)
+    for k = axes(weights,3), j = axes(weights,2), i = axes(weights,1)
+        pointwise_loo[i] += weights[i,j,k] * exp_inline(log_likelihood[i,j,k])
+        pointwise_naive[i] += exp_inline(log_likelihood[i,j,k]-log_count)
+    end
+    for i = eachindex(pointwise_loo, pointwise_naive)
+        pointwise_loo[i] = log(pointwise_loo[i])
+        pointwise_naive[i] = log(pointwise_naive[i])
+    end
+    for i = eachindex(pointwise_loo)
+        acc_loo = zero(eltype(pointwise_loo))
+        acc_naive = zero(eltype(pointwise_naive))
+        for j = axes(weights,2), k = axes(weights,3)
+            acc_loo += weights[i,j,k] * exp_inline(log_likelihood[i,j,k])
+            # I'm assuming we don't want to reuse the `exp_inline(log_likelihood[i,j,k])` from above via
+            # acc_naive += exp_inline(log_likelihood[i,j,k]) * inv_mcmc_count
+            # for numerical reasons
+            acc_naive += exp_inline(log_likelihood[i,j,k] - log_count)
+        end
+        pointwise_loo[i] = log(acc_loo)
+        pointwise_naive[i] = log(acc_naive)
+    end
     pointwise_p_eff = pointwise_naive - pointwise_loo
     pointwise_mcse = _calc_mcse(weights, log_likelihood, pointwise_loo, r_eff)
 
@@ -198,7 +218,14 @@ function _generate_loo_table(pointwise::AbstractMatrix{<:Real})
 
     # calculate the sample expectation for the total score
     to_sum = pointwise([:cv_elpd, :naive_lpd, :p_eff])
-    @tullio avgs[statistic] := to_sum[data, statistic] |> _ / data_size
+    avgs = similar(eltype(to_sum), size(to_sum, 2))
+    @inbounds for j = axes(to_sum,2)
+        avg = zero(eltype(to_sum))
+        @simd for i = axes(to_sum,1)
+            avg += to_sum[i,j]
+        end
+        avgs[j] = avg / data_size
+    end
     avgs = reshape(avgs, 3)
     table(:, :mean) .= avgs
 
@@ -224,8 +251,10 @@ end
 
 function _calc_mcse(weights, log_likelihood, pointwise_loo, r_eff)
     pointwise_gmpd = exp.(pointwise_loo)
-    @tullio pointwise_var[i] := 
-        (weights[i, j, k] * (exp(log_likelihood[i, j, k]) - pointwise_gmpd[i]))^2
+    pointwise_var = zeros(eltype(log_likelihood), size(log_likelihood, 1))
+    for k = axes(weights,3), j = axes(weights,2), i = axes(weights,1)
+        pointwise_var[i] += (weights[i,j,k] * (exp_inline(log_likelihood[i,j,k]) - pointwise_gmpd[i]))^2
+    end
     # If MCMC draws follow a log-normal distribution, then their log has this std. error:
     @. pointwise_var = log1p(pointwise_var / pointwise_gmpd^2)
     # (google "log-normal method of moments" for a proof)

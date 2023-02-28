@@ -34,7 +34,13 @@ function _naive_lpd(log_likelihood::AbstractArray{<:Real, 3})
     mcmc_count = dims[2] * dims[3]
     log_count = log(mcmc_count)
 
-    pointwise_naive = similar(log_likelihood, data_size)
-    @tullio pointwise_naive[i] = exp(log_likelihood[i, j, k] - log_count) |> log
-    return @tullio naive := pointwise_naive[i]
+    pointwise_naive = zeros(eltype(log_likelihood), data_size)
+    for k = axes(log_likelihood, 3), j = axes(log_likelihood, 2), i = axes(log_likelihood, 1)
+        @inbounds pointwise_naive[i] += exp_inline(log_likelihood[i, j, k] - log_count)
+    end
+    naive = zero(eltype(pointwise_naive))
+    for i = eachindex(pointwise_naive)
+        naive += log(pointwise_naive[i])
+    end
+    return naive
 end
