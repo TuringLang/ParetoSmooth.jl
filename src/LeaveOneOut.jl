@@ -157,7 +157,7 @@ function loo_from_psis(log_likelihood::AbstractArray{<:Real, 3}, psis_object::Ps
     T = eltype(log_likelihood)
     pointwise_loo = zeros(T, size(log_likelihood, 1))
     pointwise_naive = zeros(T, size(log_likelihood, 1))
-    for k = axes(weights,3), j = axes(weights,2), i = axes(weights,1)
+    @inbounds for k = axes(weights,3), j = axes(weights,2), i = axes(weights,1)
         pointwise_loo[i] += weights[i,j,k] * exp_inline(log_likelihood[i,j,k])
         pointwise_naive[i] += exp_inline(log_likelihood[i,j,k]-log_count)
     end
@@ -165,7 +165,7 @@ function loo_from_psis(log_likelihood::AbstractArray{<:Real, 3}, psis_object::Ps
         pointwise_loo[i] = log(pointwise_loo[i])
         pointwise_naive[i] = log(pointwise_naive[i])
     end
-    for i = eachindex(pointwise_loo)
+    @inbounds for i = eachindex(pointwise_loo)
         acc_loo = zero(eltype(pointwise_loo))
         acc_naive = zero(eltype(pointwise_naive))
         for j = axes(weights,2), k = axes(weights,3)
@@ -252,7 +252,7 @@ end
 function _calc_mcse(weights, log_likelihood, pointwise_loo, r_eff)
     pointwise_gmpd = exp.(pointwise_loo)
     pointwise_var = zeros(eltype(log_likelihood), size(log_likelihood, 1))
-    for k = axes(weights,3), j = axes(weights,2), i = axes(weights,1)
+    @inbounds for k = axes(weights,3), j = axes(weights,2), i = axes(weights,1)
         pointwise_var[i] += (weights[i,j,k] * (exp_inline(log_likelihood[i,j,k]) - pointwise_gmpd[i]))^2
     end
     # If MCMC draws follow a log-normal distribution, then their log has this std. error:
