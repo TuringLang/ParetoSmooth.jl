@@ -218,7 +218,7 @@ function _generate_loo_table(pointwise::AbstractMatrix{<:Real})
 
     # calculate the sample expectation for the total score
     to_sum = pointwise([:cv_elpd, :naive_lpd, :p_eff])
-    avgs = similar(eltype(to_sum), size(to_sum, 2))
+    avgs = similar(to_sum, size(to_sum, 2))
     @inbounds for j = axes(to_sum,2)
         avg = zero(eltype(to_sum))
         @simd for i = axes(to_sum,1)
