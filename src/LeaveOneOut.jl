@@ -189,7 +189,7 @@ function loo_from_psis(log_likelihood::AbstractArray{<:Real, 3}, psis_object::Ps
 
     table = _generate_loo_table(pointwise)
     
-    gmpd = exp.(table(column=:mean, statistic=:cv_elpd))
+    gmpd = exp_inline.(table(column=:mean, statistic=:cv_elpd))
 
     mcse = sum(abs2, pointwise_mcse) |> sqrt
     return PsisLoo(table, pointwise, psis_object, gmpd, mcse)
@@ -250,7 +250,7 @@ end
 
 
 function _calc_mcse(weights, log_likelihood, pointwise_loo, r_eff)
-    pointwise_gmpd = exp.(pointwise_loo)
+    pointwise_gmpd = exp_inline.(pointwise_loo)
     pointwise_var = zeros(eltype(log_likelihood), size(log_likelihood, 1))
     @inbounds for k = axes(weights,3), j = axes(weights,2), i = axes(weights,1)
         pointwise_var[i] += (weights[i,j,k] * (exp_inline(log_likelihood[i,j,k]) - pointwise_gmpd[i]))^2
