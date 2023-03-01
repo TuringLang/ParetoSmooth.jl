@@ -51,7 +51,7 @@ See `?relative_eff` to calculate `r_eff`.
 function psis_ess(
     weights::AbstractMatrix{T}, r_eff::AbstractVector{T}
 ) where T<:Real
-    exp_entropy = zeros(weights, size(weights, 1))
+    exp_entropy = zeros(T, size(weights, 1))
     @inline for y = axes(weights, 2), x = axes(weights, 1)
         exp_entropy[x] -= xlogx(weights[x, y])
     end
