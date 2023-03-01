@@ -46,7 +46,6 @@ using Distributions, Random, MCMCChains, Turing
     @test size(pw_lls_turing) == (50, 1000, 12)
     # test that sum of pointwise log likelihoods equals sum of log likelihoods
     turing_samples = Array(Chains(chain, :parameters).value)
-    # make this more terse with @tulliosum or other method later
     LL = 0.0
     n_samples, n_parms, n_chains = size(turing_samples)
     for s in 1:n_samples

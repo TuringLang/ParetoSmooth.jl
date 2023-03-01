@@ -1,5 +1,3 @@
-using Tullio
-
 const LIKELY_ERROR_CAUSES = """
 1. Incorrect inputs -- check your program for bugs. If you provided an `r_eff` argument,
 double check it is correct.
@@ -163,8 +161,10 @@ function psis(
             tail_length=tail_length[i], log_weights = false
         )
     end
-
-    @tullio norm_const[i] := weights[i, j, k]
+    norm_const = zeros(eltype(weights), size(weights, 1))
+    @inbounds for k = axes(weights, 3), j = axes(weights, 2), i = axes(weights, 1)
+        norm_const[i] += weights[i, j, k]
+    end
     @. weights = weights / norm_const
 
     

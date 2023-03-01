@@ -1,5 +1,4 @@
 using MCMCDiagnosticTools
-using Tullio
 
 export relative_eff, psis_ess, sup_ess
 
@@ -52,7 +51,13 @@ See `?relative_eff` to calculate `r_eff`.
 function psis_ess(
     weights::AbstractMatrix{T}, r_eff::AbstractVector{T}
 ) where T<:Real
-    @tullio exp_entropy[x] := - xlogx(weights[x, y]) |> exp
+    exp_entropy = zeros(T, size(weights, 1))
+    @inbounds for y = axes(weights, 2), x = axes(weights, 1)
+        exp_entropy[x] -= xlogx(weights[x, y])
+    end
+    for i = eachindex(exp_entropy)
+        exp_entropy[i] = exp_inline(exp_entropy[i])
+    end
     return r_eff .* exp_entropy
 end
 
