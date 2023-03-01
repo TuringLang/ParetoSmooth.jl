@@ -156,7 +156,7 @@ function loo_from_psis(log_likelihood::AbstractArray{<:Real, 3}, psis_object::Ps
 
     T = eltype(log_likelihood)
     pointwise_loo = zeros(T, size(log_likelihood, 1))
-    pointwise_naive = zeros(pointwise_loo)
+    pointwise_naive = zeros(T, size(log_likelihood, 1))
     for k = axes(weights,3), j = axes(weights,2), i = axes(weights,1)
         pointwise_loo[i] += weights[i,j,k] * exp_inline(log_likelihood[i,j,k])
         pointwise_naive[i] += exp_inline(log_likelihood[i,j,k]-log_count)
