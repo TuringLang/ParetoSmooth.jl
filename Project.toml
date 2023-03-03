@@ -20,7 +20,7 @@ StatsBase = "2913bbd2-ae8a-5f71-8c99-4fb6c76f3a91"
 [compat]
 AxisKeys = "0.1.18, 0.2"
 LogExpFunctions = "0.3"
-MCMCDiagnosticTools = "0.1.0"
+MCMCDiagnosticTools = "0.1.0, 0.3"
 NamedDims = "0.2.35"
 PrettyTables = "2.1,2.2"
 Requires = "1.1.3"
