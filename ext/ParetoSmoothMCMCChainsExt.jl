@@ -1,11 +1,14 @@
-using .MCMCChains
-export pointwise_log_likelihoods
+module ParetoSmoothMCMCChainsExt
 
+if isdefined(Base, :get_extension)
+    using ParetoSmooth
+    using MCMCChains
+else
+    using ..ParetoSmooth
+    using ..MCMCChains
+end
 
-const CHAINS_ARG = """
-`chains::Chains`: A chain object from MCMCChains.
-"""
-
+using ParetoSmooth: LIKELIHOOD_FUNCTION_ARG, DATA_ARG, CHAINS_ARG, ARGS, KWARGS
 
 """
     pointwise_log_likelihoods(ll_fun::Function, chains::Chains, data)
@@ -21,7 +24,7 @@ Compute the pointwise log likelihoods.
   - `Array`: a three dimensional array of pointwise log-likelihoods. Dimensions are ordered
     as `[data, step, chain]`.
 """
-function pointwise_log_likelihoods(
+function ParetoSmooth.pointwise_log_likelihoods(
     ll_fun::Function, chain::Chains, data::AbstractVector; kwargs...
 )
     samples = Chains(chain, :parameters).value
@@ -31,10 +34,10 @@ end
 
 """
     function psis_loo(
-        ll_fun::Function, 
-        chain::Chains, 
-        data, 
-        args...; 
+        ll_fun::Function,
+        chain::Chains,
+        data,
+        args...;
         kwargs...
     ) -> PsisLoo
 
@@ -51,7 +54,7 @@ score from an MCMCChains object.
 
 See also: [`psis_loo`](@ref), [`loo`](@ref), [`PsisLoo`](@ref).
 """
-function psis_loo(ll_fun::Function, chain::Chains, data::AbstractVector, args...; kwargs...)
+function ParetoSmooth.psis_loo(ll_fun::Function, chain::Chains, data::AbstractVector, args...; kwargs...)
     pointwise_log_likes = pointwise_log_likelihoods(ll_fun, chain, data)
     return psis_loo(pointwise_log_likes, args...; kwargs...)
 end
@@ -71,7 +74,9 @@ Implements Pareto-smoothed importance sampling (PSIS) based on MCMCChain object.
 
 See also: [`psis`](@ref), [`psis_loo`](@ref), [`PsisLoo`](@ref).
 """
-function psis(ll_fun::Function, chain::Chains, data::AbstractVector, args...; kwargs...)
+function ParetoSmooth.psis(ll_fun::Function, chain::Chains, data::AbstractVector, args...; kwargs...)
     pointwise_log_likes = pointwise_log_likelihoods(ll_fun, chain, data)
     return psis(-pointwise_log_likes, args...; kwargs...)
+end
+
 end

@@ -4,6 +4,10 @@ belongs to. For instance, `chain_index[step]` should return `2` if `log_likeliho
 belongs to the second chain.
 """
 
+const CHAINS_ARG = """
+`chains::Chains`: A chain object from MCMCChains.
+"""
+
 const DATA_ARG = """
 `data`: An array of data points used to estimate the parameters of the model.
 """
@@ -21,8 +25,8 @@ or if all posterior samples were drawn from a single chain.
 """
 
 const R_EFF_DOC = """
-`r_eff::AbstractVector`: An (optional) vector of relative effective sample sizes used in ESS 
-calculations. If left empty, calculated automatically using the FFTESS method from 
+`r_eff::AbstractVector`: An (optional) vector of relative effective sample sizes used in ESS
+calculations. If left empty, calculated automatically using the FFTESS method from
 InferenceDiagnostics.jl. See `relative_eff` to calculate these values.
 """
 

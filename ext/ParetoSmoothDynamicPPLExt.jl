@@ -1,16 +1,25 @@
-using .Turing
-export pointwise_log_likelihoods, psis_loo, psis, loo_from_psis
+module ParetoSmoothDynamicPPLExt
 
+if isdefined(Base, :get_extension)
+    using ParetoSmooth
+    using MCMCChains
+    using DynamicPPL
+else
+    using ..ParetoSmooth
+    using ..MCMCChains
+    using ..DynamicPPL
+end
 
 const TURING_MODEL_ARG = """
 `model`: A Turing model with data in the form of `model(data)`.
 """
 
+using ParetoSmooth: LIKELIHOOD_FUNCTION_ARG, DATA_ARG, CHAINS_ARG, ARGS, KWARGS
 
 """
     pointwise_log_likelihoods(model::DynamicPPL.Model, chains::Chains) -> Array
 
-Compute pointwise log-likelihoods from a Turing model.  
+Compute pointwise log-likelihoods from a Turing model.
 
 # Arguments
   - $TURING_MODEL_ARG
@@ -20,7 +29,7 @@ Compute pointwise log-likelihoods from a Turing model.
   - `Array`: A three dimensional array of pointwise log likelihoods. This array should be
     indexed using `array[data, sample, chains]`.
 """
-function pointwise_log_likelihoods(model::DynamicPPL.Model, chains::Chains)
+function ParetoSmooth.pointwise_log_likelihoods(model::DynamicPPL.Model, chains::Chains)
     # subset of chains for mcmc samples
     chain_params = MCMCChains.get_sections(chains, :parameters)
     # compute the pointwise log likelihoods
@@ -41,7 +50,7 @@ end
     psis_loo(model::DynamicPPL.Model, chains::Chains, args...; kwargs...) -> PsisLoo
 
 Use Pareto-Smoothed Importance Sampling to calculate the leave-one-out cross validation
-score from a `chains` object and a Turing model. 
+score from a `chains` object and a Turing model.
 
 # Arguments
 
@@ -52,7 +61,7 @@ score from a `chains` object and a Turing model.
 
 See also: [`psis`](@ref), [`loo`](@ref), [`PsisLoo`](@ref).
 """
-function psis_loo(model::DynamicPPL.Model, chains::Chains, args...; kwargs...)
+function ParetoSmooth.psis_loo(model::DynamicPPL.Model, chains::Chains, args...; kwargs...)
     pointwise_log_likes = pointwise_log_likelihoods(model, chains)
     return psis_loo(pointwise_log_likes, args...; kwargs...)
 end
@@ -69,10 +78,10 @@ score from a `Chains` object, a Turing model, and a precalculated `Psis` object.
   - $CHAINS_ARG
   - $TURING_MODEL_ARG
   - `psis`: A `Psis` object containing the results of Pareto smoothed importance sampling.
-  
+
 See also: [`psis`](@ref), [`psis_loo`](@ref), [`PsisLoo`](@ref).
 """
-function loo_from_psis(model::DynamicPPL.Model, chains::Chains, psis::Psis)
+function ParetoSmooth.loo_from_psis(model::DynamicPPL.Model, chains::Chains, psis::Psis)
     pointwise_log_likes = pointwise_log_likelihoods(model, chains)
     return loo_from_psis(pointwise_log_likes, psis)
 end
@@ -89,13 +98,15 @@ Generate samples using Pareto smoothed importance sampling (PSIS).
 
 See also: [`psis`](@ref), [`loo`](@ref), [`PsisLoo`](@ref).
 """
-function psis(model::DynamicPPL.Model, chains::Chains, args...; kwargs...)
+function ParetoSmooth.psis(model::DynamicPPL.Model, chains::Chains, args...; kwargs...)
     log_ratios = pointwise_log_likelihoods(model, chains)
     return psis(-log_ratios, args...; kwargs...)
 end
 
 
-function naive_lpd(model::DynamicPPL.Model, chains::Chains, args...; kwargs...)
+function ParetoSmooth.naive_lpd(model::DynamicPPL.Model, chains::Chains, args...; kwargs...)
     log_ratios = pointwise_log_likelihoods(model, chains)
-    return naive_lpd(log_ratios, args...; kwargs...)
+    return ParetoSmooth.naive_lpd(log_ratios, args...; kwargs...)
+end
+
 end

@@ -1,19 +1,18 @@
 module ParetoSmooth
-using Requires
 
+if !isdefined(Base, :get_extension)
+    using Requires
+end
+
+@static if !isdefined(Base, :get_extension)
 function __init__()
-    chains=false
-    @require MCMCChains = "c7f686f2-ff18-58e9-bc7b-31028e88f75d" begin 
-        include("MCMCChainsHelpers.jl")
-        chains=true
+    @require MCMCChains = "c7f686f2-ff18-58e9-bc7b-31028e88f75d" begin
+        include("../ext/ParetoSmoothMCMCChainsExt.jl")
     end
-    @require Turing = "fce5fe82-541a-59a6-adf8-730c64b5f9a0" begin
-        if !chains
-            include("MCMCChainsHelpers.jl")
-        end
-        include("TuringHelpers.jl")
-    end 
-
+    @require DynamicPPL = "366bfd00-2699-11ea-058f-f148b4cae6d8" begin
+        include("../ext/ParetoSmoothDynamicPPLExt.jl")
+    end
+end
 end
 
 @static if VERSION >= v"1.8"
