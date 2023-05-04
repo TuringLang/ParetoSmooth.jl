@@ -15,7 +15,7 @@ A struct containing the results of model comparison.
     following columns --
       + `cv_elpd`: The difference in total leave-one-out cross validation scores
         between models.
-      + `cv_avg`: The difference in average LOO-CV scorees between models.
+      + `cv_avg`: The difference in average LOO-CV scores between models.
       + `weight`: A set of Akaike-like weights assigned to each model, which can be used in
         pseudo-Bayesian model averaging.
   - `std_err::NamedTuple`: A named tuple containing the standard error of `cv_elpd`. Note 
