@@ -17,9 +17,19 @@ Requires = "ae029012-a4dd-5104-9daa-d747884805df"
 Statistics = "10745b16-79ce-11e8-11f9-7d13ad32a3b2"
 StatsBase = "2913bbd2-ae8a-5f71-8c99-4fb6c76f3a91"
 
+[weakdeps]
+MCMCChains = "c7f686f2-ff18-58e9-bc7b-31028e88f75d"
+DynamicPPL = "366bfd00-2699-11ea-058f-f148b4cae6d8"
+
+[extensions]
+ParetoSmoothDynamicPPLExt = ["DynamicPPL", "MCMCChains"]
+ParetoSmoothMCMCChainsExt = "MCMCChains"
+
 [compat]
 AxisKeys = "0.1.18, 0.2"
+DynamicPPL = "0.22"
 LogExpFunctions = "0.3"
+MCMCChains = "5"
 MCMCDiagnosticTools = "0.1.0"
 NamedDims = "0.2.35, 1"
 PrettyTables = "2.1,2.2"
@@ -28,6 +38,8 @@ StatsBase = "0.33.10, 0.34"
 julia = "1.6"
 
 [extras]
+MCMCChains = "c7f686f2-ff18-58e9-bc7b-31028e88f75d"
+DynamicPPL = "366bfd00-2699-11ea-058f-f148b4cae6d8"
 Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
 
 [targets]
