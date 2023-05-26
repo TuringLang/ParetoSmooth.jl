@@ -6,15 +6,15 @@ export relative_eff, psis_ess, sup_ess
     relative_eff(
         sample::AbstractArray{<:Real, 3};
         source::Union{AbstractString, Symbol} = "default",
+        maxlag::Int = typemax(Int),
         kwargs..., 
     )
 
 Calculate the relative efficiency of an MCMC chain, i.e., the effective sample size divided
 by the nominal sample size.
 
-If `lowercase(String(source))` is `"default"` or `"mcmc"`, the relative effective sample size is computed with `MCMCDiagnosticTools.ess`.
+If `lowercase(String(source))` is `"default"` or `"mcmc"`, the relative effective sample size is computed with `MCMCDiagnosticTools.ess`, using keyword arguments `kind = :basic`, `maxlag = maxlag`, and the remaining keyword arguments `kwargs...`.
 Otherwise a vector of ones for each chain is returned.
-The remaining keyword arguments `kwargs` are forwarded to `MCMCDiagnosticTools.ess`.
 
 # Arguments 
 
@@ -23,6 +23,7 @@ The remaining keyword arguments `kwargs` are forwarded to `MCMCDiagnosticTools.e
 function relative_eff(
     sample::AbstractArray{<:Real,3}; 
     source::Union{AbstractString, Symbol}="default",
+    maxlag=typemax(Int),
     kwargs...,
 )
     if lowercase(String(source)) ∉ ("mcmc", "default")
@@ -32,7 +33,7 @@ function relative_eff(
         return fill!(res, 1)
     end
     ess_sample = PermutedDimsArray(sample, (2, 3, 1))
-    return MCMCDiagnosticTools.ess(ess_sample; kwargs..., relative=true)
+    return MCMCDiagnosticTools.ess(ess_sample; maxlag, kwargs..., kind=:basic, relative=true)
 end
 
 
