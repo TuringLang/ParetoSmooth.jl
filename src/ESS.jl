@@ -1,33 +1,39 @@
-using MCMCDiagnosticTools
+import MCMCDiagnosticTools
 
 export relative_eff, psis_ess, sup_ess
 
 """
     relative_eff(
-        sample::AbstractArray{<:Real, 3}; 
-        method=MCMCDiagnosticTools.FFTESSMethod()
+        sample::AbstractArray{<:Real, 3};
+        source::Union{AbstractString, Symbol} = "default",
+        maxlag::Int = typemax(Int),
+        kwargs..., 
     )
 
-Calculate the relative efficiency of an MCMC chain, i.e. the effective sample size divided
+Calculate the relative efficiency of an MCMC chain, i.e., the effective sample size divided
 by the nominal sample size.
+
+If `lowercase(String(source))` is `"default"` or `"mcmc"`, the relative effective sample size is computed with `MCMCDiagnosticTools.ess`, using keyword arguments `kind = :basic`, `maxlag = maxlag`, and the remaining keyword arguments `kwargs...`.
+Otherwise a vector of ones for each chain is returned.
 
 # Arguments 
 
-  - `sample::AbstractArray{<:Real, 3}`: An array of log-likelihood values.
+  - `sample::AbstractArray{<:Real, 3}`: An array of log-likelihood values of the shape `(parameters, draws, chains)`.
 """
 function relative_eff(
     sample::AbstractArray{<:Real,3}; 
-    source::Union{AbstractString, Symbol}="default", maxlag=size(sample, 2), kwargs...
+    source::Union{AbstractString, Symbol}="default",
+    maxlag=typemax(Int),
+    kwargs...,
 )
-    if lowercase(String(source)) ∉ ["mcmc", "default"]
-        return ones(size(sample, 1))
+    if lowercase(String(source)) ∉ ("mcmc", "default")
+        # Avoid type instability by computing the return type of `ess`
+        T = promote_type(eltype(sample), typeof(zero(eltype(sample)) / 1))
+        res = similar(sample, T, (axes(sample, 3),))
+        return fill!(res, 1)
     end
-
-    dims = size(sample)
-    post_sample_size = dims[2] * dims[3]
-    ess_sample = permutedims(sample, [2, 1, 3])
-    ess, = MCMCDiagnosticTools.ess_rhat(ess_sample; maxlag=maxlag, kwargs...)
-    return r_eff = ess / post_sample_size
+    ess_sample = PermutedDimsArray(sample, (2, 3, 1))
+    return MCMCDiagnosticTools.ess(ess_sample; maxlag, kwargs..., kind=:basic, relative=true)
 end
 
 
