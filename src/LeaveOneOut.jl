@@ -1,5 +1,4 @@
 using AxisKeys
-using InteractiveUtils
 using NamedDims
 using Statistics
 using Printf
