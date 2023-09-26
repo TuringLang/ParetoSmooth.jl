@@ -13,6 +13,7 @@ makedocs(;
     ),
     pages=[
         "Home" => "index.md",
+        "Using with Turing" => "turing.md",
     ],
     strict=true,
     checkdocs=:exports,
