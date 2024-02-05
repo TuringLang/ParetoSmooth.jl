@@ -18,7 +18,7 @@ StatsBase = "2913bbd2-ae8a-5f71-8c99-4fb6c76f3a91"
 
 [compat]
 AxisKeys = "0.1.18, 0.2"
-DynamicPPL = "0.21, 0.24"
+DynamicPPL = "0.21, 0.22, 0.23, 0.24"
 LogExpFunctions = "0.3"
 MCMCChains = "6"
 MCMCDiagnosticTools = "0.3.2"
