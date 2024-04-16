@@ -1,4 +1,5 @@
 import Base.show
+using InvertedIndices
 
 export loo_compare, ModelComparison
 
