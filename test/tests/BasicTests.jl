@@ -20,14 +20,14 @@ import RData
     
     # Add labels, reformat
     r_pointwise = KeyedArray(
-        r_loo["pointwise"][:, Not(4)];
+        r_loo["pointwise"][:, vcat(1:3, 5)];
         data=1:size(r_loo["pointwise"], 1),
         statistic=[:cv_elpd, :mcse, :p_eff, :pareto_k],
     )
     
     r_loo["estimates"] = hcat(r_loo["estimates"], r_loo["estimates"] / size(r_pointwise, 1))
     r_ests = KeyedArray(
-        r_loo["estimates"][Not(3), :];
+        r_loo["estimates"][1:2, :];
         statistic=[:cv_elpd, :p_eff],
         column=[:total, :se_total, :mean, :se_mean],
     )

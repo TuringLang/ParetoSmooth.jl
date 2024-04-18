@@ -98,7 +98,7 @@ function loo_compare(
     )
     # Subtract the effective number of params and elpd ests; leave mcse+pareto_k the same
     @views base_case = pointwise_diffs[:, 1:3, 1]
-    @views @. pointwise_diffs[:, 1:3, Not(1)] = pointwise_diffs[:, 1:3, Not(1)] - base_case
+    @views pointwise_diffs[:, 1:3, (begin + 1):end] .-= base_case
     pointwise_diffs[:, 1:3, 1] .= 0
 
     name_tuple = ntuple(i -> model_names[i], n_models)  # convert to tuple
