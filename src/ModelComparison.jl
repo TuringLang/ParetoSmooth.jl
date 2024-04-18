@@ -1,5 +1,4 @@
 import Base.show
-using InvertedIndices
 
 export loo_compare, ModelComparison
 
@@ -99,7 +98,8 @@ function loo_compare(
     )
     # Subtract the effective number of params and elpd ests; leave mcse+pareto_k the same
     @views base_case = pointwise_diffs[:, 1:3, 1]
-    @views @. pointwise_diffs[:, 1:3, Not(1)] = pointwise_diffs[:, 1:3, Not(1)] - base_case
+    lastidx = axes(pointwise_diffs, 3)[2:end]
+    @views @. pointwise_diffs[:, 1:3, lastidx] = pointwise_diffs[:, 1:3, lastidx] - base_case
     pointwise_diffs[:, 1:3, 1] .= 0
 
     name_tuple = ntuple(i -> model_names[i], n_models)  # convert to tuple
