@@ -1,5 +1,460 @@
 <!DOCTYPE html>
-<html lang="en"><head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width, initial-scale=1.0"/><title>Home · ParetoSmooth.jl</title><meta name="title" content="Home · ParetoSmooth.jl"/><meta property="og:title" content="Home · ParetoSmooth.jl"/><meta property="twitter:title" content="Home · ParetoSmooth.jl"/><meta name="description" content="Documentation for ParetoSmooth.jl."/><meta property="og:description" content="Documentation for ParetoSmooth.jl."/><meta property="twitter:description" content="Documentation for ParetoSmooth.jl."/><meta property="og:url" content="https://turinglang.github.io/ParetoSmooth.jl/"/><meta property="twitter:url" content="https://turinglang.github.io/ParetoSmooth.jl/"/><link rel="canonical" href="https://turinglang.github.io/ParetoSmooth.jl/"/><script data-outdated-warner src="assets/warner.js"></script><link href="https://cdnjs.cloudflare.com/ajax/libs/lato-font/3.0.0/css/lato-font.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/juliamono/0.050/juliamono.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/fontawesome.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/solid.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/brands.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.8/katex.min.css" rel="stylesheet" type="text/css"/><script>documenterBaseURL="."</script><script src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.6/require.min.js" data-main="assets/documenter.js"></script><script src="search_index.js"></script><script src="siteinfo.js"></script><script src="../versions.js"></script><link class="docs-theme-link" rel="stylesheet" type="text/css" href="assets/themes/documenter-dark.css" data-theme-name="documenter-dark" data-theme-primary-dark/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="assets/themes/documenter-light.css" data-theme-name="documenter-light" data-theme-primary/><script src="assets/themeswap.js"></script></head><body><div id="documenter"><nav class="docs-sidebar"><div class="docs-package-name"><span class="docs-autofit"><a href>ParetoSmooth.jl</a></span></div><button class="docs-search-query input is-rounded is-small is-clickable my-2 mx-auto py-1 px-2" id="documenter-search-query">Search docs (Ctrl + /)</button><ul class="docs-menu"><li class="is-active"><a class="tocitem" href>Home</a></li><li><a class="tocitem" href="turing/">Using with Turing</a></li></ul><div class="docs-version-selector field has-addons"><div class="control"><span class="docs-label button is-static is-size-7">Version</span></div><div class="docs-selector control is-expanded"><div class="select is-fullwidth is-size-7"><select id="documenter-version-selector"></select></div></div></div></nav><div class="docs-main"><header class="docs-navbar"><a class="docs-sidebar-button docs-navbar-link fa-solid fa-bars is-hidden-desktop" id="documenter-sidebar-button" href="#"></a><nav class="breadcrumb"><ul class="is-hidden-mobile"><li class="is-active"><a href>Home</a></li></ul><ul class="is-hidden-tablet"><li class="is-active"><a href>Home</a></li></ul></nav><div class="docs-right"><a class="docs-navbar-link" href="https://github.com/TuringLang/ParetoSmooth.jl/blob/main/docs/src/index.md#" title="Edit source on GitHub"><span class="docs-icon fa-solid"></span></a><a class="docs-settings-button docs-navbar-link fa-solid fa-gear" id="documenter-settings-button" href="#" title="Settings"></a><a class="docs-article-toggle-button fa-solid fa-chevron-up" id="documenter-article-toggle-button" href="javascript:;" title="Collapse all docstrings"></a></div></header><article class="content" id="documenter-page"><h1 id="ParetoSmooth"><a class="docs-heading-anchor" href="#ParetoSmooth">ParetoSmooth</a><a id="ParetoSmooth-1"></a><a class="docs-heading-anchor-permalink" href="#ParetoSmooth" title="Permalink"></a></h1><p>Documentation for <a href="https://github.com/TuringLang/ParetoSmooth.jl">ParetoSmooth</a>.</p><ul><li><a href="#ParetoSmooth.ModelComparison"><code>ParetoSmooth.ModelComparison</code></a></li><li><a href="#ParetoSmooth.Psis"><code>ParetoSmooth.Psis</code></a></li><li><a href="#ParetoSmooth.PsisLoo"><code>ParetoSmooth.PsisLoo</code></a></li><li><a href="#ParetoSmooth.loo-Tuple"><code>ParetoSmooth.loo</code></a></li><li><a href="#ParetoSmooth.loo_compare-Union{Tuple{AbstractVector{&lt;:PsisLoo}}, Tuple{S}} where S&lt;:(Union{Tuple{Vararg{var&quot;#s41&quot;}}, AbstractVector{&lt;:var&quot;#s41&quot;}} where var&quot;#s41&quot;&lt;:Union{AbstractString, Symbol})"><code>ParetoSmooth.loo_compare</code></a></li><li><a href="#ParetoSmooth.loo_from_psis-Tuple{AbstractArray{&lt;:Real, 3}, Psis}"><code>ParetoSmooth.loo_from_psis</code></a></li><li><a href="#ParetoSmooth.naive_lpd"><code>ParetoSmooth.naive_lpd</code></a></li><li><a href="#ParetoSmooth.pointwise_log_likelihoods-Tuple{Function, AbstractArray{&lt;:Union{Missing, Real}, 3}, Any}"><code>ParetoSmooth.pointwise_log_likelihoods</code></a></li><li><a href="#ParetoSmooth.psis-Union{Tuple{AbstractArray{T, 3}}, Tuple{T}} where T&lt;:Real"><code>ParetoSmooth.psis</code></a></li><li><a href="#ParetoSmooth.psis!-Union{Tuple{AbstractVector{T}}, Tuple{T}, Tuple{AbstractVector{T}, T}} where T&lt;:Real"><code>ParetoSmooth.psis!</code></a></li><li><a href="#ParetoSmooth.psis_ess-Union{Tuple{T}, Tuple{AbstractMatrix{T}, AbstractVector{T}}} where T&lt;:Real"><code>ParetoSmooth.psis_ess</code></a></li><li><a href="#ParetoSmooth.psis_loo-Tuple{AbstractArray{&lt;:Real, 3}, Vararg{Any}}"><code>ParetoSmooth.psis_loo</code></a></li><li><a href="#ParetoSmooth.relative_eff-Tuple{AbstractArray{&lt;:Real, 3}}"><code>ParetoSmooth.relative_eff</code></a></li><li><a href="#ParetoSmooth.sup_ess-Union{Tuple{T}, Tuple{AbstractMatrix{T}, AbstractVector{T}}} where T&lt;:Real"><code>ParetoSmooth.sup_ess</code></a></li></ul><article class="docstring"><header><a class="docstring-article-toggle-button fa-solid fa-chevron-down" href="javascript:;" title="Collapse docstring"></a><a class="docstring-binding" id="ParetoSmooth.ModelComparison" href="#ParetoSmooth.ModelComparison"><code>ParetoSmooth.ModelComparison</code></a> — <span class="docstring-category">Type</span></header><section><div><pre><code class="language-julia hljs">ModelComparison</code></pre><p>A struct containing the results of model comparison.</p><p><strong>Fields</strong></p><ul><li><code>pointwise::KeyedArray</code>: A <code>KeyedArray</code> of pointwise estimates. See [<code>PsisLoo</code>]@ref.<ul><li><code>estimates::KeyedArray</code>: A table containing the results of model comparison, with the following columns –<ul><li><code>cv_elpd</code>: The difference in total leave-one-out cross validation scores between models.</li><li><code>cv_avg</code>: The difference in average LOO-CV scores between models.</li><li><code>weight</code>: A set of Akaike-like weights assigned to each model, which can be used in pseudo-Bayesian model averaging.</li></ul></li><li><code>std_err::NamedTuple</code>: A named tuple containing the standard error of <code>cv_elpd</code>. Note  that these estimators (incorrectly) assume all folds are independent, despite their  substantial overlap, which creates a downward biased estimator. LOO-CV differences are <em>not</em> asymptotically normal, so these standard errors cannot be used to  calculate a confidence interval.</li><li><code>gmpd::NamedTuple</code>: The geometric mean of the predictive distribution. It equals the  geometric mean of the probability assigned to each data point by the model, that is, <code>exp(cv_avg)</code>. This measure is only meaningful for classifiers (variables with discrete  outcomes). We can think of it as measuring how often the model was right: A model that always predicts incorrectly will have a GMPD of 0, while a model that always predicts correctly will have a GMPD of 1. However, the GMPD gives a model &quot;Partial points&quot;  between 0 and 1 whenever the model assigns a probability other than 0 or 1 to the  outcome that actually happened.</li></ul></li></ul><p>See also: <a href="#ParetoSmooth.PsisLoo"><code>PsisLoo</code></a></p></div><a class="docs-sourcelink" target="_blank" href="https://github.com/TuringLang/ParetoSmooth.jl/blob/c905ee89cf6d66bfc4ffc1fc2f146eefa1696f0c/src/ModelComparison.jl#L6-L36">source</a></section></article><article class="docstring"><header><a class="docstring-article-toggle-button fa-solid fa-chevron-down" href="javascript:;" title="Collapse docstring"></a><a class="docstring-binding" id="ParetoSmooth.Psis" href="#ParetoSmooth.Psis"><code>ParetoSmooth.Psis</code></a> — <span class="docstring-category">Type</span></header><section><div><pre><code class="language-julia hljs">Psis{R&lt;:Real, AT&lt;:AbstractArray{R, 3}, VT&lt;:AbstractVector{R}}</code></pre><p>A struct containing the results of Pareto-smoothed importance sampling.</p><p><strong>Fields</strong></p><ul><li><code>weights</code>: A vector of smoothed, truncated, and normalized importance sampling weights.</li><li><code>pareto_k</code>: Estimates of the shape parameter <code>k</code> of the generalized Pareto distribution.</li><li><code>ess</code>: Estimated effective sample size for each LOO evaluation, based on the variance of the weights.</li><li><code>sup_ess</code>: Estimated effective sample size for each LOO evaluation, based on the  supremum norm, i.e. the size of the largest weight. More likely than <code>ess</code> to warn when  importance sampling has failed. However, it can have a high variance.</li><li><code>r_eff</code>: The relative efficiency of the MCMC chain, i.e. ESS / posterior sample size.</li><li><code>tail_len</code>: Vector indicating how large the &quot;tail&quot; is for each observation.</li><li><code>posterior_sample_size</code>: How many draws from an MCMC chain were used for PSIS.</li><li><code>data_size</code>: How many data points were used for PSIS.</li></ul></div><a class="docs-sourcelink" target="_blank" href="https://github.com/TuringLang/ParetoSmooth.jl/blob/c905ee89cf6d66bfc4ffc1fc2f146eefa1696f0c/src/ImportanceSampling.jl#L18-L36">source</a></section></article><article class="docstring"><header><a class="docstring-article-toggle-button fa-solid fa-chevron-down" href="javascript:;" title="Collapse docstring"></a><a class="docstring-binding" id="ParetoSmooth.PsisLoo" href="#ParetoSmooth.PsisLoo"><code>ParetoSmooth.PsisLoo</code></a> — <span class="docstring-category">Type</span></header><section><div><pre><code class="language-julia hljs">PsisLoo &lt;: AbstractCV</code></pre><p>A struct containing the results of leave-one-out cross validation computed with Pareto  smoothed importance sampling.</p><p><strong>Fields</strong></p><ul><li><code>estimates::KeyedArray</code>: A KeyedArray with columns <code>:total, :se_total, :mean, :se_mean</code>, and rows <code>:cv_elpd, :naive_lpd, :p_eff</code>. See <code># Extended help</code> for more.<ul><li><code>:cv_elpd</code> contains estimates for the out-of-sample prediction error, as estimated using leave-one-out cross validation.</li><li><code>:naive_lpd</code> contains estimates of the in-sample prediction error.</li><li><code>:p_eff</code> is the effective number of parameters – a model with a <code>p_eff</code> of 2 is  &quot;about as overfit&quot; as a model with 2 parameters and no regularization.</li></ul></li><li><code>pointwise::KeyedArray</code>: A <code>KeyedArray</code> of pointwise estimates with 5 columns –<ul><li><code>:cv_elpd</code> contains the estimated out-of-sample error for this point, as measured</li></ul>using leave-one-out cross validation.<ul><li><code>:naive_lpd</code> contains the in-sample estimate of error for this point.</li><li><code>:p_eff</code> is the difference in the two previous estimates.</li><li><code>:ess</code> is the L2 effective sample size, which estimates the simulation error caused  by using Monte Carlo estimates. It does not measure model performance.  </li><li><code>:inf_ess</code> is the supremum-based effective sample size, which estimates the  simulation error caused by using Monte Carlo estimates. It is more robust than  <code>:ess</code> and should therefore be preferred. It does not measure model performance.  </li><li><code>:pareto_k</code> is the estimated value for the parameter <code>ξ</code> of the generalized Pareto distribution. Values above .7 indicate that PSIS has failed to approximate the true distribution.</li></ul></li><li><code>psis_object::Psis</code>: A <code>Psis</code> object containing the results of Pareto-smoothed  importance sampling.</li><li><code>gmpd</code>: The geometric mean of the predictive density. It is defined as the geometric mean of the probability assigned to each data point by the model, i.e. <code>exp(cv_avg)</code>.  This measure is only interpretable for classifiers (variables with discrete outcomes). We can think of it as measuring how often the model was right: A model that always predicts incorrectly will have a GMPD of 0, while a model that always predicts correctly will have a GMPD of 1. However, the GMPD gives a model &quot;Partial points&quot;  between 0 and 1 whenever the model assigns a probability other than 0 or 1 to the  outcome that actually happened, making it a fully Bayesian measure of model quality.</li><li><code>mcse</code>: A float containing the estimated Monte Carlo standard error for the total  cross-validation estimate.</li></ul><p><strong>Extended help</strong></p><p>The total score depends on the sample size, and summarizes the weight of evidence for or against a model. Total scores are on an interval scale, meaning that only differences of scores are meaningful. <em>It is not possible to interpret a total score by looking at it.</em> The total score is not a goodness-of-fit statistic (for this, see the average score).</p><p>The average score is the total score, divided by the sample size. It estimates the expected log score, i.e. the expectation of the log probability density of observing the next point. The average score is a relative goodness-of-fit statistic which does not depend on sample size. </p><p>Unlike for chi-square goodness of fit tests, models do not have to be nested for model comparison using cross-validation methods.</p><p>See also: [<code>loo</code>]@ref, [<code>bayes_cv</code>]@ref, [<code>psis_loo</code>]@ref, [<code>Psis</code>]@ref</p></div><a class="docs-sourcelink" target="_blank" href="https://github.com/TuringLang/ParetoSmooth.jl/blob/c905ee89cf6d66bfc4ffc1fc2f146eefa1696f0c/src/LeaveOneOut.jl#L23-L32">source</a></section></article><article class="docstring"><header><a class="docstring-article-toggle-button fa-solid fa-chevron-down" href="javascript:;" title="Collapse docstring"></a><a class="docstring-binding" id="ParetoSmooth.loo-Tuple" href="#ParetoSmooth.loo-Tuple"><code>ParetoSmooth.loo</code></a> — <span class="docstring-category">Method</span></header><section><div><pre><code class="language-julia hljs">function loo(args...; kwargs...) -&gt; PsisLoo</code></pre><p>Compute an approximate leave-one-out cross-validation score.</p><p>Currently, this function only serves to call <code>psis_loo</code>, but this could change in the future. The default methods or return type may change without warning, so we recommend using <code>psis_loo</code> instead if reproducibility is required.</p><p>See also: <a href="#ParetoSmooth.psis_loo-Tuple{AbstractArray{&lt;:Real, 3}, Vararg{Any}}"><code>psis_loo</code></a>, <a href="#ParetoSmooth.PsisLoo"><code>PsisLoo</code></a>.</p></div><a class="docs-sourcelink" target="_blank" href="https://github.com/TuringLang/ParetoSmooth.jl/blob/c905ee89cf6d66bfc4ffc1fc2f146eefa1696f0c/src/LeaveOneOut.jl#L71-L81">source</a></section></article><article class="docstring"><header><a class="docstring-article-toggle-button fa-solid fa-chevron-down" href="javascript:;" title="Collapse docstring"></a><a class="docstring-binding" id="ParetoSmooth.loo_compare-Union{Tuple{AbstractVector{&lt;:PsisLoo}}, Tuple{S}} where S&lt;:(Union{Tuple{Vararg{var&quot;#s41&quot;}}, AbstractVector{&lt;:var&quot;#s41&quot;}} where var&quot;#s41&quot;&lt;:Union{AbstractString, Symbol})" href="#ParetoSmooth.loo_compare-Union{Tuple{AbstractVector{&lt;:PsisLoo}}, Tuple{S}} where S&lt;:(Union{Tuple{Vararg{var&quot;#s41&quot;}}, AbstractVector{&lt;:var&quot;#s41&quot;}} where var&quot;#s41&quot;&lt;:Union{AbstractString, Symbol})"><code>ParetoSmooth.loo_compare</code></a> — <span class="docstring-category">Method</span></header><section><div><pre><code class="language-julia hljs">function loo_compare(
+<html lang="en"><head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width, initial-scale=1.0"/><title>Home · ParetoSmooth.jl</title><meta name="title" content="Home · ParetoSmooth.jl"/><meta property="og:title" content="Home · ParetoSmooth.jl"/><meta property="twitter:title" content="Home · ParetoSmooth.jl"/><meta name="description" content="Documentation for ParetoSmooth.jl."/><meta property="og:description" content="Documentation for ParetoSmooth.jl."/><meta property="twitter:description" content="Documentation for ParetoSmooth.jl."/><meta property="og:url" content="https://turinglang.github.io/ParetoSmooth.jl/"/><meta property="twitter:url" content="https://turinglang.github.io/ParetoSmooth.jl/"/><link rel="canonical" href="https://turinglang.github.io/ParetoSmooth.jl/"/><script data-outdated-warner src="assets/warner.js"></script><link href="https://cdnjs.cloudflare.com/ajax/libs/lato-font/3.0.0/css/lato-font.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/juliamono/0.050/juliamono.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/fontawesome.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/solid.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/brands.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.8/katex.min.css" rel="stylesheet" type="text/css"/><script>documenterBaseURL="."</script><script src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.6/require.min.js" data-main="assets/documenter.js"></script><script src="search_index.js"></script><script src="siteinfo.js"></script><script src="../versions.js"></script><link class="docs-theme-link" rel="stylesheet" type="text/css" href="assets/themes/documenter-dark.css" data-theme-name="documenter-dark" data-theme-primary-dark/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="assets/themes/documenter-light.css" data-theme-name="documenter-light" data-theme-primary/><script src="assets/themeswap.js"></script></head><body>
+<!-- NAVBAR START -->
+<style>
+    html {
+        scroll-padding-top: calc(55px + 1rem);
+    }
+
+    /* Documenter css tweaks */
+    .docs-sidebar {
+        margin-top: 3.75rem;
+    }
+
+    #documenter {
+        margin-top: 3.75rem;
+    }
+
+    .docs-version-selector {
+        margin-bottom: 60px !important;
+    }
+
+    @media screen and (max-width: 1056px) {
+        .docs-version-selector {
+            margin-bottom: 60px !important;
+        }
+
+        .docs-sidebar {
+            margin-top: 0 !important;
+        }
+    }
+    /* Documenter css tweaks ends here */
+
+    :root {
+        --heading-color: white;
+        --item-color: rgb(165, 165, 165);
+        --primary-bg: #073c44;
+        --hover-color: #8faad2;
+    }
+
+    .ext-navigation {
+        position: fixed;
+        height: 3.75rem;
+        top: 0;
+        width: 100%;
+        background-color: var(--primary-bg);
+        z-index: 1000;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        display: flex;
+        align-items: center;
+        padding: 0 1.0625rem;
+        transition: transform 0.3s;
+    }
+
+    .ext-navbar-logo {
+        margin-left: 0.625rem;
+    }
+
+    .ext-nav-links {
+        display: flex;
+        align-items: center;
+        list-style-type: none;
+        margin: 0;
+        padding: 0;
+        flex-grow: 1;
+    }
+
+    .ext-nav-links li {
+        margin-left: 1rem !important;
+    }
+
+    .ext-nav-link {
+        color: white !important;
+        text-decoration: none;
+        font-size: 1.0625rem !important;
+        transition: color 0.2s ease;
+        cursor: pointer;
+    }
+
+    .ext-nav-link:hover,
+    .ext-navbar-item-single a:hover {
+        color: var(--hover-color) !important;
+    }
+
+    .ext-navbar-item-single a {
+        color: #fff !important;
+    }
+
+    .ext-menu-toggle {
+        display: none;
+        font-size: 1.5rem;
+        color: white;
+        cursor: pointer;
+    }
+
+    .ext-dropdown {
+        display: none;
+        grid-template-columns: 1fr 1fr 1fr 1fr;
+        grid-template-rows: auto auto auto;
+        padding: 1.875rem;
+        position: absolute;
+        width: 100%;
+        left: 0;
+        background-color: #083c44;
+        line-height: 1.875rem;
+        opacity: 0;
+        transition: opacity 0.3s ease-in-out, transform 0.3s ease-in-out;
+        transform: translateY(-0.625rem);
+    }
+
+    #library-handler::after {
+        content: "▼";
+        font-size: 0.6875rem;
+        margin-left: 0.3125rem;
+        transition: transform 0.3s ease-in-out;
+    }
+
+    #library-handler.open::after {
+        content: "▲";
+    }
+
+    .ext-dropdown.show {
+        display: grid;
+        opacity: 1;
+        transform: translateY(0);
+    }
+
+    .ext-dropdown ul {
+        height: auto;
+        width: 12.5rem;
+        margin-bottom: 1.25rem;
+    }
+
+    .ext-dropdown ul li {
+        text-align: left;
+    }
+
+    .navbar-sub-item {
+        list-style: none;
+    }
+
+    .ext-dropdown ul a li {
+        color: var(--item-color);
+        width: 15.625rem;
+        border-radius: 3px;
+        padding: 0.125rem 0.625rem;
+        transition: background-color 0.2s ease;
+    }
+
+    .ext-dropdown ul a li:hover {
+        background-color: rgba(107, 107, 107, 0.5);
+    }
+
+    .ext-dropdown-item-heading {
+        color: var(--heading-color);
+        text-align: center;
+    }
+
+    /* Responsive styling */
+    @media (max-width: 966px) {
+        .ext-dropdown {
+            grid-template-columns: 1fr 1fr 1fr;
+        }
+    }
+
+    @media (max-width: 768px) {
+        .ext-nav-links {
+            display: none;
+            flex-direction: column;
+            width: 100%;
+            background-color: var(--primary-bg);
+            position: absolute;
+            top: 3.75rem;
+            left: 0;
+            padding: 0.625rem 0;
+            height: auto;
+            overflow-y: auto;
+            scrollbar-width: thin;
+            scrollbar-color: rgb(141, 141, 141) grey;
+        }
+
+        .ext-nav-links.show {
+            display: flex;
+        }
+
+        .ext-nav-links li {
+            margin: 0.625rem 0;
+            text-align: center;
+        }
+
+        .ext-menu-toggle {
+            display: block;
+            margin-left: auto;
+        }
+
+        .ext-navigation.hide {
+            transform: translateY(-3.75rem);
+        }
+
+        .ext-dropdown {
+            place-content: center;
+            text-align: center;
+            grid-template-columns: 1fr;
+            line-height: 1.25rem;
+            padding: 0.625rem;
+        }
+
+        .ext-dropdown ul {
+            width: 100%;
+            text-align: center;
+            margin-bottom: 0.3125rem;
+        }
+
+        .ext-dropdown ul li {
+            text-align: center;
+        }
+
+        .ext-dropdown ul a li {
+            width: 100%;
+        }
+
+        .ext-dropdown ul a li:hover {
+            background-color: var(--primary-bg);
+            color: #fff;
+        }
+
+        /* Modified scroll bar */
+        .ext-nav-links::-webkit-scrollbar {
+            width: 5px;
+        }
+
+        .ext-nav-links::-webkit-scrollbar-track {
+            box-shadow: inset 0 0 5px grey;
+        }
+
+        .ext-nav-links::-webkit-scrollbar-thumb {
+            background: rgb(141, 141, 141);
+            border-radius: 3px;
+        }
+
+        .ext-nav-links::-webkit-scrollbar-thumb:hover {
+            background: #9b9b9b;
+        }
+    }
+</style>
+<nav class="ext-navigation">
+    <a href="https://turinglang.org/">
+        <img src="https://turinglang.org/assets/images/turing-logo.svg" alt="Turing Logo" class="ext-navbar-logo" height="24px" width="40px">
+    </a>
+    <a style="color: white !important; font-size: 21.25px !important; margin-left: 10px;" href="https://turinglang.org/">Turing.jl</a>
+    <ul class="ext-nav-links">
+        <li>
+            <a class="ext-nav-link" href="https://turinglang.org/docs/tutorials/docs-00-getting-started/">Get Started</a>
+        </li>
+        <li>
+            <a class="ext-nav-link" href="https://turinglang.org/docs/tutorials/00-introduction/">Tutorials</a>
+        </li>
+        <li>
+            <p class="ext-nav-link" id="library-handler">Library API</p>
+            <div class="ext-dropdown" id="ext-dropdown-items">
+                <ul>
+                    <li class="ext-dropdown-item-heading">Modellinglanguages</li>
+                    <a href="https://turinglang.org/DynamicPPL.jl/">
+                        <li>DynamicPPL</li>
+                    </a>
+                    <a href="https://turinglang.org/JuliaBUGS.jl/">
+                        <li>JuliaBUGS</li>
+                    </a>
+                    <a href="https://turinglang.org/TuringGLM.jl/">
+                        <li>TurineGLM</li>
+                    </a>
+                </ul>
+                <ul>
+                    <li class="ext-dropdown-item-heading">MCMC</li>
+                    <a href="https://turinglang.org/AdvancedHMC.jl/">
+                        <li>AdvancedHMC</li>
+                    </a>
+                    <a href="https://turinglang.org/AbstractMCMC.jl/">
+                        <li>AbstractMCMC</li>
+                    </a>
+                    <a href="https://github.com/theogf/ThermodynamicIntegration.jl">
+                        <li>ThermodynamicIntegration</li>
+                    </a>
+                    <a href="https://turinglang.org/AdvancedPS.jl/">
+                        <li>AdvancedPS</li>
+                    </a>
+                    <a href="https://turinglang.org/EllipticalSliceSampling.jl/">
+                        <li>EllipticalSliceSampling</li>
+                    </a>
+                    <a href="https://turinglang.org/NestedSamplers.jl/">
+                        <li>NestedSamplers</li>
+                    </a>
+                </ul>
+                <ul>
+                    <li class="ext-dropdown-item-heading">Diagnostics</li>
+                    <a href="https://turinglang.org/MCMCChains.jl/">
+                        <li>MCMCChains</li>
+                    </a>
+                    <a href="https://turinglang.org/MCMCDiagnosticTools.jl/">
+                        <li>MCMCDiagnosticTools</li>
+                    </a>
+                    <a href="https://turinglang.org/ParetoSmooth.jl/">
+                        <li>ParetoSmooth</li>
+                    </a>
+                </ul>
+                <ul>
+                    <li class="ext-dropdown-item-heading">Gaussion Processes</li>
+                    <a href="https://juliagaussianprocesses.github.io/AbstractGPs.jl/">
+                        <li>AbstractGPs</li>
+                    </a>
+                    <a href="https://juliagaussianprocesses.github.io/KernelFunctions.jl/">
+                        <li>KernelFunctions</li>
+                    </a>
+                    <a href="https://juliagaussianprocesses.github.io/ApproximateGPs.jl/">
+                        <li>ApproximateGPs</li>
+                    </a>
+                </ul>
+                <ul>
+                    <li class="ext-dropdown-item-heading ext-navbar-item-single">
+                        <a href="https://turinglang.org/Bijectors.jl/">Bijectors</a>
+                    </li>
+                </ul>
+                <ul>
+                    <li class="ext-dropdown-item-heading ext-navbar-item-single">
+                        <a href="https://turinglang.org/TuringCallbacks.jl/">TuringCallbacks</a>
+                    </li>
+                </ul>
+                <ul>
+                    <li class="ext-dropdown-item-heading ext-navbar-item-single">
+                        <a href="https://turinglang.org/TuringBenchmarking.jl/">TuringBenchmarking</a>
+                    </li>
+                </ul>
+            </div>
+        </li>
+        <li>
+            <a class="ext-nav-link" href="https://turinglang.org/news/">News</a>
+        </li>
+        <li>
+            <a class="ext-nav-link" href="https://turinglang.org/team/">Team</a>
+        </li>
+    </ul>
+    <a href="https://x.com/TuringLang" style="margin-left: 15px; padding-top: 2px">
+        <svg fill="#ffffff" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="32px" height="32px" viewBox="-209.92 -209.92 931.84 931.84" xml:space="preserve" stroke="#ffffff">
+            <g id="SVGRepo_bgCarrier" stroke-width="0"></g>
+            <g id="SVGRepo_tracerCarrier" stroke-linecap="round" stroke-linejoin="round"></g>
+            <g id="SVGRepo_iconCarrier">
+                <g id="7935ec95c421cee6d86eb22ecd12f847">
+                    <path style="display: inline"
+                        d="M459.186,151.787c0.203,4.501,0.305,9.023,0.305,13.565 c0,138.542-105.461,298.285-298.274,298.285c-59.209,0-114.322-17.357-160.716-47.104c8.212,0.973,16.546,1.47,25.012,1.47 c49.121,0,94.318-16.759,130.209-44.884c-45.887-0.841-84.596-31.154-97.938-72.804c6.408,1.227,12.968,1.886,19.73,1.886 c9.55,0,18.816-1.287,27.617-3.68c-47.955-9.633-84.1-52.001-84.1-102.795c0-0.446,0-0.882,0.011-1.318 c14.133,7.847,30.294,12.562,47.488,13.109c-28.134-18.796-46.637-50.885-46.637-87.262c0-19.212,5.16-37.218,14.193-52.7 c51.707,63.426,128.941,105.156,216.072,109.536c-1.784-7.675-2.718-15.674-2.718-23.896c0-57.891,46.941-104.832,104.832-104.832 c30.173,0,57.404,12.734,76.525,33.102c23.887-4.694,46.313-13.423,66.569-25.438c-7.827,24.485-24.434,45.025-46.089,58.002 c21.209-2.535,41.426-8.171,60.222-16.505C497.448,118.542,479.666,137.004,459.186,151.787z">
+                    </path>
+                </g>
+            </g>
+        </svg>
+    </a>
+    <a href="https://github.com/TuringLang/Turing.jl">
+        <svg width="32px" height="32px" viewBox="-8.2 -8.2 36.40 36.40" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" fill="#000000">
+            <g id="SVGRepo_bgCarrier" stroke-width="0"></g>
+            <g id="SVGRepo_tracerCarrier" stroke-linecap="round" stroke-linejoin="round"></g>
+            <g id="SVGRepo_iconCarrier">
+                <title>github [#142]</title>
+                <desc>Created with Sketch.</desc>
+                <defs></defs>
+                <g id="Page-1" stroke-width="0.0002" fill="none" fill-rule="evenodd">
+                    <g id="Dribbble-Light-Preview" transform="translate(-140.000000, -7559.000000)" fill="#ffffff">
+                        <g id="icons" transform="translate(56.000000, 160.000000)">
+                            <path
+                                d="M94,7399 C99.523,7399 104,7403.59 104,7409.253 C104,7413.782 101.138,7417.624 97.167,7418.981 C96.66,7419.082 96.48,7418.762 96.48,7418.489 C96.48,7418.151 96.492,7417.047 96.492,7415.675 C96.492,7414.719 96.172,7414.095 95.813,7413.777 C98.04,7413.523 100.38,7412.656 100.38,7408.718 C100.38,7407.598 99.992,7406.684 99.35,7405.966 C99.454,7405.707 99.797,7404.664 99.252,7403.252 C99.252,7403.252 98.414,7402.977 96.505,7404.303 C95.706,7404.076 94.85,7403.962 94,7403.958 C93.15,7403.962 92.295,7404.076 91.497,7404.303 C89.586,7402.977 88.746,7403.252 88.746,7403.252 C88.203,7404.664 88.546,7405.707 88.649,7405.966 C88.01,7406.684 87.619,7407.598 87.619,7408.718 C87.619,7412.646 89.954,7413.526 92.175,7413.785 C91.889,7414.041 91.63,7414.493 91.54,7415.156 C90.97,7415.418 89.522,7415.871 88.63,7414.304 C88.63,7414.304 88.101,7413.319 87.097,7413.247 C87.097,7413.247 86.122,7413.234 87.029,7413.87 C87.029,7413.87 87.684,7414.185 88.139,7415.37 C88.139,7415.37 88.726,7417.2 91.508,7416.58 C91.513,7417.437 91.522,7418.245 91.522,7418.489 C91.522,7418.76 91.338,7419.077 90.839,7418.982 C86.865,7417.627 84,7413.783 84,7409.253 C84,7403.59 88.478,7399 94,7399"
+                                id="github-[#142]">
+                            </path>
+                        </g>
+                    </g>
+                </g>
+            </g>
+        </svg>
+    </a>
+    <span class="ext-menu-toggle">&#9776;</span>
+</nav>
+<script>
+    document.addEventListener("DOMContentLoaded", function () {
+        const menuToggle = document.querySelector(".ext-menu-toggle");
+        const navLinks = document.querySelector(".ext-nav-links");
+        const nav = document.querySelector(".ext-navigation");
+        const navigationHandler = document.getElementById("library-handler");
+        const navigationItemsContainer =
+            document.getElementById("ext-dropdown-items");
+        let lastScrollY = window.scrollY;
+
+        function setAppropriateHeight() {
+            if (window.innerWidth <= 768) {
+                const viewportHeight = window.innerHeight;
+                const navHeight = nav.offsetHeight;
+                navLinks.style.maxHeight = `${viewportHeight - navHeight}px`;
+                navLinks.style.overflowY = "auto";
+            } else {
+                navLinks.style.maxHeight = "";
+                navLinks.style.overflowY = "";
+            }
+        }
+
+        // Toggle main menu for mobile
+        menuToggle.addEventListener("click", () => {
+            navLinks.classList.toggle("show");
+            if (navLinks.classList.contains("show")) {
+                setAppropriateHeight();
+                // Ensure the dropdown is hidden when menu is first opened
+                navigationItemsContainer.style.display = "none";
+                navigationItemsContainer.classList.remove("show");
+            }
+        });
+
+        // Close menus if clicked outside
+        document.addEventListener("click", (event) => {
+            if (
+                !navLinks.contains(event.target) &&
+                !menuToggle.contains(event.target)
+            ) {
+                navLinks.classList.remove("show");
+                navigationItemsContainer.classList.remove("show");
+                navigationHandler.classList.remove("open");
+            }
+        });
+
+        // Hide navigation bar on scroll down in mobile view
+        window.addEventListener("scroll", () => {
+            if (window.innerWidth <= 768) {
+                nav.classList.toggle("hide", window.scrollY > lastScrollY);
+                lastScrollY = window.scrollY;
+            }
+        });
+
+        // Library API script
+        navigationHandler.addEventListener("click", (event) => {
+            event.preventDefault(); // Prevent default action of the link
+            if (navigationItemsContainer.classList.contains("show")) {
+                navigationItemsContainer.classList.remove("show");
+                navigationHandler.classList.remove("open");
+                setTimeout(() => {
+                    navigationItemsContainer.style.display = "none";
+                }, 500); // Match the timeout to the CSS transition duration
+            } else {
+                navigationItemsContainer.style.display = "grid";
+                navigationHandler.classList.add("open");
+                setTimeout(() => {
+                    navigationItemsContainer.classList.add("show");
+                }, 10); // Delay to ensure the display change takes effect before adding class
+            }
+            setAppropriateHeight(); // Recalculate height when dropdown changes
+        });
+
+        // Handle window resize
+        window.addEventListener("resize", setAppropriateHeight);
+
+        // Initial setup
+        setAppropriateHeight();
+    });
+</script>
+<!-- NAVBAR END -->
+<div id="documenter"><nav class="docs-sidebar"><div class="docs-package-name"><span class="docs-autofit"><a href>ParetoSmooth.jl</a></span></div><button class="docs-search-query input is-rounded is-small is-clickable my-2 mx-auto py-1 px-2" id="documenter-search-query">Search docs (Ctrl + /)</button><ul class="docs-menu"><li class="is-active"><a class="tocitem" href>Home</a></li><li><a class="tocitem" href="turing/">Using with Turing</a></li></ul><div class="docs-version-selector field has-addons"><div class="control"><span class="docs-label button is-static is-size-7">Version</span></div><div class="docs-selector control is-expanded"><div class="select is-fullwidth is-size-7"><select id="documenter-version-selector"></select></div></div></div></nav><div class="docs-main"><header class="docs-navbar"><a class="docs-sidebar-button docs-navbar-link fa-solid fa-bars is-hidden-desktop" id="documenter-sidebar-button" href="#"></a><nav class="breadcrumb"><ul class="is-hidden-mobile"><li class="is-active"><a href>Home</a></li></ul><ul class="is-hidden-tablet"><li class="is-active"><a href>Home</a></li></ul></nav><div class="docs-right"><a class="docs-navbar-link" href="https://github.com/TuringLang/ParetoSmooth.jl/blob/main/docs/src/index.md#" title="Edit source on GitHub"><span class="docs-icon fa-solid"></span></a><a class="docs-settings-button docs-navbar-link fa-solid fa-gear" id="documenter-settings-button" href="#" title="Settings"></a><a class="docs-article-toggle-button fa-solid fa-chevron-up" id="documenter-article-toggle-button" href="javascript:;" title="Collapse all docstrings"></a></div></header><article class="content" id="documenter-page"><h1 id="ParetoSmooth"><a class="docs-heading-anchor" href="#ParetoSmooth">ParetoSmooth</a><a id="ParetoSmooth-1"></a><a class="docs-heading-anchor-permalink" href="#ParetoSmooth" title="Permalink"></a></h1><p>Documentation for <a href="https://github.com/TuringLang/ParetoSmooth.jl">ParetoSmooth</a>.</p><ul><li><a href="#ParetoSmooth.ModelComparison"><code>ParetoSmooth.ModelComparison</code></a></li><li><a href="#ParetoSmooth.Psis"><code>ParetoSmooth.Psis</code></a></li><li><a href="#ParetoSmooth.PsisLoo"><code>ParetoSmooth.PsisLoo</code></a></li><li><a href="#ParetoSmooth.loo-Tuple"><code>ParetoSmooth.loo</code></a></li><li><a href="#ParetoSmooth.loo_compare-Union{Tuple{AbstractVector{&lt;:PsisLoo}}, Tuple{S}} where S&lt;:(Union{Tuple{Vararg{var&quot;#s41&quot;}}, AbstractVector{&lt;:var&quot;#s41&quot;}} where var&quot;#s41&quot;&lt;:Union{AbstractString, Symbol})"><code>ParetoSmooth.loo_compare</code></a></li><li><a href="#ParetoSmooth.loo_from_psis-Tuple{AbstractArray{&lt;:Real, 3}, Psis}"><code>ParetoSmooth.loo_from_psis</code></a></li><li><a href="#ParetoSmooth.naive_lpd"><code>ParetoSmooth.naive_lpd</code></a></li><li><a href="#ParetoSmooth.pointwise_log_likelihoods-Tuple{Function, AbstractArray{&lt;:Union{Missing, Real}, 3}, Any}"><code>ParetoSmooth.pointwise_log_likelihoods</code></a></li><li><a href="#ParetoSmooth.psis-Union{Tuple{AbstractArray{T, 3}}, Tuple{T}} where T&lt;:Real"><code>ParetoSmooth.psis</code></a></li><li><a href="#ParetoSmooth.psis!-Union{Tuple{AbstractVector{T}}, Tuple{T}, Tuple{AbstractVector{T}, T}} where T&lt;:Real"><code>ParetoSmooth.psis!</code></a></li><li><a href="#ParetoSmooth.psis_ess-Union{Tuple{T}, Tuple{AbstractMatrix{T}, AbstractVector{T}}} where T&lt;:Real"><code>ParetoSmooth.psis_ess</code></a></li><li><a href="#ParetoSmooth.psis_loo-Tuple{AbstractArray{&lt;:Real, 3}, Vararg{Any}}"><code>ParetoSmooth.psis_loo</code></a></li><li><a href="#ParetoSmooth.relative_eff-Tuple{AbstractArray{&lt;:Real, 3}}"><code>ParetoSmooth.relative_eff</code></a></li><li><a href="#ParetoSmooth.sup_ess-Union{Tuple{T}, Tuple{AbstractMatrix{T}, AbstractVector{T}}} where T&lt;:Real"><code>ParetoSmooth.sup_ess</code></a></li></ul><article class="docstring"><header><a class="docstring-article-toggle-button fa-solid fa-chevron-down" href="javascript:;" title="Collapse docstring"></a><a class="docstring-binding" id="ParetoSmooth.ModelComparison" href="#ParetoSmooth.ModelComparison"><code>ParetoSmooth.ModelComparison</code></a> — <span class="docstring-category">Type</span></header><section><div><pre><code class="language-julia hljs">ModelComparison</code></pre><p>A struct containing the results of model comparison.</p><p><strong>Fields</strong></p><ul><li><code>pointwise::KeyedArray</code>: A <code>KeyedArray</code> of pointwise estimates. See [<code>PsisLoo</code>]@ref.<ul><li><code>estimates::KeyedArray</code>: A table containing the results of model comparison, with the following columns –<ul><li><code>cv_elpd</code>: The difference in total leave-one-out cross validation scores between models.</li><li><code>cv_avg</code>: The difference in average LOO-CV scores between models.</li><li><code>weight</code>: A set of Akaike-like weights assigned to each model, which can be used in pseudo-Bayesian model averaging.</li></ul></li><li><code>std_err::NamedTuple</code>: A named tuple containing the standard error of <code>cv_elpd</code>. Note  that these estimators (incorrectly) assume all folds are independent, despite their  substantial overlap, which creates a downward biased estimator. LOO-CV differences are <em>not</em> asymptotically normal, so these standard errors cannot be used to  calculate a confidence interval.</li><li><code>gmpd::NamedTuple</code>: The geometric mean of the predictive distribution. It equals the  geometric mean of the probability assigned to each data point by the model, that is, <code>exp(cv_avg)</code>. This measure is only meaningful for classifiers (variables with discrete  outcomes). We can think of it as measuring how often the model was right: A model that always predicts incorrectly will have a GMPD of 0, while a model that always predicts correctly will have a GMPD of 1. However, the GMPD gives a model &quot;Partial points&quot;  between 0 and 1 whenever the model assigns a probability other than 0 or 1 to the  outcome that actually happened.</li></ul></li></ul><p>See also: <a href="#ParetoSmooth.PsisLoo"><code>PsisLoo</code></a></p></div><a class="docs-sourcelink" target="_blank" href="https://github.com/TuringLang/ParetoSmooth.jl/blob/c905ee89cf6d66bfc4ffc1fc2f146eefa1696f0c/src/ModelComparison.jl#L6-L36">source</a></section></article><article class="docstring"><header><a class="docstring-article-toggle-button fa-solid fa-chevron-down" href="javascript:;" title="Collapse docstring"></a><a class="docstring-binding" id="ParetoSmooth.Psis" href="#ParetoSmooth.Psis"><code>ParetoSmooth.Psis</code></a> — <span class="docstring-category">Type</span></header><section><div><pre><code class="language-julia hljs">Psis{R&lt;:Real, AT&lt;:AbstractArray{R, 3}, VT&lt;:AbstractVector{R}}</code></pre><p>A struct containing the results of Pareto-smoothed importance sampling.</p><p><strong>Fields</strong></p><ul><li><code>weights</code>: A vector of smoothed, truncated, and normalized importance sampling weights.</li><li><code>pareto_k</code>: Estimates of the shape parameter <code>k</code> of the generalized Pareto distribution.</li><li><code>ess</code>: Estimated effective sample size for each LOO evaluation, based on the variance of the weights.</li><li><code>sup_ess</code>: Estimated effective sample size for each LOO evaluation, based on the  supremum norm, i.e. the size of the largest weight. More likely than <code>ess</code> to warn when  importance sampling has failed. However, it can have a high variance.</li><li><code>r_eff</code>: The relative efficiency of the MCMC chain, i.e. ESS / posterior sample size.</li><li><code>tail_len</code>: Vector indicating how large the &quot;tail&quot; is for each observation.</li><li><code>posterior_sample_size</code>: How many draws from an MCMC chain were used for PSIS.</li><li><code>data_size</code>: How many data points were used for PSIS.</li></ul></div><a class="docs-sourcelink" target="_blank" href="https://github.com/TuringLang/ParetoSmooth.jl/blob/c905ee89cf6d66bfc4ffc1fc2f146eefa1696f0c/src/ImportanceSampling.jl#L18-L36">source</a></section></article><article class="docstring"><header><a class="docstring-article-toggle-button fa-solid fa-chevron-down" href="javascript:;" title="Collapse docstring"></a><a class="docstring-binding" id="ParetoSmooth.PsisLoo" href="#ParetoSmooth.PsisLoo"><code>ParetoSmooth.PsisLoo</code></a> — <span class="docstring-category">Type</span></header><section><div><pre><code class="language-julia hljs">PsisLoo &lt;: AbstractCV</code></pre><p>A struct containing the results of leave-one-out cross validation computed with Pareto  smoothed importance sampling.</p><p><strong>Fields</strong></p><ul><li><code>estimates::KeyedArray</code>: A KeyedArray with columns <code>:total, :se_total, :mean, :se_mean</code>, and rows <code>:cv_elpd, :naive_lpd, :p_eff</code>. See <code># Extended help</code> for more.<ul><li><code>:cv_elpd</code> contains estimates for the out-of-sample prediction error, as estimated using leave-one-out cross validation.</li><li><code>:naive_lpd</code> contains estimates of the in-sample prediction error.</li><li><code>:p_eff</code> is the effective number of parameters – a model with a <code>p_eff</code> of 2 is  &quot;about as overfit&quot; as a model with 2 parameters and no regularization.</li></ul></li><li><code>pointwise::KeyedArray</code>: A <code>KeyedArray</code> of pointwise estimates with 5 columns –<ul><li><code>:cv_elpd</code> contains the estimated out-of-sample error for this point, as measured</li></ul>using leave-one-out cross validation.<ul><li><code>:naive_lpd</code> contains the in-sample estimate of error for this point.</li><li><code>:p_eff</code> is the difference in the two previous estimates.</li><li><code>:ess</code> is the L2 effective sample size, which estimates the simulation error caused  by using Monte Carlo estimates. It does not measure model performance.  </li><li><code>:inf_ess</code> is the supremum-based effective sample size, which estimates the  simulation error caused by using Monte Carlo estimates. It is more robust than  <code>:ess</code> and should therefore be preferred. It does not measure model performance.  </li><li><code>:pareto_k</code> is the estimated value for the parameter <code>ξ</code> of the generalized Pareto distribution. Values above .7 indicate that PSIS has failed to approximate the true distribution.</li></ul></li><li><code>psis_object::Psis</code>: A <code>Psis</code> object containing the results of Pareto-smoothed  importance sampling.</li><li><code>gmpd</code>: The geometric mean of the predictive density. It is defined as the geometric mean of the probability assigned to each data point by the model, i.e. <code>exp(cv_avg)</code>.  This measure is only interpretable for classifiers (variables with discrete outcomes). We can think of it as measuring how often the model was right: A model that always predicts incorrectly will have a GMPD of 0, while a model that always predicts correctly will have a GMPD of 1. However, the GMPD gives a model &quot;Partial points&quot;  between 0 and 1 whenever the model assigns a probability other than 0 or 1 to the  outcome that actually happened, making it a fully Bayesian measure of model quality.</li><li><code>mcse</code>: A float containing the estimated Monte Carlo standard error for the total  cross-validation estimate.</li></ul><p><strong>Extended help</strong></p><p>The total score depends on the sample size, and summarizes the weight of evidence for or against a model. Total scores are on an interval scale, meaning that only differences of scores are meaningful. <em>It is not possible to interpret a total score by looking at it.</em> The total score is not a goodness-of-fit statistic (for this, see the average score).</p><p>The average score is the total score, divided by the sample size. It estimates the expected log score, i.e. the expectation of the log probability density of observing the next point. The average score is a relative goodness-of-fit statistic which does not depend on sample size. </p><p>Unlike for chi-square goodness of fit tests, models do not have to be nested for model comparison using cross-validation methods.</p><p>See also: [<code>loo</code>]@ref, [<code>bayes_cv</code>]@ref, [<code>psis_loo</code>]@ref, [<code>Psis</code>]@ref</p></div><a class="docs-sourcelink" target="_blank" href="https://github.com/TuringLang/ParetoSmooth.jl/blob/c905ee89cf6d66bfc4ffc1fc2f146eefa1696f0c/src/LeaveOneOut.jl#L23-L32">source</a></section></article><article class="docstring"><header><a class="docstring-article-toggle-button fa-solid fa-chevron-down" href="javascript:;" title="Collapse docstring"></a><a class="docstring-binding" id="ParetoSmooth.loo-Tuple" href="#ParetoSmooth.loo-Tuple"><code>ParetoSmooth.loo</code></a> — <span class="docstring-category">Method</span></header><section><div><pre><code class="language-julia hljs">function loo(args...; kwargs...) -&gt; PsisLoo</code></pre><p>Compute an approximate leave-one-out cross-validation score.</p><p>Currently, this function only serves to call <code>psis_loo</code>, but this could change in the future. The default methods or return type may change without warning, so we recommend using <code>psis_loo</code> instead if reproducibility is required.</p><p>See also: <a href="#ParetoSmooth.psis_loo-Tuple{AbstractArray{&lt;:Real, 3}, Vararg{Any}}"><code>psis_loo</code></a>, <a href="#ParetoSmooth.PsisLoo"><code>PsisLoo</code></a>.</p></div><a class="docs-sourcelink" target="_blank" href="https://github.com/TuringLang/ParetoSmooth.jl/blob/c905ee89cf6d66bfc4ffc1fc2f146eefa1696f0c/src/LeaveOneOut.jl#L71-L81">source</a></section></article><article class="docstring"><header><a class="docstring-article-toggle-button fa-solid fa-chevron-down" href="javascript:;" title="Collapse docstring"></a><a class="docstring-binding" id="ParetoSmooth.loo_compare-Union{Tuple{AbstractVector{&lt;:PsisLoo}}, Tuple{S}} where S&lt;:(Union{Tuple{Vararg{var&quot;#s41&quot;}}, AbstractVector{&lt;:var&quot;#s41&quot;}} where var&quot;#s41&quot;&lt;:Union{AbstractString, Symbol})" href="#ParetoSmooth.loo_compare-Union{Tuple{AbstractVector{&lt;:PsisLoo}}, Tuple{S}} where S&lt;:(Union{Tuple{Vararg{var&quot;#s41&quot;}}, AbstractVector{&lt;:var&quot;#s41&quot;}} where var&quot;#s41&quot;&lt;:Union{AbstractString, Symbol})"><code>ParetoSmooth.loo_compare</code></a> — <span class="docstring-category">Method</span></header><section><div><pre><code class="language-julia hljs">function loo_compare(
     cv_results...;
     sort_models::Bool=true,
     best_to_worst::Bool=true,
@@ -32,3 +487,4 @@
     weights::AbstractMatrix{T},
     r_eff::AbstractVector{T}
 ) -&gt; AbstractVector</code></pre><p>Calculate the supremum-based effective sample size of a PSIS sample, i.e. the inverse of the maximum weight. This measure is more sensitive than the <code>ess</code> from <code>psis_ess</code>, but also  much more variable. It uses the L-∞ norm.</p><p><strong>Arguments</strong></p><ul><li><code>weights</code>: A set of importance sampling weights derived from PSIS.</li><li><code>r_eff</code>: The relative efficiency of the MCMC chains; see also [<code>relative_eff</code>]@ref.</li></ul></div><a class="docs-sourcelink" target="_blank" href="https://github.com/TuringLang/ParetoSmooth.jl/blob/c905ee89cf6d66bfc4ffc1fc2f146eefa1696f0c/src/ESS.jl#L78-L91">source</a></section></article><article class="docstring"><header><a class="docstring-article-toggle-button fa-solid fa-chevron-down" href="javascript:;" title="Collapse docstring"></a><a class="docstring-binding" id="ParetoSmooth.naive_lpd" href="#ParetoSmooth.naive_lpd"><code>ParetoSmooth.naive_lpd</code></a> — <span class="docstring-category">Function</span></header><section><div><pre><code class="language-julia hljs">naive_lpd(log_likelihood::AbstractArray{&lt;:Real}[, chain_index])</code></pre><p>Calculate the naive (in-sample) estimate of the expected log probability density, otherwise known as the in-sample Bayes score. This method yields heavily biased results, and we advise against using it; it is included only for pedagogical purposes.</p><p>This method is unexported and can only be accessed by calling <code>ParetoSmooth.naive_lpd</code>.</p><p><strong>Arguments</strong></p><ul><li><code>log_likelihood::Array</code>: A matrix or 3d array of log-likelihood values indexed as</li></ul><p><code>[data, step, chain]</code>. The chain argument can be left off if <code>chain_index</code> is provided or if all posterior samples were drawn from a single chain.</p><ul><li><code>chain_index::Vector{Int}</code>: An optional vector of integers specifying which chain each step</li></ul><p>belongs to. For instance, <code>chain_index[step]</code> should return <code>2</code> if <code>log_likelihood[:, step]</code> belongs to the second chain.</p></div><a class="docs-sourcelink" target="_blank" href="https://github.com/TuringLang/ParetoSmooth.jl/blob/c905ee89cf6d66bfc4ffc1fc2f146eefa1696f0c/src/NaiveLPD.jl#L1-L13">source</a></section></article></article><nav class="docs-footer"><a class="docs-footer-nextpage" href="turing/">Using with Turing »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="auto">Automatic (OS)</option><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 1.4.1 on <span class="colophon-date" title="Saturday 15 June 2024 08:38">Saturday 15 June 2024</span>. Using Julia version 1.10.4.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
+
