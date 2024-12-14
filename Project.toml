@@ -1,7 +1,7 @@
 name = "ParetoSmooth"
 uuid = "a68b5a21-f429-434e-8bfa-46b447300aac"
 authors = ["Carlos Parada <cdp49@cam.ac.uk>"]
-version = "0.7.13"
+version = "0.7.14"
 
 [deps]
 AxisKeys = "94b1ba4f-4ee9-5380-92f1-94cde586c3c5"
@@ -26,7 +26,7 @@ ParetoSmoothMCMCChainsExt = "MCMCChains"
 
 [compat]
 AxisKeys = "0.1.18, 0.2"
-DynamicPPL = "0.21 - 0.31, 0.32"
+DynamicPPL = "0.21 - 0.32"
 LogExpFunctions = "0.3"
 MCMCChains = "6"
 MCMCDiagnosticTools = "0.3.2"
