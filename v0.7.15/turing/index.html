@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width, initial-scale=1.0"/><title>Using with Turing · ParetoSmooth.jl</title><meta name="title" content="Using with Turing · ParetoSmooth.jl"/><meta property="og:title" content="Using with Turing · ParetoSmooth.jl"/><meta property="twitter:title" content="Using with Turing · ParetoSmooth.jl"/><meta name="description" content="Documentation for ParetoSmooth.jl."/><meta property="og:description" content="Documentation for ParetoSmooth.jl."/><meta property="twitter:description" content="Documentation for ParetoSmooth.jl."/><meta property="og:url" content="https://turinglang.github.io/ParetoSmooth.jl/turing/"/><meta property="twitter:url" content="https://turinglang.github.io/ParetoSmooth.jl/turing/"/><link rel="canonical" href="https://turinglang.github.io/ParetoSmooth.jl/turing/"/><script data-outdated-warner src="../assets/warner.js"></script><link href="https://cdnjs.cloudflare.com/ajax/libs/lato-font/3.0.0/css/lato-font.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/juliamono/0.050/juliamono.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/fontawesome.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/solid.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/brands.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.8/katex.min.css" rel="stylesheet" type="text/css"/><script>documenterBaseURL=".."</script><script src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.6/require.min.js" data-main="../assets/documenter.js"></script><script src="../search_index.js"></script><script src="../siteinfo.js"></script><script src="../../versions.js"></script><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../assets/themes/catppuccin-mocha.css" data-theme-name="catppuccin-mocha"/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../assets/themes/catppuccin-macchiato.css" data-theme-name="catppuccin-macchiato"/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../assets/themes/catppuccin-frappe.css" data-theme-name="catppuccin-frappe"/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../assets/themes/catppuccin-latte.css" data-theme-name="catppuccin-latte"/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../assets/themes/documenter-dark.css" data-theme-name="documenter-dark" data-theme-primary-dark/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../assets/themes/documenter-light.css" data-theme-name="documenter-light" data-theme-primary/><script src="../assets/themeswap.js"></script></head><body><div id="documenter"><nav class="docs-sidebar"><div class="docs-package-name"><span class="docs-autofit"><a href="../">ParetoSmooth.jl</a></span></div><button class="docs-search-query input is-rounded is-small is-clickable my-2 mx-auto py-1 px-2" id="documenter-search-query">Search docs (Ctrl + /)</button><ul class="docs-menu"><li><a class="tocitem" href="../">Home</a></li><li class="is-active"><a class="tocitem" href>Using with Turing</a><ul class="internal"><li><a class="tocitem" href="#For-Loop-Method"><span>For Loop Method</span></a></li><li><a class="tocitem" href="#Dot-Vectorization-Method"><span>Dot Vectorization Method</span></a></li><li><a class="tocitem" href="#Incorrect-Model-Specification"><span>Incorrect Model Specification</span></a></li></ul></li></ul><div class="docs-version-selector field has-addons"><div class="control"><span class="docs-label button is-static is-size-7">Version</span></div><div class="docs-selector control is-expanded"><div class="select is-fullwidth is-size-7"><select id="documenter-version-selector"></select></div></div></div></nav><div class="docs-main"><header class="docs-navbar"><a class="docs-sidebar-button docs-navbar-link fa-solid fa-bars is-hidden-desktop" id="documenter-sidebar-button" href="#"></a><nav class="breadcrumb"><ul class="is-hidden-mobile"><li class="is-active"><a href>Using with Turing</a></li></ul><ul class="is-hidden-tablet"><li class="is-active"><a href>Using with Turing</a></li></ul></nav><div class="docs-right"><a class="docs-navbar-link" href="https://github.com/TuringLang/ParetoSmooth.jl/blob/main/docs/src/turing.md#" title="Edit source on GitHub"><span class="docs-icon fa-solid"></span></a><a class="docs-settings-button docs-navbar-link fa-solid fa-gear" id="documenter-settings-button" href="#" title="Settings"></a><a class="docs-article-toggle-button fa-solid fa-chevron-up" id="documenter-article-toggle-button" href="javascript:;" title="Collapse all docstrings"></a></div></header><article class="content" id="documenter-page"><h1 id="Turing-Example"><a class="docs-heading-anchor" href="#Turing-Example">Turing Example</a><a id="Turing-Example-1"></a><a class="docs-heading-anchor-permalink" href="#Turing-Example" title="Permalink"></a></h1><p>This example demonstrates how to correctly compute PSIS LOO for a model developed with <a href="https://turinglang.org/stable/">Turing.jl</a>. Below, we show two ways to correctly specify the model in Turing. What is most important is to specify the model so that pointwise log densities are computed for each observation. </p><p>To make things simple, we will use a Gaussian model in each example. Suppose observations <span>$Y = \{y_1,y_2,\dots y_n\}$</span> come from a Gaussian distribution with an uknown parameter <span>$\mu$</span> and known parameter <span>$\sigma=1$</span>. The model can be stated as follows:</p><p><span>$\mu \sim \mathrm{normal}(0, 1)$</span></p><p><span>$Y \sim \mathrm{Normal}(\mu, 1)$</span></p><h2 id="For-Loop-Method"><a class="docs-heading-anchor" href="#For-Loop-Method">For Loop Method</a><a id="For-Loop-Method-1"></a><a class="docs-heading-anchor-permalink" href="#For-Loop-Method" title="Permalink"></a></h2><p>One way to specify a model to correctly compute PSIS LOO is to iterate over the observations using a for loop, as follows:</p><pre><code class="language-julia hljs">using Turing
+using ParetoSmooth
+using Distributions
+using Random
+
+Random.seed!(5)
+
+@model function model(data)
+    μ ~ Normal()
+    for i in 1:length(data)
+        data[i] ~ Normal(μ, 1)
+    end
+end
+
+data = rand(Normal(0, 1), 100)
+
+chain = sample(model(data), NUTS(), 1000)
+psis_loo(model(data), chain)</code></pre><p>The output below correctly indicates PSIS LOO was computed with 100 data points. </p><pre><code class="language-julia hljs">[ Info: No source provided for samples; variables are assumed to be from a Markov Chain. If the samples are independent, specify this with keyword argument `source=:other`.
+Results of PSIS-LOO-CV with 1000 Monte Carlo samples and 100 data points. Total Monte Carlo SE of 0.064.
+┌───────────┬─────────┬──────────┬───────┬─────────┐
+│           │   total │ se_total │  mean │ se_mean │
+├───────────┼─────────┼──────────┼───────┼─────────┤
+│   cv_elpd │ -158.82 │     9.24 │ -1.59 │    0.09 │
+│ naive_lpd │ -157.43 │     9.05 │ -1.57 │    0.09 │
+│     p_eff │    1.39 │     0.19 │  0.01 │    0.00 │
+└───────────┴─────────┴──────────┴───────┴─────────┘</code></pre><h2 id="Dot-Vectorization-Method"><a class="docs-heading-anchor" href="#Dot-Vectorization-Method">Dot Vectorization Method</a><a id="Dot-Vectorization-Method-1"></a><a class="docs-heading-anchor-permalink" href="#Dot-Vectorization-Method" title="Permalink"></a></h2><p>The other method uses dot vectorization in the sampling statement: <code>.~</code>. Adapting the model above accordingly, we have:</p><pre><code class="language-julia hljs">using Turing
+using ParetoSmooth
+using Distributions
+using Random
+
+Random.seed!(5)
+
+@model function model(data)
+    μ ~ Normal()
+    data .~ Normal(μ, 1)
+end
+
+data = rand(Normal(0, 1), 100)
+
+chain = sample(model(data), NUTS(), 1000)
+psis_loo(model(data), chain)</code></pre><p>As before, the output correctly indicates PSIS LOO was computed with 100 observations. </p><pre><code class="language-julia hljs">[ Info: No source provided for samples; variables are assumed to be from a Markov Chain. If the samples are independent, specify this with keyword argument `source=:other`.
+Results of PSIS-LOO-CV with 1000 Monte Carlo samples and 100 data points. Total Monte Carlo SE of 0.053.
+┌───────────┬─────────┬──────────┬───────┬─────────┐
+│           │   total │ se_total │  mean │ se_mean │
+├───────────┼─────────┼──────────┼───────┼─────────┤
+│   cv_elpd │ -158.71 │     9.23 │ -1.59 │    0.09 │
+│ naive_lpd │ -157.44 │     9.06 │ -1.57 │    0.09 │
+│     p_eff │    1.27 │     0.18 │  0.01 │    0.00 │
+└───────────┴─────────┴──────────┴───────┴─────────┘</code></pre><h2 id="Incorrect-Model-Specification"><a class="docs-heading-anchor" href="#Incorrect-Model-Specification">Incorrect Model Specification</a><a id="Incorrect-Model-Specification-1"></a><a class="docs-heading-anchor-permalink" href="#Incorrect-Model-Specification" title="Permalink"></a></h2><p>Although the model below is valid, it will not produce the correct results for PSIS LOO because it computes a single log likelihood for the data rather than one for each observation. Note the lack of <code>.</code> in the sampling statement.</p><pre><code class="language-julia hljs">using Turing
+using ParetoSmooth
+using Distributions
+using Random
+
+Random.seed!(5)
+
+@model function model(data)
+    μ ~ Normal()
+    data ~ Normal(μ, 1)
+end
+
+data = rand(Normal(0, 1), 100)
+
+chain = sample(model(data), NUTS(), 1000)
+psis_loo(model(data), chain)</code></pre><p>In this case, there is only 1 data point and the standard errors cannot be computed:</p><pre><code class="language-julia hljs">[ Info: No source provided for samples; variables are assumed to be from a Markov Chain. If the samples are independent, specify this with keyword argument `source=:other`.
+┌ Warning: Some Pareto k values are high (&gt;.7), indicating PSIS has failed to approximate the true distribution.
+└ @ ParetoSmooth ~/.julia/packages/ParetoSmooth/AJM3j/src/InternalHelpers.jl:46
+Results of PSIS-LOO-CV with 1000 Monte Carlo samples and 1 data points. Total Monte Carlo SE of 0.15.
+┌───────────┬─────────┬──────────┬─────────┬─────────┐
+│           │   total │ se_total │    mean │ se_mean │
+├───────────┼─────────┼──────────┼─────────┼─────────┤
+│   cv_elpd │ -158.57 │      NaN │ -158.57 │     NaN │
+│ naive_lpd │ -157.91 │      NaN │ -157.91 │     NaN │
+│     p_eff │    0.66 │      NaN │    0.66 │     NaN │
+└───────────┴─────────┴──────────┴─────────┴─────────┘</code></pre></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../">« Home</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="auto">Automatic (OS)</option><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option><option value="catppuccin-latte">catppuccin-latte</option><option value="catppuccin-frappe">catppuccin-frappe</option><option value="catppuccin-macchiato">catppuccin-macchiato</option><option value="catppuccin-mocha">catppuccin-mocha</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 1.8.0 on <span class="colophon-date" title="Wednesday 29 January 2025 23:13">Wednesday 29 January 2025</span>. Using Julia version 1.11.3.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
