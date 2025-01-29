@@ -37,7 +37,7 @@ function ParetoSmooth.pointwise_log_likelihoods(model::DynamicPPL.Model, chains:
     # Size of array (n_steps, n_chains) using first parameter
     dims = size(last(first(log_like_dict)))
     # parse "var[i]" -> i
-    ind_from_string(x) = parse(Int, split(split(x, "[")[2], "]")[1])
+    ind_from_string(x) = parse(Int, rsplit(rsplit(x, "[", limit=2)[2], "]", limit=2)[1])
     # collect variable names
     sorted_keys = sort(collect(keys(log_like_dict)); by=ind_from_string)
     # Convert from dictionary to 3d array
