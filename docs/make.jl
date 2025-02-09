@@ -17,9 +17,3 @@ makedocs(;
     ],
     checkdocs=:exports,
 )
-
-deploydocs(;
-    repo="github.com/TuringLang/ParetoSmooth.jl",
-    push_preview=true,
-    devbranch="main",
-)
