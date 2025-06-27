@@ -4,7 +4,7 @@ This example demonstrates how to correctly compute PSIS LOO for a model develope
 
 To make things simple, we will use a Gaussian model in each example. Suppose observations ``Y = \{y_1,y_2,\dots y_n\}`` come from a Gaussian distribution with an uknown parameter ``\mu`` and known parameter ``\sigma=1``. The model can be stated as follows:
 
-``\mu \sim \mathrm{normal}(0, 1)``
+``\mu \sim \mathrm{Normal}(0, 1)``
 
 ``Y \sim \mathrm{Normal}(\mu, 1)``
 
