@@ -1,5 +1,6 @@
 [deps]
 Documenter = "e30172f5-a6a5-5a46-863b-614d45cd2de4"
+ParetoSmooth = "a68b5a21-f429-434e-8bfa-46b447300aac"
 
 [compat]
 Documenter = "1"
