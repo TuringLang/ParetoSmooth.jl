@@ -7,6 +7,37 @@
 [![Code Style: Blue](https://img.shields.io/badge/code%20style-blue-4495d1.svg)](https://github.com/invenia/BlueStyle)
 [![ColPrac: Contributor's Guide on Collaborative Practices for Community Packages](https://img.shields.io/badge/ColPrac-Contributor's%20Guide-blueviolet)](https://github.com/SciML/ColPrac)
 
+⚠️ **IMPORTANT: Migration to PSIS.jl + PosteriorStats.jl** ⚠️
+
+ParetoSmooth.jl is being deprecated in favor of the more modular [PSIS.jl](https://github.com/TuringLang/PSIS.jl) and [PosteriorStats.jl](https://github.com/TuringLang/PosteriorStats.jl) packages. We recommend migrating to these packages for new projects. See the [Migration Guide](#migration-guide) below for details.
+
+## Migration Guide
+
+The functionality of ParetoSmooth.jl has been split across two packages that follow the same conventions as MCMCDiagnosticTools.jl:
+
+### Function Mappings
+
+- `ParetoSmooth.psis` → `PSIS.psis`
+- `ParetoSmooth.psis_loo` / `ParetoSmooth.loo` → `PosteriorStats.loo`
+- `ParetoSmooth.loo_compare` → `PosteriorStats.compare`
+
+### Struct Mappings
+
+- `ParetoSmooth.Psis` → `PSIS.PSISResult`
+- `ParetoSmooth.PsisLoo` → `PosteriorStats.PSISLOOResult`
+- `ParetoSmooth.ModelComparison` → `PosteriorStats.ModelComparisonResult`
+
+### Functions Being Removed
+
+- `ParetoSmooth.loo_from_psis` → Will be replaced by `PosteriorStats.loo(::PSIS.PSISResult)`
+- `ParetoSmooth.naive_lpd` → PosteriorStats has internal `_lpd_pointwise` (use discouraged)
+- `ParetoSmooth.psis_ess` → Use `PSIS.ess_is` instead
+- `ParetoSmooth.ess_sup` → Variance-based ESS estimates are preferred
+- `ParetoSmooth.relative_eff` → Computed internally in `PosteriorStats.loo`
+
+**Note:** Argument order and dimension ordering may differ between ParetoSmooth and PSIS+PosteriorStats. Please consult the documentation of the respective packages for details.
+
+---
 
 ParetoSmooth.jl is a Julia package for efficient approximate leave-one-out cross-validation for fitted Bayesian models. We compute LOO-CV using Pareto smoothed importance sampling (PSIS), a modification of importance sampling. More details can be found in Vehtari, Gelman, and Gabry (2017).
 

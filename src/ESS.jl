@@ -26,6 +26,8 @@ function relative_eff(
     maxlag=typemax(Int),
     kwargs...,
 )
+    @warn "ParetoSmooth.relative_eff is deprecated. In PosteriorStats.loo, leaving reff=nothing " *
+          "results in the relative ESS being computed internally, so there is no need to expose this function."
     if lowercase(String(source)) ∉ ("mcmc", "default")
         # Avoid type instability by computing the return type of `ess`
         T = promote_type(eltype(sample), typeof(zero(eltype(sample)) / 1))
@@ -57,6 +59,8 @@ See `?relative_eff` to calculate `r_eff`.
 function psis_ess(
     weights::AbstractMatrix{T}, r_eff::AbstractVector{T}
 ) where T<:Real
+    @warn "ParetoSmooth.psis_ess is deprecated. Please use PSIS.ess_is from the PSIS.jl package instead, " *
+          "which implements the ESS for the normalization term as described in recent versions of the PSIS paper."
     exp_entropy = zeros(T, size(weights, 1))
     @inbounds for y = axes(weights, 2), x = axes(weights, 1)
         exp_entropy[x] -= xlogx(weights[x, y])
@@ -92,5 +96,8 @@ much more variable. It uses the L-∞ norm.
 function sup_ess(
     weights::AbstractMatrix{T}, r_eff::AbstractVector{T}
 ) where T<:Real
+    @warn "ParetoSmooth.sup_ess (ess_sup) is deprecated. Variance-based ESS estimates from " *
+          "MCMCDiagnosticTools.ess are preferred as they have more straightforward interpretation " *
+          "and are closely tied to estimator variance and MCSE concepts."
     return inv.(dropdims(maximum(weights; dims=2); dims=2)) .* r_eff
 end

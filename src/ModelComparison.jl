@@ -8,6 +8,10 @@ export loo_compare, ModelComparison
 
 A struct containing the results of model comparison.
 
+!!! warning "Deprecation"
+    This struct is deprecated. Please use `PosteriorStats.ModelComparisonResult` from the PosteriorStats.jl package instead.
+    Note that the fields, methods, and display format may differ.
+
 # Fields
 
 - `pointwise::KeyedArray`: A `KeyedArray` of pointwise estimates. See [`PsisLoo`]@ref.
@@ -70,6 +74,9 @@ function loo_compare(
     sort_models::Bool=true,
     high_to_low::Bool=true,
 ) where S <: Base.AbstractVecOrTuple{<:Union{AbstractString, Symbol}}
+
+    @warn "ParetoSmooth.loo_compare is deprecated. Please use PosteriorStats.compare from the PosteriorStats.jl package instead. " *
+          "Note that argument order and return types may differ. See the PosteriorStats.jl documentation for details."
 
     model_names = [Symbol(model_names[i]) for i in 1:length(model_names)]  # array version
     n_models, data_size = _get_dims(cv_results, model_names)

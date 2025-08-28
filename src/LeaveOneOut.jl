@@ -26,6 +26,10 @@ export loo, psis_loo, loo_from_psis, PsisLoo
 A struct containing the results of leave-one-out cross validation computed with Pareto 
 smoothed importance sampling.
 
+!!! warning "Deprecation"
+    This struct is deprecated. Please use `PosteriorStats.PSISLOOResult` from the PosteriorStats.jl package instead.
+    Note that the fields, methods, and display format may differ.
+
 $CV_DESC
 
 See also: [`loo`]@ref, [`bayes_cv`]@ref, [`psis_loo`]@ref, [`Psis`]@ref
@@ -80,6 +84,8 @@ using `psis_loo` instead if reproducibility is required.
 See also: [`psis_loo`](@ref), [`PsisLoo`](@ref).
 """
 function loo(args...; kwargs...)
+    @warn "ParetoSmooth.loo is deprecated. Please use PosteriorStats.loo from the PosteriorStats.jl package instead. " *
+          "Note that argument order and return types may differ. See the PosteriorStats.jl documentation for details."
     return psis_loo(args...; kwargs...)
 end
 
@@ -103,6 +109,8 @@ score.
 See also: [`psis`](@ref), [`loo`](@ref), [`PsisLoo`](@ref).
 """
 function psis_loo(log_likelihood::AbstractArray{<:Real, 3}, args...; kwargs...)
+    @warn "ParetoSmooth.psis_loo is deprecated. Please use PosteriorStats.loo from the PosteriorStats.jl package instead. " *
+          "Note that argument order and return types may differ. See the PosteriorStats.jl documentation for details."
     psis_object = psis(-log_likelihood, args...; kwargs...)
     return loo_from_psis(log_likelihood, psis_object)
 end
@@ -138,6 +146,8 @@ See also: [`psis`](@ref), [`loo`](@ref), [`PsisLoo`](@ref).
 
 """
 function loo_from_psis(log_likelihood::AbstractArray{<:Real, 3}, psis_object::Psis)
+    @warn "ParetoSmooth.loo_from_psis is deprecated. This functionality will be replaced by " *
+          "a simple overload PosteriorStats.loo(::PSIS.PSISResult) in PosteriorStats.jl."
     dims = size(log_likelihood)
     data_size = dims[1]
     mcmc_count = dims[2] * dims[3]  # total number of samples from posterior

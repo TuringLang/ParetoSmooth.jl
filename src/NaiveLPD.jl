@@ -14,6 +14,8 @@ This method is unexported and can only be accessed by calling `ParetoSmooth.naiv
 function naive_lpd(log_likelihood::AbstractArray{<:Real, 3})
     @info "We advise against using `naive_lpd`, as it gives inconsistent and strongly " *
     "biased estimates. Use `psis_loo` instead."
+    @warn "ParetoSmooth.naive_lpd is deprecated. PosteriorStats.jl has the internal method " *
+          "_lpd_pointwise for computing this, but its use is discouraged."
     return _naive_lpd(log_likelihood)
 end
 

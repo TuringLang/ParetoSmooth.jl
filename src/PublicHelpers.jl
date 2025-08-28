@@ -15,6 +15,11 @@ order: [n_samples,n_params,n_chains].
 
 Compute the pointwise log likelihoods.
 
+!!! note "Migration Note"
+    This function may be moved to DynamicPPL.jl in the future as its main use is to get 
+    log-likelihoods from Turing models in the format required by LOO-CV functions. 
+    The dimension ordering of the output may change in future versions.
+
 # Arguments
   - $LIKELIHOOD_FUNCTION_ARG
   - `samples::AbstractArray`: A three dimensional array of MCMC samples. Here, the first

@@ -20,6 +20,10 @@ export psis, psis!, Psis
 
 A struct containing the results of Pareto-smoothed importance sampling.
 
+!!! warning "Deprecation"
+    This struct is deprecated. Please use `PSIS.PSISResult` from the PSIS.jl package instead.
+    Note that the fields, methods, and display format may differ.
+
 # Fields
 
   - `weights`: A vector of smoothed, truncated, and normalized importance sampling weights.
@@ -127,6 +131,9 @@ function psis(
     calc_ess::Bool = true, 
     skip_checks::Bool = false
 ) where T <: Real
+
+    @warn "ParetoSmooth.psis is deprecated. Please use PSIS.psis from the PSIS.jl package instead. " *
+          "Note that argument order and struct fields may differ. See the PSIS.jl documentation for details."
 
     dims = size(log_ratios)
     data_size = dims[1]
