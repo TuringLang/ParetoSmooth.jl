@@ -2,6 +2,7 @@ using AxisKeys
 using NamedDims
 using Statistics
 import RData
+using Random
 
 @testset "Basic Arrays" begin
 
@@ -101,4 +102,24 @@ import RData
 
     @test ParetoSmooth.naive_lpd(log_lik_arr) ≈ jul_loo.estimates(:naive_lpd, :total)
     @test ParetoSmooth.naive_lpd(log_lik_arr) ≈ r_eff_loo.estimates(:naive_lpd, :total)
+end
+
+@testset "Log-weights vs. raw weights" begin
+    Random.seed!(123)
+    log_lik = randn(30)
+    r_eff = 1.01
+
+    # Test with log_weights = true
+    log_weights_true = copy(log_lik)
+    log_weights_true, xi_true = psis!(log_weights_true, r_eff; log_weights=true)
+
+    # Test with log_weights = false
+    raw_weights_false = exp.(log_lik .- maximum(log_lik))
+    xi_false = psis!(raw_weights_false, r_eff; log_weights=false)
+
+    # The shape parameters should be the same
+    @test xi_true ≈ xi_false atol=1e-9
+
+    # The smoothed weights should also be equivalent
+    @test exp.(log_weights_true .- maximum(log_lik)) ≈ raw_weights_false rtol=1e-9
 end
