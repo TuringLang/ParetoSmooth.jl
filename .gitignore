@@ -1,3 +1,4 @@
+.devcontainer/
 Manifest.toml
 docs/build/
 .lh
