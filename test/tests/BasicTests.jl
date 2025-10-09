@@ -106,17 +106,20 @@ end
 
 @testset "Log-weights vs. raw weights" begin
     Random.seed!(123)
-    log_lik = rand(100)
-    r_eff = 1.0
+    log_lik = randn(30)
+    r_eff = 1.01
 
     # Test with log_weights = true
     log_weights_true = copy(log_lik)
-    psis!(log_weights_true, r_eff; log_weights=true)
+    log_weights_true, xi_true = psis!(log_weights_true, r_eff; log_weights=true)
 
-    # Test with log_weights = false (convert log_lik to raw weights first)
-    raw_weights = exp.(log_lik .- maximum(log_lik))
-    psis!(raw_weights, r_eff; log_weights=false)
+    # Test with log_weights = false
+    raw_weights_false = exp.(log_lik .- maximum(log_lik))
+    xi_false = psis!(raw_weights_false, r_eff; log_weights=false)
 
-    # The results should be approximately the same (after converting log_weights_true back to raw)
-    @test exp.(log_weights_true .- maximum(log_weights_true)) ≈ raw_weights rtol=1e-9
+    # The shape parameters should be the same
+    @test xi_true ≈ xi_false atol=1e-9
+
+    # The smoothed weights should also be equivalent
+    @test exp.(log_weights_true .- maximum(log_lik)) ≈ raw_weights_false rtol=1e-9
 end

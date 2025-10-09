@@ -202,7 +202,7 @@ end
 
 function psis(is_ratios::AbstractVector{<:Real}, args...; kwargs...)
     new_ratios = copy(is_ratios)
-    ξ = psis!(new_ratios, kwargs...)
+    ξ = psis!(new_ratios; kwargs...)
     return new_ratios, ξ
 end
 
