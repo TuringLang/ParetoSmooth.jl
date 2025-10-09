@@ -202,7 +202,7 @@ end
 
 function psis(is_ratios::AbstractVector{<:Real}, args...; kwargs...)
     new_ratios = copy(is_ratios)
-    ξ = psis!(new_ratios, kwargs...)
+    ξ = psis!(new_ratios; kwargs...)
     return new_ratios, ξ
 end
 
@@ -243,7 +243,7 @@ function psis!(is_ratios::AbstractVector{T}, r_eff::T=one(T);
 ) where T<:Real
 
     skip_checks || _check_input_validity_psis(is_ratios)
-    
+
     len = length(is_ratios)
     tail_start = len - tail_length + 1  # index of smallest tail value
 
@@ -253,13 +253,15 @@ function psis!(is_ratios::AbstractVector{T}, r_eff::T=one(T);
     is_ratios .= first.(ratio_index)
     @views tail = is_ratios[tail_start:len]
     _check_tail(tail)
-    if log_weights 
+    if log_weights
         biggest = maximum(tail)
         @. tail = exp(tail - biggest)
+        # Also exponentiate the cutoff
+        cutoff = exp(is_ratios[tail_start - 1] - biggest)
+    else
+        cutoff = is_ratios[tail_start - 1]
     end
 
-    # Get value just before the tail starts:
-    cutoff = is_ratios[tail_start - 1]
     ξ = _psis_smooth_tail!(tail, cutoff, r_eff)
 
     # truncate at max of raw weights (1 after scaling)
@@ -267,8 +269,9 @@ function psis!(is_ratios::AbstractVector{T}, r_eff::T=one(T);
     # unsort the ratios to their original position:
     invpermute!(is_ratios, last.(ratio_index))
 
-    if log_weights 
-        @. tail = log(tail + biggest)
+    if log_weights
+        # Re-log the tail, undoing the earlier exp and centering
+        @. tail = log(tail) + biggest
     end
 
     return ξ
