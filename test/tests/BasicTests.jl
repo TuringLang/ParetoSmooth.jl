@@ -111,7 +111,7 @@ end
 
     # Test with log_weights = true
     log_weights_true = copy(log_lik)
-    log_weights_true, xi_true = psis!(log_weights_true, r_eff; log_weights=true)
+    xi_true = psis!(log_weights_true, r_eff; log_weights=true)
 
     # Test with log_weights = false
     raw_weights_false = exp.(log_lik .- maximum(log_lik))
