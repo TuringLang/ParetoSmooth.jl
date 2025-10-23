@@ -4,3 +4,4 @@ ParetoSmooth = "a68b5a21-f429-434e-8bfa-46b447300aac"
 
 [compat]
 Documenter = "1"
+ParetoSmooth = "0.7"
