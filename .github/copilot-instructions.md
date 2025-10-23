@@ -60,7 +60,7 @@ ParetoSmooth.jl is a Julia package for efficient approximate leave-one-out cross
 ### Testing Requirements
 - Run tests before committing: `julia --project=. -e "using Pkg; Pkg.test()"`
 - **CRITICAL**: NEVER CANCEL tests even if they appear to hang - they take 2 minutes
-- All 48 tests must pass for a valid build
+- All tests must pass for a valid build
 - Tests validate against R reference data in `test/data/`
 
 ## Common Tasks

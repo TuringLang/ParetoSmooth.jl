@@ -202,7 +202,7 @@ end
 
 function psis(is_ratios::AbstractVector{<:Real}, args...; kwargs...)
     new_ratios = copy(is_ratios)
-    ξ = psis!(new_ratios, kwargs...)
+    ξ = psis!(new_ratios; kwargs...)
     return new_ratios, ξ
 end
 
@@ -253,13 +253,13 @@ function psis!(is_ratios::AbstractVector{T}, r_eff::T=one(T);
     is_ratios .= first.(ratio_index)
     @views tail = is_ratios[tail_start:len]
     _check_tail(tail)
+    cutoff = is_ratios[tail_start - 1]
     if log_weights 
         biggest = maximum(tail)
-        @. tail = exp(tail - biggest)
+        @. is_ratios = exp(is_ratios - biggest)
+        cutoff = exp(cutoff - biggest)
     end
 
-    # Get value just before the tail starts:
-    cutoff = is_ratios[tail_start - 1]
     ξ = _psis_smooth_tail!(tail, cutoff, r_eff)
 
     # truncate at max of raw weights (1 after scaling)
@@ -268,7 +268,7 @@ function psis!(is_ratios::AbstractVector{T}, r_eff::T=one(T);
     invpermute!(is_ratios, last.(ratio_index))
 
     if log_weights 
-        @. tail = log(tail + biggest)
+        @. is_ratios = log(is_ratios) + biggest
     end
 
     return ξ
